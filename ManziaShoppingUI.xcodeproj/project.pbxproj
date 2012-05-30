@@ -15,10 +15,10 @@
 		84E7077B157691CB00A65BBC /* MzAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 84E7077A157691CB00A65BBC /* MzAppDelegate.m */; };
 		84E7077E157691CB00A65BBC /* MainStoryboard_iPhone.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 84E7077C157691CB00A65BBC /* MainStoryboard_iPhone.storyboard */; };
 		84E70781157691CB00A65BBC /* MainStoryboard_iPad.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 84E7077F157691CB00A65BBC /* MainStoryboard_iPad.storyboard */; };
-		84E70784157691CB00A65BBC /* MzFirstViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 84E70783157691CB00A65BBC /* MzFirstViewController.m */; };
+		84E70784157691CB00A65BBC /* MzProductCollectionViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 84E70783157691CB00A65BBC /* MzProductCollectionViewController.m */; };
 		84E70786157691CB00A65BBC /* first.png in Resources */ = {isa = PBXBuildFile; fileRef = 84E70785157691CB00A65BBC /* first.png */; };
 		84E70788157691CB00A65BBC /* first@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 84E70787157691CB00A65BBC /* first@2x.png */; };
-		84E7078B157691CC00A65BBC /* MzSecondViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 84E7078A157691CC00A65BBC /* MzSecondViewController.m */; };
+		84E7078B157691CC00A65BBC /* MzProductItemViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 84E7078A157691CC00A65BBC /* MzProductItemViewController.m */; };
 		84E7078D157691CC00A65BBC /* second.png in Resources */ = {isa = PBXBuildFile; fileRef = 84E7078C157691CC00A65BBC /* second.png */; };
 		84E7078F157691CC00A65BBC /* second@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 84E7078E157691CC00A65BBC /* second@2x.png */; };
 		84E70797157691CC00A65BBC /* SenTestingKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 84E70796157691CC00A65BBC /* SenTestingKit.framework */; };
@@ -26,6 +26,10 @@
 		84E70799157691CC00A65BBC /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 84E7076C157691CB00A65BBC /* Foundation.framework */; };
 		84E707A1157691CC00A65BBC /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 84E7079F157691CC00A65BBC /* InfoPlist.strings */; };
 		84E707A4157691CC00A65BBC /* ManziaShoppingUITests.m in Sources */ = {isa = PBXBuildFile; fileRef = 84E707A3157691CC00A65BBC /* ManziaShoppingUITests.m */; };
+		84E707AE1576921100A65BBC /* CoreData.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 84E707AD1576921100A65BBC /* CoreData.framework */; };
+		84E707AF1576923600A65BBC /* SenTestingKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 84E70796157691CC00A65BBC /* SenTestingKit.framework */; };
+		84E707B61576971200A65BBC /* MzProductCollection.m in Sources */ = {isa = PBXBuildFile; fileRef = 84E707B51576971200A65BBC /* MzProductCollection.m */; };
+		84E707BB1576DE5000A65BBC /* sampleProductsResponse.xml in Resources */ = {isa = PBXBuildFile; fileRef = 84E707BA1576DE4F00A65BBC /* sampleProductsResponse.xml */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -43,28 +47,32 @@
 		84E7076A157691CB00A65BBC /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		84E7076C157691CB00A65BBC /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		84E7076E157691CB00A65BBC /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
-		84E70772157691CB00A65BBC /* ManziaShoppingUI-Info.plist */ = {isa = PBXFileReference; path = "ManziaShoppingUI-Info.plist"; sourceTree = "<group>"; };
+		84E70772157691CB00A65BBC /* ManziaShoppingUI-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "ManziaShoppingUI-Info.plist"; sourceTree = "<group>"; };
 		84E70774157691CB00A65BBC /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		84E70776157691CB00A65BBC /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
-		84E70778157691CB00A65BBC /* ManziaShoppingUI-Prefix.pch */ = {isa = PBXFileReference; path = "ManziaShoppingUI-Prefix.pch"; sourceTree = "<group>"; };
-		84E70779157691CB00A65BBC /* MzAppDelegate.h */ = {isa = PBXFileReference; path = MzAppDelegate.h; sourceTree = "<group>"; };
+		84E70778157691CB00A65BBC /* ManziaShoppingUI-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "ManziaShoppingUI-Prefix.pch"; sourceTree = "<group>"; };
+		84E70779157691CB00A65BBC /* MzAppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MzAppDelegate.h; sourceTree = "<group>"; };
 		84E7077A157691CB00A65BBC /* MzAppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MzAppDelegate.m; sourceTree = "<group>"; };
 		84E7077D157691CB00A65BBC /* en */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = en; path = en.lproj/MainStoryboard_iPhone.storyboard; sourceTree = "<group>"; };
 		84E70780157691CB00A65BBC /* en */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = en; path = en.lproj/MainStoryboard_iPad.storyboard; sourceTree = "<group>"; };
-		84E70782157691CB00A65BBC /* MzFirstViewController.h */ = {isa = PBXFileReference; path = MzFirstViewController.h; sourceTree = "<group>"; };
-		84E70783157691CB00A65BBC /* MzFirstViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MzFirstViewController.m; sourceTree = "<group>"; };
+		84E70782157691CB00A65BBC /* MzProductCollectionViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MzProductCollectionViewController.h; sourceTree = "<group>"; };
+		84E70783157691CB00A65BBC /* MzProductCollectionViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MzProductCollectionViewController.m; sourceTree = "<group>"; };
 		84E70785157691CB00A65BBC /* first.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = first.png; sourceTree = "<group>"; };
 		84E70787157691CB00A65BBC /* first@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "first@2x.png"; sourceTree = "<group>"; };
-		84E70789157691CB00A65BBC /* MzSecondViewController.h */ = {isa = PBXFileReference; path = MzSecondViewController.h; sourceTree = "<group>"; };
-		84E7078A157691CC00A65BBC /* MzSecondViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MzSecondViewController.m; sourceTree = "<group>"; };
+		84E70789157691CB00A65BBC /* MzProductItemViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MzProductItemViewController.h; sourceTree = "<group>"; };
+		84E7078A157691CC00A65BBC /* MzProductItemViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MzProductItemViewController.m; sourceTree = "<group>"; };
 		84E7078C157691CC00A65BBC /* second.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = second.png; sourceTree = "<group>"; };
 		84E7078E157691CC00A65BBC /* second@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "second@2x.png"; sourceTree = "<group>"; };
 		84E70795157691CC00A65BBC /* ManziaShoppingUITests.octest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ManziaShoppingUITests.octest; sourceTree = BUILT_PRODUCTS_DIR; };
 		84E70796157691CC00A65BBC /* SenTestingKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SenTestingKit.framework; path = Library/Frameworks/SenTestingKit.framework; sourceTree = DEVELOPER_DIR; };
-		84E7079E157691CC00A65BBC /* ManziaShoppingUITests-Info.plist */ = {isa = PBXFileReference; path = "ManziaShoppingUITests-Info.plist"; sourceTree = "<group>"; };
+		84E7079E157691CC00A65BBC /* ManziaShoppingUITests-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "ManziaShoppingUITests-Info.plist"; sourceTree = "<group>"; };
 		84E707A0157691CC00A65BBC /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
-		84E707A2157691CC00A65BBC /* ManziaShoppingUITests.h */ = {isa = PBXFileReference; path = ManziaShoppingUITests.h; sourceTree = "<group>"; };
+		84E707A2157691CC00A65BBC /* ManziaShoppingUITests.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ManziaShoppingUITests.h; sourceTree = "<group>"; };
 		84E707A3157691CC00A65BBC /* ManziaShoppingUITests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ManziaShoppingUITests.m; sourceTree = "<group>"; };
+		84E707AD1576921100A65BBC /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = System/Library/Frameworks/CoreData.framework; sourceTree = SDKROOT; };
+		84E707B41576971200A65BBC /* MzProductCollection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MzProductCollection.h; sourceTree = "<group>"; };
+		84E707B51576971200A65BBC /* MzProductCollection.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MzProductCollection.m; sourceTree = "<group>"; };
+		84E707BA1576DE4F00A65BBC /* sampleProductsResponse.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = sampleProductsResponse.xml; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -72,6 +80,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				84E707AF1576923600A65BBC /* SenTestingKit.framework in Frameworks */,
+				84E707AE1576921100A65BBC /* CoreData.framework in Frameworks */,
 				84E7076B157691CB00A65BBC /* UIKit.framework in Frameworks */,
 				84E7076D157691CB00A65BBC /* Foundation.framework in Frameworks */,
 				84E7076F157691CB00A65BBC /* CoreGraphics.framework in Frameworks */,
@@ -113,6 +123,7 @@
 		84E70769157691CB00A65BBC /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				84E707AD1576921100A65BBC /* CoreData.framework */,
 				84E7076A157691CB00A65BBC /* UIKit.framework */,
 				84E7076C157691CB00A65BBC /* Foundation.framework */,
 				84E7076E157691CB00A65BBC /* CoreGraphics.framework */,
@@ -124,18 +135,18 @@
 		84E70770157691CB00A65BBC /* ManziaShoppingUI */ = {
 			isa = PBXGroup;
 			children = (
+				84E707BA1576DE4F00A65BBC /* sampleProductsResponse.xml */,
 				84E70779157691CB00A65BBC /* MzAppDelegate.h */,
 				84E7077A157691CB00A65BBC /* MzAppDelegate.m */,
 				84E7077C157691CB00A65BBC /* MainStoryboard_iPhone.storyboard */,
 				84E7077F157691CB00A65BBC /* MainStoryboard_iPad.storyboard */,
-				84E70782157691CB00A65BBC /* MzFirstViewController.h */,
-				84E70783157691CB00A65BBC /* MzFirstViewController.m */,
 				84E70785157691CB00A65BBC /* first.png */,
 				84E70787157691CB00A65BBC /* first@2x.png */,
-				84E70789157691CB00A65BBC /* MzSecondViewController.h */,
-				84E7078A157691CC00A65BBC /* MzSecondViewController.m */,
 				84E7078C157691CC00A65BBC /* second.png */,
 				84E7078E157691CC00A65BBC /* second@2x.png */,
+				84E707B31576947C00A65BBC /* Networking */,
+				84E707B21576946400A65BBC /* View Controllers */,
+				84E707B11576944800A65BBC /* Model */,
 				84E70771157691CB00A65BBC /* Supporting Files */,
 			);
 			path = ManziaShoppingUI;
@@ -169,6 +180,33 @@
 				84E7079F157691CC00A65BBC /* InfoPlist.strings */,
 			);
 			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+		84E707B11576944800A65BBC /* Model */ = {
+			isa = PBXGroup;
+			children = (
+				84E707B41576971200A65BBC /* MzProductCollection.h */,
+				84E707B51576971200A65BBC /* MzProductCollection.m */,
+			);
+			name = Model;
+			sourceTree = "<group>";
+		};
+		84E707B21576946400A65BBC /* View Controllers */ = {
+			isa = PBXGroup;
+			children = (
+				84E70789157691CB00A65BBC /* MzProductItemViewController.h */,
+				84E7078A157691CC00A65BBC /* MzProductItemViewController.m */,
+				84E70782157691CB00A65BBC /* MzProductCollectionViewController.h */,
+				84E70783157691CB00A65BBC /* MzProductCollectionViewController.m */,
+			);
+			name = "View Controllers";
+			sourceTree = "<group>";
+		};
+		84E707B31576947C00A65BBC /* Networking */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Networking;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -248,6 +286,7 @@
 				84E70788157691CB00A65BBC /* first@2x.png in Resources */,
 				84E7078D157691CC00A65BBC /* second.png in Resources */,
 				84E7078F157691CC00A65BBC /* second@2x.png in Resources */,
+				84E707BB1576DE5000A65BBC /* sampleProductsResponse.xml in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -284,8 +323,9 @@
 			files = (
 				84E70777157691CB00A65BBC /* main.m in Sources */,
 				84E7077B157691CB00A65BBC /* MzAppDelegate.m in Sources */,
-				84E70784157691CB00A65BBC /* MzFirstViewController.m in Sources */,
-				84E7078B157691CC00A65BBC /* MzSecondViewController.m in Sources */,
+				84E70784157691CB00A65BBC /* MzProductCollectionViewController.m in Sources */,
+				84E7078B157691CC00A65BBC /* MzProductItemViewController.m in Sources */,
+				84E707B61576971200A65BBC /* MzProductCollection.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -393,9 +433,14 @@
 		84E707A8157691CC00A65BBC /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(DEVELOPER_FRAMEWORKS_DIR)\"",
+				);
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "ManziaShoppingUI/ManziaShoppingUI-Prefix.pch";
 				INFOPLIST_FILE = "ManziaShoppingUI/ManziaShoppingUI-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 3.2;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				WRAPPER_EXTENSION = app;
 			};
@@ -404,9 +449,14 @@
 		84E707A9157691CC00A65BBC /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(DEVELOPER_FRAMEWORKS_DIR)\"",
+				);
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "ManziaShoppingUI/ManziaShoppingUI-Prefix.pch";
 				INFOPLIST_FILE = "ManziaShoppingUI/ManziaShoppingUI-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 3.2;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				WRAPPER_EXTENSION = app;
 			};
