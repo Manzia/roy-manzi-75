@@ -47,7 +47,55 @@
 */
 
 #import <Foundation/Foundation.h>
+#import <CoreData/CoreData.h>
 
-@interface MzProductCollection : NSObject
+@class MzProductCollectionContext;
+
+enum ProductCollectionSyncState {
+    
+    ProductCollectionSyncStateStopped, 
+    ProductCollectionSyncStateGetting, 
+    ProductCollectionSyncStateParsing, 
+    ProductCollectionSyncStateCommitting
+};
+typedef enum ProductCollectionSyncState ProductCollectionSyncState;
+
+@interface MzProductCollection : NSObject {
+    NSString *collectionURLString;
+    MzProductCollectionContext *productCollectionContext;
+    NSEntityDescription *productItemEntity;
+    NSDate *dateLastSynced;
+    ProductCollectionSyncState stateOfSync;
+    NSError *errorFromLastSync;
+    NSTimer *timeToSave;
+}
+
+// Properties
+@property(nonatomic, copy) NSString *collectionURLString;
+@property(nonatomic, retain, readonly)NSManagedObjectContext *managedObjectContext;
+@property(nonatomic, retain, readonly)NSEntityDescription *productItemEntity;
+
+// Properties that enable the control of the syncing process
+@property (nonatomic, assign, readonly, getter=isSynchronizing) BOOL synchronizing;
+@property (nonatomic, assign, readonly) ProductCollectionSyncState  stateOfSync;
+@property (nonatomic, copy, readonly) NSString *statusOfSync;                 
+@property (nonatomic, copy, readonly) NSDate *dateLastSynced;               
+@property (nonatomic, copy, readonly) NSError *errorFromLastSync;              
+@property (nonatomic, copy, readonly) NSDateFormatter *dateFormatter; 
+
+// Class method to manage the ProductCollection Cache directories
++(void)applicationInBackground;
+
+// initialize
+-(id)initWithCollectionURLString:(NSString *)collectionURLString;
+
+// methods to manage the product collection startup, stop and save processes
+-(void)startCollection;
+-(void)stopCollection;
+-(void)saveCollection;
+
+// methods to control the synchronization process
+-(void)startSynchronization;
+-(void)stopSynchronization;
 
 @end

@@ -8,6 +8,6 @@
 
 #import <UIKit/UIKit.h>
 
-@interface MzFirstViewController : UIViewController
+@interface MzProductCollectionViewController : UIViewController
 
 @end

@@ -1,13 +1,15 @@
 //
-//  MzSecondViewController.h
+//  MzProductCollectionContext.m
 //  ManziaShoppingUI
 //
 //  Created by Macbook Pro on 5/30/12.
 //  Copyright (c) 2012 __MyCompanyName__. All rights reserved.
 //
 
-#import <UIKit/UIKit.h>
+#import "MzProductCollectionContext.h"
 
-@interface MzProductItemViewController : UIViewController
+@implementation MzProductCollectionContext {
+    
+}
 
 @end

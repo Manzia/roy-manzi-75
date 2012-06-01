@@ -7,6 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		840BF0D41577199B0087081C /* MzProductCollectionContext.m in Sources */ = {isa = PBXBuildFile; fileRef = 840BF0D31577199B0087081C /* MzProductCollectionContext.m */; };
+		840BF0DD1577416F0087081C /* QLog.m in Sources */ = {isa = PBXBuildFile; fileRef = 840BF0D91577416F0087081C /* QLog.m */; };
+		840BF0DE1577416F0087081C /* QLogViewer.m in Sources */ = {isa = PBXBuildFile; fileRef = 840BF0DB1577416F0087081C /* QLogViewer.m */; };
+		840BF0DF1577416F0087081C /* Settings.bundle in Resources */ = {isa = PBXBuildFile; fileRef = 840BF0DC1577416F0087081C /* Settings.bundle */; };
+		845DDA201577CCDF00851EF8 /* MessageUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 845DDA1F1577CCDF00851EF8 /* MessageUI.framework */; };
+		845DDA221577CD0B00851EF8 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 845DDA211577CD0B00851EF8 /* libz.dylib */; };
+		845DDA291577EDAD00851EF8 /* MzProductCollectionTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 845DDA281577EDAD00851EF8 /* MzProductCollectionTests.m */; };
+		845DDA2C15787B9500851EF8 /* RecursiveDeleteOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 845DDA2B15787B9500851EF8 /* RecursiveDeleteOperation.m */; };
 		84E7076B157691CB00A65BBC /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 84E7076A157691CB00A65BBC /* UIKit.framework */; };
 		84E7076D157691CB00A65BBC /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 84E7076C157691CB00A65BBC /* Foundation.framework */; };
 		84E7076F157691CB00A65BBC /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 84E7076E157691CB00A65BBC /* CoreGraphics.framework */; };
@@ -43,6 +51,20 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		840BF0D21577199B0087081C /* MzProductCollectionContext.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MzProductCollectionContext.h; sourceTree = "<group>"; };
+		840BF0D31577199B0087081C /* MzProductCollectionContext.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MzProductCollectionContext.m; sourceTree = "<group>"; };
+		840BF0D71577416F0087081C /* Logging.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Logging.h; sourceTree = "<group>"; };
+		840BF0D81577416F0087081C /* QLog.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = QLog.h; sourceTree = "<group>"; };
+		840BF0D91577416F0087081C /* QLog.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = QLog.m; sourceTree = "<group>"; };
+		840BF0DA1577416F0087081C /* QLogViewer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = QLogViewer.h; sourceTree = "<group>"; };
+		840BF0DB1577416F0087081C /* QLogViewer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = QLogViewer.m; sourceTree = "<group>"; };
+		840BF0DC1577416F0087081C /* Settings.bundle */ = {isa = PBXFileReference; explicitFileType = wrapper.application; path = Settings.bundle; sourceTree = "<group>"; };
+		845DDA1F1577CCDF00851EF8 /* MessageUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MessageUI.framework; path = System/Library/Frameworks/MessageUI.framework; sourceTree = SDKROOT; };
+		845DDA211577CD0B00851EF8 /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
+		845DDA271577EDAD00851EF8 /* MzProductCollectionTests.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MzProductCollectionTests.h; sourceTree = "<group>"; };
+		845DDA281577EDAD00851EF8 /* MzProductCollectionTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MzProductCollectionTests.m; sourceTree = "<group>"; };
+		845DDA2A15787B9500851EF8 /* RecursiveDeleteOperation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RecursiveDeleteOperation.h; sourceTree = "<group>"; };
+		845DDA2B15787B9500851EF8 /* RecursiveDeleteOperation.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RecursiveDeleteOperation.m; sourceTree = "<group>"; };
 		84E70766157691CB00A65BBC /* ManziaShoppingUI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ManziaShoppingUI.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		84E7076A157691CB00A65BBC /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		84E7076C157691CB00A65BBC /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
@@ -80,6 +102,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				845DDA221577CD0B00851EF8 /* libz.dylib in Frameworks */,
+				845DDA201577CCDF00851EF8 /* MessageUI.framework in Frameworks */,
 				84E707AF1576923600A65BBC /* SenTestingKit.framework in Frameworks */,
 				84E707AE1576921100A65BBC /* CoreData.framework in Frameworks */,
 				84E7076B157691CB00A65BBC /* UIKit.framework in Frameworks */,
@@ -101,6 +125,19 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		840BF0D61577412E0087081C /* Logging */ = {
+			isa = PBXGroup;
+			children = (
+				840BF0D71577416F0087081C /* Logging.h */,
+				840BF0D81577416F0087081C /* QLog.h */,
+				840BF0D91577416F0087081C /* QLog.m */,
+				840BF0DA1577416F0087081C /* QLogViewer.h */,
+				840BF0DB1577416F0087081C /* QLogViewer.m */,
+				840BF0DC1577416F0087081C /* Settings.bundle */,
+			);
+			name = Logging;
+			sourceTree = "<group>";
+		};
 		84E7075B157691CB00A65BBC = {
 			isa = PBXGroup;
 			children = (
@@ -123,6 +160,8 @@
 		84E70769157691CB00A65BBC /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				845DDA211577CD0B00851EF8 /* libz.dylib */,
+				845DDA1F1577CCDF00851EF8 /* MessageUI.framework */,
 				84E707AD1576921100A65BBC /* CoreData.framework */,
 				84E7076A157691CB00A65BBC /* UIKit.framework */,
 				84E7076C157691CB00A65BBC /* Foundation.framework */,
@@ -135,6 +174,7 @@
 		84E70770157691CB00A65BBC /* ManziaShoppingUI */ = {
 			isa = PBXGroup;
 			children = (
+				840BF0D61577412E0087081C /* Logging */,
 				84E707BA1576DE4F00A65BBC /* sampleProductsResponse.xml */,
 				84E70779157691CB00A65BBC /* MzAppDelegate.h */,
 				84E7077A157691CB00A65BBC /* MzAppDelegate.m */,
@@ -167,6 +207,8 @@
 			isa = PBXGroup;
 			children = (
 				84E707A2157691CC00A65BBC /* ManziaShoppingUITests.h */,
+				845DDA271577EDAD00851EF8 /* MzProductCollectionTests.h */,
+				845DDA281577EDAD00851EF8 /* MzProductCollectionTests.m */,
 				84E707A3157691CC00A65BBC /* ManziaShoppingUITests.m */,
 				84E7079D157691CC00A65BBC /* Supporting Files */,
 			);
@@ -185,8 +227,12 @@
 		84E707B11576944800A65BBC /* Model */ = {
 			isa = PBXGroup;
 			children = (
+				845DDA2A15787B9500851EF8 /* RecursiveDeleteOperation.h */,
+				845DDA2B15787B9500851EF8 /* RecursiveDeleteOperation.m */,
 				84E707B41576971200A65BBC /* MzProductCollection.h */,
 				84E707B51576971200A65BBC /* MzProductCollection.m */,
+				840BF0D21577199B0087081C /* MzProductCollectionContext.h */,
+				840BF0D31577199B0087081C /* MzProductCollectionContext.m */,
 			);
 			name = Model;
 			sourceTree = "<group>";
@@ -287,6 +333,7 @@
 				84E7078D157691CC00A65BBC /* second.png in Resources */,
 				84E7078F157691CC00A65BBC /* second@2x.png in Resources */,
 				84E707BB1576DE5000A65BBC /* sampleProductsResponse.xml in Resources */,
+				840BF0DF1577416F0087081C /* Settings.bundle in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -326,6 +373,11 @@
 				84E70784157691CB00A65BBC /* MzProductCollectionViewController.m in Sources */,
 				84E7078B157691CC00A65BBC /* MzProductItemViewController.m in Sources */,
 				84E707B61576971200A65BBC /* MzProductCollection.m in Sources */,
+				840BF0D41577199B0087081C /* MzProductCollectionContext.m in Sources */,
+				840BF0DD1577416F0087081C /* QLog.m in Sources */,
+				840BF0DE1577416F0087081C /* QLogViewer.m in Sources */,
+				845DDA291577EDAD00851EF8 /* MzProductCollectionTests.m in Sources */,
+				845DDA2C15787B9500851EF8 /* RecursiveDeleteOperation.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -440,8 +492,9 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "ManziaShoppingUI/ManziaShoppingUI-Prefix.pch";
 				INFOPLIST_FILE = "ManziaShoppingUI/ManziaShoppingUI-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 3.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 4.0;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				WRAPPER_EXTENSION = app;
 			};
 			name = Debug;
@@ -456,8 +509,9 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "ManziaShoppingUI/ManziaShoppingUI-Prefix.pch";
 				INFOPLIST_FILE = "ManziaShoppingUI/ManziaShoppingUI-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 3.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 4.0;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				WRAPPER_EXTENSION = app;
 			};
 			name = Release;
@@ -515,6 +569,7 @@
 				84E707A9157691CC00A65BBC /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		84E707AA157691CC00A65BBC /* Build configuration list for PBXNativeTarget "ManziaShoppingUITests" */ = {
 			isa = XCConfigurationList;
@@ -523,6 +578,7 @@
 				84E707AC157691CC00A65BBC /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
