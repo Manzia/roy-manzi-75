@@ -48,8 +48,7 @@
 
 #import <Foundation/Foundation.h>
 #import <CoreData/CoreData.h>
-
-@class MzProductCollectionContext;
+#import "MzProductCollectionContext.h"
 
 enum ProductCollectionSyncState {
     
@@ -71,7 +70,7 @@ typedef enum ProductCollectionSyncState ProductCollectionSyncState;
 }
 
 // Properties
-@property(nonatomic, copy) NSString *collectionURLString;
+@property(nonatomic, copy, readonly) NSString *collectionURLString;
 @property(nonatomic, retain, readonly)NSManagedObjectContext *managedObjectContext;
 @property(nonatomic, retain, readonly)NSEntityDescription *productItemEntity;
 

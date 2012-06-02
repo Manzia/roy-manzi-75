@@ -15,6 +15,7 @@
 @interface MzProductCollection() 
 
 // private properties
+    @property (nonatomic, copy, readwrite) NSString *collectionURLString;
     @property (nonatomic, retain, readwrite)NSEntityDescription *productItemEntity;
     @property (nonatomic, retain, readwrite)MzProductCollectionContext* productCollectionContext;
     @property (nonatomic, copy, readonly) NSString *collectionCachePath;
@@ -37,9 +38,25 @@
 @synthesize errorFromLastSync;
 
 // Other Getters
--(NSManagedObjectContext *)managedObjectContext
+-(id)managedObjectContext
 {
     return self.productCollectionContext;
+}
+
+//Override getter and maintain KVC compliance
+- (NSString *)collectionPath
+{
+    assert(self.productCollectionContext != nil);
+    return self.productCollectionContext.collectionCachePath;
+}
+
+
+
+// Changes in the productCollectionContext property will trigger
+// KVO notifications to observers of managedObjectContext property
++ (NSSet *)keyPathsForValuesAffectingManagedObjectContext
+{
+    return [NSSet setWithObject:@"productCollectionContext"];
 }
 
 // Format for the ProductCollection Cache directory
@@ -71,6 +88,8 @@ static NSString * kCollectionDataFileName    = @"Collection.db";
 // 3- A directory containing the full-size Product Images
 NSString * kProductImagesDirectoryName = @"ProductImages";
 
+#pragma mark * Initialization
+
 // Initialize a MzProductCollection model object
 - (id)initWithCollectionURLString:(NSString *)collectURLString
 {
@@ -80,13 +99,14 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     if (self != nil) {
         self.collectionURLString = collectURLString;
                 
-        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(collectionDidBecomeActive:) name:UIApplicationDidBecomeActiveNotification object:nil];
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(appDidBecomeActive:) name:UIApplicationDidBecomeActiveNotification object:nil];
         
         [[QLog log] logWithFormat:@"Collection cache instantiated with URL: %@", collectURLString];
     }
     return self;
 }
 
+#pragma mark * Collection CacheDirectory Managemnt
 
 // Returns a path to the CachesDirectory
 + (NSString *)pathToCachesDirectory
@@ -261,8 +281,10 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
   
 }
 
+#pragma mark * ProductCollection lifecycle Management
+
 // Method that is called when application is transitioning to the ACTIVE state
-- (void)didBecomeActive:(NSNotification *)notification
+- (void)appDidBecomeActive:(NSNotification *)notification
 {
 #pragma unused(notification)
     
@@ -271,6 +293,221 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
             [self startSynchronization];
         }
     }
+}
+
+#pragma mark * Core Data Management
+// Override synthesized Getter for the productItemEntity property
+- (NSEntityDescription *)productItemEntity
+{
+    if (self->productItemEntity == nil) {
+        assert(self.productCollectionContext != nil);
+        self->productItemEntity = [NSEntityDescription entityForName:@"ProductItems" inManagedObjectContext:self.productCollectionContext];
+        assert(self->productItemEntity != nil);
+    }
+    return self->productItemEntity;
+}
+
+// Method to return all stored ProductItems (MzProductItem objects)
+- (NSFetchRequest *)productItemsFetchRequest
+{
+    NSFetchRequest *    fetchRequest;    
+    fetchRequest = [[NSFetchRequest alloc] init];
+    assert(fetchRequest != nil);
+    
+    [fetchRequest setEntity:self.productItemEntity];
+    [fetchRequest setFetchBatchSize:20];
+    
+    return fetchRequest;
+}
+
+// Finds the associated CollectionCache(Path) given a CollectionURLString and
+// creates a new CollectionCache if none is found
+- (NSString *)findCacheForCollectionURLString
+{
+    NSString *searchResult;
+    NSFileManager *fileManager;
+    NSString *cachesDirectory;
+    NSArray *possibleCollections;
+    NSString *collectionName;
+    
+    assert(self.collectionURLString != nil);
+    
+    fileManager = [NSFileManager defaultManager];
+    assert(fileManager != nil);
+    
+    cachesDirectory = [[self class] pathToCachesDirectory];
+    assert(cachesDirectory != nil);
+    
+    // Iterate through the Caches Directory and sub-Directories and check each plist
+    // file encountered
+        
+    possibleCollections = [fileManager contentsOfDirectoryAtPath:cachesDirectory error:NULL];
+    assert(possibleCollections != nil);
+    
+    searchResult = nil;
+    for (collectionName in possibleCollections) {
+        if ([collectionName hasSuffix:kCollectionExtension]) {
+            
+            NSDictionary *collectionInfo;
+            NSString *collectionInfoURLString;
+            
+            collectionInfo = [NSDictionary dictionaryWithContentsOfFile:[[cachesDirectory stringByAppendingPathComponent:collectionName] stringByAppendingPathComponent:kCollectionFileName]];
+            if (collectionInfo != nil) {
+                collectionInfoURLString = [collectionInfo objectForKey:kCollectionKeyCollectionURLString];
+                if ( [self.collectionURLString isEqual:collectionInfoURLString] ) {
+                    searchResult = [cachesDirectory stringByAppendingPathComponent:collectionName];
+                    break;
+                }
+            }
+        }
+    }
+    // The Caches Directories and sub-directories do not contain a CollectionCache
+    // corresponding to the given CollectionURLString, so create a new CollectionCache
+    // and associate it with the given CollectionURLString
+    
+    if (searchResult == nil) {
+        BOOL success;
+        
+        collectionName = [NSString stringWithFormat:kCollectionNameTemplate, [NSDate timeIntervalSinceReferenceDate], kCollectionExtension];
+        assert(collectionName != nil);
+        
+        searchResult = [cachesDirectory stringByAppendingPathComponent:collectionName];
+        success = [fileManager createDirectoryAtPath:searchResult withIntermediateDirectories:NO attributes:NULL error:NULL];
+        if (success) {
+            NSDictionary *collectionInfoFile;
+            
+            collectionInfoFile = [NSDictionary dictionaryWithObjectsAndKeys:self.collectionURLString, kCollectionKeyCollectionURLString, nil];
+            assert(collectionInfoFile != nil);
+            
+            success = [collectionInfoFile writeToFile:[searchResult stringByAppendingPathComponent:kCollectionFileName] atomically:YES];
+        }
+        if (!success) {
+            searchResult = nil;
+        }
+        
+        [[QLog log] logWithFormat:@"New Collection Cache created: '%@'", collectionName];
+    } else {
+        assert(collectionName != nil);
+        [[QLog log] logWithFormat:@"Found existing Collection Cache '%@'",collectionName];
+    }
+    
+    return searchResult;
+}
+
+/* Private, instance-specific method version of the markForRemoveCollectionCacheAtPath: class method. The CollectionCache marked for deletion will be deleted when the application is moved to the background
+ */
+- (void)markForRemoveCollectionCacheAtPath:(NSString *)collectionPath
+{
+    assert(collectionPath != nil);
+    
+    [[QLog log] logWithFormat:@"Mark Collection Cache for deletion '%@'", [collectionPath lastPathComponent]];
+    
+    [[self class] markForRemoveCollectionCacheAtPath:collectionPath];
+}
+
+/*
+ Start up the Collection Cache for the collectionURLString property. This method also sets
+ the productCollectionContext and collectionCachePath properties to point to the Collection Cache started up 
+ */
+- (BOOL)setupProductCollectionContext
+{
+    BOOL success;
+    NSError *error;
+    NSFileManager *fileManager;
+    NSString *collectionPath;
+    NSString *productImagesDirectoryPath;
+    BOOL isDir;
+    NSURL *collectionDbURL;
+    NSManagedObjectModel *collectionModel;
+    NSPersistentStoreCoordinator *persistentCoordinator;
+    
+    assert(self.collectionURLString != nil);
+    
+    [[QLog log] logWithFormat:@"Starting Collection Cache"];
+    
+    error = nil;
+    
+    fileManager = [NSFileManager defaultManager];
+    assert(fileManager != nil);
+    
+    // Find the Collection Cache directory for this ProductCollection.
+    
+    collectionPath = [self findCacheForCollectionURLString];
+    success = (collectionPath != nil);
+    
+    // Create the ProductImages directory if it doesn't already exist.
+    
+    if (success) {
+        productImagesDirectoryPath = [collectionPath stringByAppendingPathComponent:kProductImagesDirectoryName];
+        assert(productImagesDirectoryPath != nil);
+        
+        success = [fileManager fileExistsAtPath:productImagesDirectoryPath isDirectory:&isDir] && isDir;
+        if (!success) {
+            success = [fileManager createDirectoryAtPath:productImagesDirectoryPath withIntermediateDirectories:NO attributes:NULL error:NULL];
+        }
+    }
+    
+    // Start up CoreData in the Collection Cache directory.
+    
+    if (success) {
+        NSString *collectionModelPath;
+        
+        collectionModelPath = [[NSBundle bundleForClass:[self class]] pathForResource:@"ProductItems" ofType:@"mom"];
+        assert(collectionModelPath != nil);
+        
+        collectionModel = [[NSManagedObjectModel alloc] initWithContentsOfURL:[NSURL fileURLWithPath:collectionModelPath]];
+        success = (collectionModel != nil);
+    }
+    if (success) {
+        collectionDbURL = [NSURL fileURLWithPath:[collectionPath stringByAppendingPathComponent:kCollectionDataFileName]];
+        assert(collectionDbURL != nil);
+        
+        persistentCoordinator = [[NSPersistentStoreCoordinator alloc] initWithManagedObjectModel:collectionModel];
+        success = (persistentCoordinator != nil);
+    }
+    if (success) {
+        success = [persistentCoordinator addPersistentStoreWithType:NSSQLiteStoreType 
+                                    configuration:nil 
+                                              URL:collectionDbURL
+                                          options:nil 
+                                            error:&error] != nil;
+        if (success) {
+            error = nil;
+        }
+    }
+    
+    // Create a managed Object Context from the created persistent store
+    if (success) {
+        MzProductCollectionContext *collectionContext;
+        
+        collectionContext = [[MzProductCollectionContext alloc] initWithCollectionURLString:self.collectionURLString cachePath:collectionPath];
+        assert(collectionContext != nil);
+        
+        [collectionContext setPersistentStoreCoordinator:persistentCoordinator];
+        self.productCollectionContext = collectionContext;
+        
+        // Subscribe to the context changed notification so that we can auto-save.
+        
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(collectionContextChanged:) name:NSManagedObjectContextObjectsDidChangeNotification object:self.managedObjectContext];
+        
+        [[QLog log] logWithFormat:@"Collection started successfully: '%@'", [self.collectionCachePath lastPathComponent]];
+    } else {
+        
+        // Log the error and return NO.
+        
+        if (error == nil) {
+            [[QLog log] logWithFormat:@"Error starting Collection Cache"];
+        } else {
+            [[QLog log] logWithFormat:@"Logged error starting Collection Cahce %@", error];
+        }
+        
+        //Mark for deletion Collection caches that we tried and failed to start-up
+        
+        if (collectionPath != nil) {
+            [self markForRemoveCollectionCacheAtPath:collectionPath];
+        }
+    }
+    return success;
 }
 
 

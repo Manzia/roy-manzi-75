@@ -8,8 +8,15 @@
 
 #import "MzProductCollectionContext.h"
 
-@implementation MzProductCollectionContext {
+@interface MzProductCollectionContext()
+
+@property(nonatomic, copy, readwrite) NSString *collectionCachePath;
+
+@end
+
+@implementation MzProductCollectionContext 
     
-}
+    @synthesize collectionCachePath = _collectionCachePath;
+
 
 @end
