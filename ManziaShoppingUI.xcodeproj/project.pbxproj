@@ -15,6 +15,12 @@
 		845DDA221577CD0B00851EF8 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 845DDA211577CD0B00851EF8 /* libz.dylib */; };
 		845DDA291577EDAD00851EF8 /* MzProductCollectionTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 845DDA281577EDAD00851EF8 /* MzProductCollectionTests.m */; };
 		845DDA2C15787B9500851EF8 /* RecursiveDeleteOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 845DDA2B15787B9500851EF8 /* RecursiveDeleteOperation.m */; };
+		84B9AF49157BC03B004EA736 /* QHTTPOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 84B9AF46157BC03B004EA736 /* QHTTPOperation.m */; };
+		84B9AF4A157BC03B004EA736 /* QRunLoopOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 84B9AF48157BC03B004EA736 /* QRunLoopOperation.m */; };
+		84B9AF4E157BC09F004EA736 /* QReachabilityOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 84B9AF4D157BC09F004EA736 /* QReachabilityOperation.m */; };
+		84B9AF51157BC0D2004EA736 /* NetworkManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 84B9AF50157BC0D2004EA736 /* NetworkManager.m */; };
+		84B9AF54157BCD58004EA736 /* MzCollectionParserOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 84B9AF53157BCD58004EA736 /* MzCollectionParserOperation.m */; };
+		84D40E50157A96DB00D374D7 /* RetryingHTTPOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 84D40E4F157A96DB00D374D7 /* RetryingHTTPOperation.m */; };
 		84E7076B157691CB00A65BBC /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 84E7076A157691CB00A65BBC /* UIKit.framework */; };
 		84E7076D157691CB00A65BBC /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 84E7076C157691CB00A65BBC /* Foundation.framework */; };
 		84E7076F157691CB00A65BBC /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 84E7076E157691CB00A65BBC /* CoreGraphics.framework */; };
@@ -65,6 +71,18 @@
 		845DDA281577EDAD00851EF8 /* MzProductCollectionTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MzProductCollectionTests.m; sourceTree = "<group>"; };
 		845DDA2A15787B9500851EF8 /* RecursiveDeleteOperation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RecursiveDeleteOperation.h; sourceTree = "<group>"; };
 		845DDA2B15787B9500851EF8 /* RecursiveDeleteOperation.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RecursiveDeleteOperation.m; sourceTree = "<group>"; };
+		84B9AF45157BC03B004EA736 /* QHTTPOperation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = QHTTPOperation.h; sourceTree = "<group>"; };
+		84B9AF46157BC03B004EA736 /* QHTTPOperation.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = QHTTPOperation.m; sourceTree = "<group>"; };
+		84B9AF47157BC03B004EA736 /* QRunLoopOperation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = QRunLoopOperation.h; sourceTree = "<group>"; };
+		84B9AF48157BC03B004EA736 /* QRunLoopOperation.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = QRunLoopOperation.m; sourceTree = "<group>"; };
+		84B9AF4C157BC09F004EA736 /* QReachabilityOperation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = QReachabilityOperation.h; sourceTree = "<group>"; };
+		84B9AF4D157BC09F004EA736 /* QReachabilityOperation.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = QReachabilityOperation.m; sourceTree = "<group>"; };
+		84B9AF4F157BC0D2004EA736 /* NetworkManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NetworkManager.h; sourceTree = "<group>"; };
+		84B9AF50157BC0D2004EA736 /* NetworkManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = NetworkManager.m; sourceTree = "<group>"; };
+		84B9AF52157BCD58004EA736 /* MzCollectionParserOperation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MzCollectionParserOperation.h; sourceTree = "<group>"; };
+		84B9AF53157BCD58004EA736 /* MzCollectionParserOperation.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MzCollectionParserOperation.m; sourceTree = "<group>"; };
+		84D40E4E157A96DB00D374D7 /* RetryingHTTPOperation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RetryingHTTPOperation.h; sourceTree = "<group>"; };
+		84D40E4F157A96DB00D374D7 /* RetryingHTTPOperation.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RetryingHTTPOperation.m; sourceTree = "<group>"; };
 		84E70766157691CB00A65BBC /* ManziaShoppingUI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ManziaShoppingUI.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		84E7076A157691CB00A65BBC /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		84E7076C157691CB00A65BBC /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
@@ -251,6 +269,18 @@
 		84E707B31576947C00A65BBC /* Networking */ = {
 			isa = PBXGroup;
 			children = (
+				84B9AF4F157BC0D2004EA736 /* NetworkManager.h */,
+				84B9AF50157BC0D2004EA736 /* NetworkManager.m */,
+				84B9AF4C157BC09F004EA736 /* QReachabilityOperation.h */,
+				84B9AF4D157BC09F004EA736 /* QReachabilityOperation.m */,
+				84D40E4E157A96DB00D374D7 /* RetryingHTTPOperation.h */,
+				84B9AF45157BC03B004EA736 /* QHTTPOperation.h */,
+				84B9AF46157BC03B004EA736 /* QHTTPOperation.m */,
+				84B9AF47157BC03B004EA736 /* QRunLoopOperation.h */,
+				84B9AF48157BC03B004EA736 /* QRunLoopOperation.m */,
+				84D40E4F157A96DB00D374D7 /* RetryingHTTPOperation.m */,
+				84B9AF52157BCD58004EA736 /* MzCollectionParserOperation.h */,
+				84B9AF53157BCD58004EA736 /* MzCollectionParserOperation.m */,
 			);
 			name = Networking;
 			sourceTree = "<group>";
@@ -378,6 +408,12 @@
 				840BF0DE1577416F0087081C /* QLogViewer.m in Sources */,
 				845DDA291577EDAD00851EF8 /* MzProductCollectionTests.m in Sources */,
 				845DDA2C15787B9500851EF8 /* RecursiveDeleteOperation.m in Sources */,
+				84D40E50157A96DB00D374D7 /* RetryingHTTPOperation.m in Sources */,
+				84B9AF49157BC03B004EA736 /* QHTTPOperation.m in Sources */,
+				84B9AF4A157BC03B004EA736 /* QRunLoopOperation.m in Sources */,
+				84B9AF4E157BC09F004EA736 /* QReachabilityOperation.m in Sources */,
+				84B9AF51157BC0D2004EA736 /* NetworkManager.m in Sources */,
+				84B9AF54157BCD58004EA736 /* MzCollectionParserOperation.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

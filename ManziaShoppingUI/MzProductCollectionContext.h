@@ -19,4 +19,13 @@
 // Initializer
 - (id)initWithCollectionURLString:(NSString *)URLString cachePath:(NSString *)collectionCachePath;
 
+// Returns a mutable request that's configured to do an HTTP GET operation 
+// for a resources with the given path relative to the collectionURLString. 
+// If path is nil, returns a request for the galleryURLString resource 
+// itself.  This can return fail (and return nil) if path is not nil and 
+// yet not a valid URL path.
+
+- (NSMutableURLRequest *)requestToGetCollectionRelativeString:(NSString *)path;
+
+
 @end

@@ -7,21 +7,27 @@
 //
 
 #import "MzProductCollection.h"
-#import "QLog.h"
+#import "Logging.h"
 #import "RecursiveDeleteOperation.h"
+#import "RetryingHTTPOperation.h"
+#import "MzProductCollectionContext.h"
+#import "NetworkManager.h"
 
-#define kActiveCollectionCachesLimit 4
+#define kActiveCollectionCachesLimit 2
+#define kAutoSaveContextChangesTimeInterval 5.0
 
 @interface MzProductCollection() 
 
 // private properties
-    @property (nonatomic, copy, readwrite) NSString *collectionURLString;
-    @property (nonatomic, retain, readwrite)NSEntityDescription *productItemEntity;
-    @property (nonatomic, retain, readwrite)MzProductCollectionContext* productCollectionContext;
-    @property (nonatomic, copy, readonly) NSString *collectionCachePath;
-    @property (nonatomic, retain, readwrite) NSTimer *timeToSave;
-    @property (nonatomic, copy,   readwrite) NSDate *dateLastSynced;
-    @property (nonatomic, copy,   readwrite) NSError *errorFromLastSync;
+@property (nonatomic, copy, readwrite) NSString *collectionURLString;
+@property (nonatomic, retain, readwrite)NSEntityDescription *productItemEntity;
+@property (nonatomic, retain, readwrite)MzProductCollectionContext* productCollectionContext;
+@property (nonatomic, copy, readonly) NSString *collectionCachePath;
+@property (nonatomic, assign, readwrite) ProductCollectionSyncState stateOfSync;
+@property (nonatomic, retain, readwrite) NSTimer *timeToSave;
+@property (nonatomic, copy, readwrite) NSDate *dateLastSynced;
+@property (nonatomic, copy, readwrite) NSError *errorFromLastSync;
+@property (nonatomic, retain, readwrite) RetryingHTTPOperation *getCollectionOperation;
 
 @end
 
@@ -32,10 +38,12 @@
 @synthesize productItemEntity;
 @synthesize productCollectionContext;
 @synthesize collectionCachePath;
+@synthesize stateOfSync;
 @synthesize timeToSave;
 @synthesize dateFormatter;
 @synthesize dateLastSynced;
 @synthesize errorFromLastSync;
+@synthesize getCollectionOperation;
 
 // Other Getters
 -(id)managedObjectContext
@@ -44,7 +52,7 @@
 }
 
 //Override getter and maintain KVC compliance
-- (NSString *)collectionPath
+- (NSString *)collectionCachePath
 {
     assert(self.productCollectionContext != nil);
     return self.productCollectionContext.collectionCachePath;
@@ -124,9 +132,9 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
 }
 
 // Marks for removal a ProductCollection cache at a given path
-+ (void)markForRemoveCollectionCacheAtPath:(NSString *)collectionCachePath
++ (void)markForRemoveCollectionCacheAtPath:(NSString *)collectionPath
 {
-    (void) [[NSFileManager defaultManager] removeItemAtPath:[collectionCachePath stringByAppendingPathComponent:kCollectionFileName] error:NULL];
+    (void) [[NSFileManager defaultManager] removeItemAtPath:[collectionPath stringByAppendingPathComponent:kCollectionFileName] error:NULL];
 }
 
 // Method called in the App Delegate's applicationDidEnterBackground method
@@ -187,26 +195,26 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     
     for (NSString * collectionCacheName in possibleCollectionCacheNames) {
         if ([collectionCacheName hasSuffix:kCollectionExtension]) {
-            NSString *collectionCachePath;      // ProductCollection cache directory name
+            NSString *collectionPath;      // ProductCollection cache directory name
             NSString *collectionInfoFilePath;   // associated plist file
             NSString *collectionDataFilePath;   // associated Core data file
             
-            collectionCachePath = [cachesDirectoryPath stringByAppendingPathComponent:collectionCacheName];
-            assert(collectionCachePath != nil);
+            collectionPath = [cachesDirectoryPath stringByAppendingPathComponent:collectionCacheName];
+            assert(collectionPath != nil);
             
-            collectionInfoFilePath = [collectionCachePath stringByAppendingPathComponent:kCollectionFileName];
+            collectionInfoFilePath = [collectionPath stringByAppendingPathComponent:kCollectionFileName];
             assert(collectionInfoFilePath != nil);
             
-            collectionDataFilePath = [collectionCachePath stringByAppendingPathComponent:kCollectionDataFileName];
+            collectionDataFilePath = [collectionPath stringByAppendingPathComponent:kCollectionDataFileName];
             assert(collectionDataFilePath != nil);
             
             if (clearCollectionCaches) {
                 [[QLog log] logWithFormat:@"Clear Collection Cache: '%@'", collectionCacheName];
                 (void) [fileManager removeItemAtPath:collectionInfoFilePath error:NULL];
-                [collectionCachePathsToDelete addObject:collectionCachePath];
+                [collectionCachePathsToDelete addObject:collectionPath];
             } else if ( ! [fileManager fileExistsAtPath:collectionInfoFilePath]) {
                 [[QLog log] logWithFormat:@"Collection cache already marked for delete: '%@'", collectionCacheName];
-                [collectionCachePathsToDelete addObject:collectionCachePath];
+                [collectionCachePathsToDelete addObject:collectionPath];
             } else {
                 
                 /*
@@ -220,12 +228,12 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
                 modifiedDate = [[fileManager attributesOfItemAtPath:collectionDataFilePath error:NULL] objectForKey:NSFileModificationDate];
                 if (modifiedDate == nil) {
                     [[QLog log] logWithFormat:@"Collection Cache database invalid: '%@'", collectionCacheName];
-                    [collectionCachePathsToDelete addObject:collectionCachePath];
+                    [collectionCachePathsToDelete addObject:collectionPath];
                 } else {
                     assert([modifiedDate isKindOfClass:[NSDate class]]);
                     [activeCollectionCachePathsAndDates addObject:
                         [NSDictionary dictionaryWithObjectsAndKeys:
-                         collectionCachePath, @"collectionPath", modifiedDate, @"modifiedDate",nil]];
+                         collectionPath, @"collectionPath", modifiedDate, @"modifiedDate",nil]];
                 }
             }
         }
@@ -423,7 +431,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     
     assert(self.collectionURLString != nil);
     
-    [[QLog log] logWithFormat:@"Starting Collection Cache"];
+    [[QLog log] logWithFormat:@"Starting Collection Cache for URL: %@", self.collectionURLString];
     
     error = nil;
     
@@ -490,15 +498,15 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
         
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(collectionContextChanged:) name:NSManagedObjectContextObjectsDidChangeNotification object:self.managedObjectContext];
         
-        [[QLog log] logWithFormat:@"Collection started successfully: '%@'", [self.collectionCachePath lastPathComponent]];
+        [[QLog log] logWithFormat:@"Collection started successfully at Path: '%@' for URL: %@", [self.collectionCachePath lastPathComponent], self.collectionURLString];
     } else {
         
         // Log the error and return NO.
         
         if (error == nil) {
-            [[QLog log] logWithFormat:@"Error starting Collection Cache"];
+            [[QLog log] logWithFormat:@"Error starting Collection Cache with URL: %@", self.collectionURLString];
         } else {
-            [[QLog log] logWithFormat:@"Logged error starting Collection Cahce %@", error];
+            [[QLog log] logWithFormat:@"Logged error starting Collection Cache %@ with URL: %@", error, self.collectionURLString];
         }
         
         //Mark for deletion Collection caches that we tried and failed to start-up
@@ -509,6 +517,270 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     }
     return success;
 }
+
+// Start the Collection Cache, create any needed files/directories if necessary
+- (void)startCollection
+{
+    BOOL success;
+    
+    assert(self.collectionURLString != nil);
+    
+    // Start up the Collection Cache.  Abandon the Collection, and retry once more
+    // on initial failure
+        
+    success = [self setupProductCollectionContext];
+    if ( ! success ) {
+        [[QLog log] logWithFormat:@"Retry startup of Collection Cache with URL: %@", self.collectionURLString];
+        success = [self setupProductCollectionContext];
+    }
+    
+    // Start the synchronization process otherwise the application is dead 
+    // and we crash.
+    
+    if (success) {
+        [self startSynchronization];
+    } else {
+        abort();
+    }
+}
+
+// Save the Collection Cache
+- (void)saveCollection
+{
+    NSError *error = nil;
+    
+    // Typically this instance method will be called automatically after a preset
+    // time interval in response to productCollectionContext changes, so we disable the 
+    // auto-save before actually saving the Collection Cache.
+    
+    [self.timeToSave invalidate];
+    self.timeToSave = nil;
+    
+    // Now save.
+    
+    if ( (self.productCollectionContext != nil) && [self.productCollectionContext hasChanges] ) {
+        BOOL success;
+        success = [self.productCollectionContext save:&error];
+        if (success) {
+            error = nil;
+        }
+    }
+    
+    // Log the results.
+    
+    if (error == nil) {
+        [[QLog log] logWithFormat:@"Saved Collection Cache with URL: %@", self.collectionURLString];
+    } else {
+        [[QLog log] logWithFormat:@"Collection Cache save error: %@ with URL: %@", error, self.collectionURLString];
+    }
+}
+
+// When the managed object context changes we start an automatic NSTimer to fire in
+// kAutoSaveContextChangesTimeInterval
+- (void)collectionContextChanged:(NSNotification *)note
+{
+#pragma unused(note)
+    if (self.timeToSave != nil) {
+        [self.timeToSave invalidate];
+    }
+    self.timeToSave = [NSTimer scheduledTimerWithTimeInterval:kAutoSaveContextChangesTimeInterval target:self selector:@selector(saveCollection) userInfo:nil repeats:NO];
+}
+
+// Closes access to the Collection Cache when a user switches to another ProductCollection
+// or when the application is moved to the background
+- (void)stopCollection
+{
+    [self stopSynchronization];
+    
+    // Shut down the managed object context.
+    
+    if (self.productCollectionContext != nil) {
+        
+        // Stop the auto save mechanism and then force a save.
+        
+        [[NSNotificationCenter defaultCenter] removeObserver:self name:NSManagedObjectContextObjectsDidChangeNotification object:self.productCollectionContext];
+        
+        [self saveCollection];
+        
+        self.productItemEntity = nil;
+        self.productCollectionContext = nil;
+    }
+    [[QLog log] logWithFormat:@"Stopped Collection Cache with URL: %@", self.collectionURLString];
+}
+
+#pragma mark * Main Synchronization methods
+
+// Register all the dependent properties/keys (on StateOfSync property) to enable
+// KVO notifications for changes in any of these dependent properties
++ (NSSet *)keyPathsForValuesAffectingStatusOfSync
+{
+    return [NSSet setWithObjects:@"stateOfSync", @"errorFromLastSync", @"dateFormatter", @"dateLastSynced", @"getCollectionOperation.retryStateClient", nil];
+}
+
+// Override getter for the KVO-observable and User-Visible StatusOfSync property
+- (NSString *)statusOfSync
+{
+    NSString *  syncResult;
+    
+    if (self.errorFromLastSync == nil) {
+        switch (self.stateOfSync) {
+            case ProductCollectionSyncStateStopped: {
+                if (self.dateLastSynced == nil) {
+                    syncResult = @"Not updated";
+                } else {
+                    syncResult = [NSString stringWithFormat:@"Updated: %@", [self.dateFormatter stringFromDate:self.dateLastSynced]];
+                }
+            } break;
+            default: {
+                if ( (self.getCollectionOperation != nil) && (self.getCollectionOperation.retryStateClient == kRetryingHTTPOperationStateWaitingToRetry) ) {
+                    syncResult = @"Waiting for network";
+                } else {
+                    syncResult = @"Updating…";
+                }
+            } break;
+        }
+    } else {
+        if ([[self.errorFromLastSync domain] isEqual:NSCocoaErrorDomain] && [self.errorFromLastSync code] == NSUserCancelledError) {
+            syncResult = @"Update cancelled";
+        } else {
+            // At this point self.lastSyncError contains the actual error. 
+            // However, we ignore that and return a very generic error status. 
+            // Users don't understand "Connection reset by peer" anyway (-:
+            syncResult = @"Update failed";
+        }
+    }
+    return syncResult;
+}
+
+// Getter for the dateFormatter property that will change/update based on changes
+// in the locale and timezone of the user - standard NSDateFormatter operations
+- (NSDateFormatter *)dateFormatter
+{
+    if (self->dateFormatter == nil) {
+        self->dateFormatter = [[NSDateFormatter alloc] init];
+        assert(self->dateFormatter != nil);
+        
+        [self->dateFormatter setDateStyle:NSDateFormatterMediumStyle];
+        [self->dateFormatter setTimeStyle:NSDateFormatterMediumStyle];
+        
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(updateDateFormatter:) name:NSCurrentLocaleDidChangeNotification  object:nil];
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(updateDateFormatter:) name:NSSystemTimeZoneDidChangeNotification object:nil];
+    }
+    return self->dateFormatter;
+}
+
+// Called when either the current locale or the current time zone changes. 
+- (void)updateDateFormatter:(NSNotification *)note
+{
+#pragma unused(note)
+    NSDateFormatter *localDateFormatter;
+    
+    localDateFormatter = self.dateFormatter;
+    [self willChangeValueForKey:@"dateFormatter"];
+    [localDateFormatter setLocale:[NSLocale currentLocale]];
+    [localDateFormatter setTimeZone:[NSTimeZone localTimeZone]];
+    [self didChangeValueForKey:@"dateFormatter"];
+}
+
+// Turn off auto-KVO notifications for the errorFromLastSync property
++ (BOOL)automaticallyNotifiesObserversOfErrorFromLastSync
+{
+    return NO;
+}
+
+// Override setter in order to log error
+- (void)setErrorFromLastSync:(NSError *)newError
+{
+    assert([NSThread isMainThread]);
+    
+    if (newError != nil) {
+        [[QLog log] logWithFormat:@"Collection Cache with URL: %@ got sync error: %@", self.collectionURLString, newError];
+    }
+    
+    if (newError != self->errorFromLastSync) {
+        [self willChangeValueForKey:@"errorFromLastSync"];
+        self->errorFromLastSync = [newError copy];
+        [self didChangeValueForKey:@"errorFromLastSync"];
+    }
+}
+
+/* Method that starts an HTTP GET operation to retrieve the product collection's
+ XML file. The method has a relativePath argument whose value will be  
+ appended to the product collection's collectionURLString for the HTTP GET.
+ 
+ The relativePath is primarily used by the MzProductCollectionViewController
+ to HTTP GET more product items from the same product collection. Each HTTP GET
+ operation will retrieve an XML file with details for 20 items, depending on the user's browsing, more items may need to be retrieved by passing a fileNumber=X paramter
+ in the relativePath string that's appended to the collectionURLString.
+ */
+
+- (void)startGetOperation:(NSString *)relativePath
+{
+    NSMutableURLRequest *requestURL;
+    
+    assert(self.stateOfSync == ProductCollectionSyncStateStopped);
+    
+    [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Start HTTP GET for Collection Cache with URL %@", self.collectionURLString];
+    
+    requestURL = [self.productCollectionContext requestToGetCollectionRelativeString:relativePath];
+    assert(requestURL != nil);
+    
+    assert(self.getCollectionOperation == nil);
+    self.getCollectionOperation = [[RetryingHTTPOperation alloc] initWithRequest:requestURL];
+    assert(self.getCollectionOperation != nil);
+    
+    [self.getCollectionOperation setQueuePriority:NSOperationQueuePriorityNormal];
+    self.getCollectionOperation.acceptableContentTypes = [NSSet setWithObjects:@"application/xml", @"text/xml", nil];
+    
+    [[NetworkManager sharedManager] addNetworkManagementOperation:self.getCollectionOperation finishedTarget:self action:@selector(getCollectionOperationComplete:)];
+    
+    self.stateOfSync = ProductCollectionSyncStateGetting;
+}
+
+// Starts an operation to parse the product collection's XML when the HTTP GET
+// operation completes succesfully
+- (void)getCollectionOperationComplete:(RetryingHTTPOperation *)operation
+{
+    NSError *error;
+    
+    assert([operation isKindOfClass:[RetryingHTTPOperation class]]);
+    assert(operation == self.getCollectionOperation);
+    assert(self.stateOfSync == ProductCollectionSyncStateGetting);
+    
+    [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Completed HTTP GET operation for Collection Cache with URL: %@", self.collectionURLString];
+    
+    error = operation.error;
+    if (error != nil) {
+        self.errorFromLastSync = error;
+        self.stateOfSync = ProductCollectionSyncStateStopped;
+    } else {
+        if ([QLog log].isEnabled) {
+            [[QLog log] logOption:kLogOptionNetworkData withFormat:@"Receive XML %@", self.getCollectionOperation.responseContent];
+        }
+        [self startParserOperationWithData:self.getCollectionOperation.responseContent];
+    }
+    
+    self.getCollectionOperation = nil;
+}
+
+- (void)startParserOperationWithData:(NSData *)data
+// Starts the operation to parse the gallery's XML.
+{
+    assert(self.syncState == kPhotoGallerySyncStateGetting);
+    
+    [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"gallery %zu sync parse start", (size_t) self.sequenceNumber];
+    
+    assert(self.parserOperation == nil);
+    self.parserOperation = [[[GalleryParserOperation alloc] initWithData:data] autorelease];
+    assert(self.parserOperation != nil);
+    
+    [self.parserOperation setQueuePriority:NSOperationQueuePriorityNormal];
+    
+    [[NetworkManager sharedManager] addCPUOperation:self.parserOperation finishedTarget:self action:@selector(parserOperationDone:)];
+    
+    self.syncState = kPhotoGallerySyncStateParsing;
+}
+
 
 
 @end

@@ -48,7 +48,9 @@
 
 #import <Foundation/Foundation.h>
 #import <CoreData/CoreData.h>
-#import "MzProductCollectionContext.h"
+
+@class MzProductCollectionContext;
+@class RetryingHTTPOperation;
 
 enum ProductCollectionSyncState {
     
@@ -67,6 +69,7 @@ typedef enum ProductCollectionSyncState ProductCollectionSyncState;
     ProductCollectionSyncState stateOfSync;
     NSError *errorFromLastSync;
     NSTimer *timeToSave;
+    RetryingHTTPOperation *getCollectionOperation;
 }
 
 // Properties
