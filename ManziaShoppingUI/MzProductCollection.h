@@ -51,6 +51,7 @@
 
 @class MzProductCollectionContext;
 @class RetryingHTTPOperation;
+@class MzCollectionParserOperation;
 
 enum ProductCollectionSyncState {
     
@@ -70,6 +71,7 @@ typedef enum ProductCollectionSyncState ProductCollectionSyncState;
     NSError *errorFromLastSync;
     NSTimer *timeToSave;
     RetryingHTTPOperation *getCollectionOperation;
+    MzCollectionParserOperation *parserOperation;
 }
 
 // Properties
@@ -85,6 +87,7 @@ typedef enum ProductCollectionSyncState ProductCollectionSyncState;
 @property (nonatomic, copy, readonly) NSError *errorFromLastSync;              
 @property (nonatomic, copy, readonly) NSDateFormatter *dateFormatter; 
 
+
 // Class method to manage the ProductCollection Cache directories
 +(void)applicationInBackground;
 
@@ -97,7 +100,7 @@ typedef enum ProductCollectionSyncState ProductCollectionSyncState;
 -(void)saveCollection;
 
 // methods to control the synchronization process
--(void)startSynchronization;
+-(void)startSynchronization:(NSString *)relativePath;
 -(void)stopSynchronization;
 
 @end

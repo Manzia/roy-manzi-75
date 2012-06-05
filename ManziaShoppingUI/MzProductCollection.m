@@ -17,7 +17,8 @@
 
 #define kActiveCollectionCachesLimit 2              // Max no of collections
 #define kAutoSaveContextChangesTimeInterval 5.0     // 5 secs to auto-save
-#define kTimeIntervalToRefreshCollection 300        // 5mins to auto-refresh
+#define kTimeIntervalToRefreshCollection 600        // 10mins to auto-refresh
+#define kDefaultRelativePath "default"
 
 @interface MzProductCollection() 
 
@@ -28,6 +29,7 @@
 @property (nonatomic, copy, readonly) NSString *collectionCachePath;
 @property (nonatomic, assign, readwrite) ProductCollectionSyncState stateOfSync;
 @property (nonatomic, retain, readwrite) NSTimer *timeToSave;
+@property (nonatomic, retain, readwrite) NSTimer *timeToRefresh;
 @property (nonatomic, copy, readwrite) NSDate *dateLastSynced;
 @property (nonatomic, copy, readwrite) NSError *errorFromLastSync;
 @property (nonatomic, retain, readwrite) RetryingHTTPOperation *getCollectionOperation;
@@ -64,6 +66,8 @@
 @synthesize parserOperation;
 @synthesize pathsOldResults;
 @synthesize variableRelativePath;
+@synthesize timeToRefresh;
+
 
 // Other Getters
 -(id)managedObjectContext
@@ -127,6 +131,8 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     if (self != nil) {
         self.collectionURLString = collectURLString;
         pathsOldResults = [[NSMutableDictionary alloc] init];
+        assert(pathsOldResults!=nil);
+        self->variableRelativePath = @"default";
                         
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(appDidBecomeActive:) name:UIApplicationDidBecomeActiveNotification object:nil];
         
@@ -319,7 +325,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     
      if ( [[NSUserDefaults standardUserDefaults] boolForKey:@"collectionSyncOnActivate"] ) {
         if (self.productCollectionContext != nil) {
-            [self startSynchronization];
+            [self startSynchronization:variableRelativePath];
         }
     }
 }
@@ -559,10 +565,81 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     // and we crash.
     
     if (success) {
-        [self startSynchronization];
+        [self startSynchronization:self.variableRelativePath];
+        
+        // start the Refresh Timer
+        self.timeToRefresh = [NSTimer scheduledTimerWithTimeInterval:kTimeIntervalToRefreshCollection target:self selector:@selector(refreshCollection) userInfo:nil repeats:YES];
+        assert([self.timeToRefresh isValid]);
     } else {
         abort();
     }
+}
+
+// Refresh the collection - method called by RefreshTimer
+- (void)refreshCollection 
+{
+    /*
+     Because the RefreshTimer is set to fire after 10mins, productItems will be
+     refreshed in database in the time range > 10 minutes. We simply choose the "oldest"
+     relativePath (i.e, the relativePath associated with the oldest parserResults)
+     for the refresh operation. We also check that the relativePath is at least 10mins
+     "old" before we hit the network.
+     
+     NOTE: Its likely most users will not keep a particular collection active for more
+     than 10 mins, but if they do we need to refresh the collection since productItem
+     attributes like price and availability change very quickly and often.
+     */
+    
+    //Refresh only if we are not already syncing to avoid potential conflict with
+    // the MzProductCollectionViewController - checked in startSynchronization method
+    
+    assert(pathsOldResults != nil);
+    if ([pathsOldResults count] > 0) {
+        
+        [[QLog log] logWithFormat:@"Start Refresh of Collection Cache with URL: %@", self.collectionURLString];
+        
+        NSString *pathToRefresh;
+        NSArray * pathsValues;
+        NSString *pathKey;
+        NSArray *oldestKey;
+        
+        //keep track of which dates associate with which paths
+        NSMutableDictionary *pathsToDates;             
+        pathsToDates = [NSMutableDictionary dictionary];
+        assert(pathsToDates != nil);
+        
+                                
+        //Enumerate and create a relativePath to date map
+        NSEnumerator *pathEnumerator;
+        pathEnumerator = [pathsOldResults keyEnumerator];
+        assert(pathEnumerator != nil);
+        
+        while (pathKey = [pathEnumerator nextObject]) {
+            [pathsToDates setObject:[[pathsOldResults objectForKey:pathKey] lastObject] forKey:pathKey];
+            
+        }
+        
+        // Sort by the Date values
+        pathsValues = [pathsToDates allValues];
+        assert(pathsValues != nil); 
+        [pathsValues sortedArrayUsingComparator:^(id obj1, id obj2) {
+            return [obj1 compare:obj2];
+        }];
+        
+        // Get the "oldest" key - associated with earliest parserResult
+        oldestKey = [pathsToDates allKeysForObject:[pathsValues objectAtIndex:0]];
+        assert(oldestKey != nil);
+        assert([oldestKey count] == 1);
+        pathToRefresh = [oldestKey objectAtIndex:0];
+    
+            // we can now start synchronization to Refresh
+        [self startSynchronization:pathToRefresh];
+
+    } else {
+        [[QLog log] logWithFormat:@"Cannot Refresh Collection Cache with URL: %@", self.collectionURLString];
+    }
+    
+        
 }
 
 // Save the Collection Cache
@@ -625,6 +702,10 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
         
         self.productItemEntity = nil;
         self.productCollectionContext = nil;
+        
+        // Invalidate the Refresh Timer
+        [self.timeToRefresh invalidate];
+        self.timeToRefresh = nil;
     }
     [[QLog log] logWithFormat:@"Stopped Collection Cache with URL: %@", self.collectionURLString];
 }
@@ -1045,9 +1126,8 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
 
         } else {
             
-            // weird case - there should always be only one old and one new
-            // parseResult value for each relativePath at any given time....
-            [[QLog log] logWithFormat:@"Error in parseResult storage for Collection Cache with URL: %@", self.collectionURLString];
+            // In this case we do nothing....
+            [[QLog log] logWithFormat:@"Ignored Refresh for Collection Cache with URL: %@", self.collectionURLString];
             
         }
         
@@ -1125,6 +1205,75 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
    // [self checkDatabase];
 #endif
 }
+
+// Register the isSyncing as a dependent key for KVO notifications
++ (NSSet *)keyPathsForValuesAffectingSynchronizing
+{
+    return [NSSet setWithObject:@"stateOfSync"];
+}
+
+// Getter for isSyncing property
+- (BOOL)isSynchronizing
+{
+    return (self->stateOfSync > ProductCollectionSyncStateStopped);
+}
+
++ (BOOL)automaticallyNotifiesObserversOfStateOfSync
+{
+    return NO;
+}
+
+// Setter for the stateOfSync property, this property is KVO-observable
+- (void)setStateOfSync:(ProductCollectionSyncState)newValue
+{
+    if (newValue != self->stateOfSync) {
+        BOOL    isSyncingChanged;
+        
+        isSyncingChanged = (self->stateOfSync > ProductCollectionSyncStateStopped) != (newValue > ProductCollectionSyncStateStopped);
+        [self willChangeValueForKey:@"stateOfSync"];
+        if (isSyncingChanged) {
+            [self willChangeValueForKey:@"synchronizing"];
+        }
+        self->stateOfSync = newValue;
+        if (isSyncingChanged) {
+            [self didChangeValueForKey:@"synchronizing"];
+        }
+        [self didChangeValueForKey:@"stateOfSync"];
+    }
+}
+
+// Key method that starts the synchronization process
+- (void)startSynchronization:(NSString *)relativePath
+{
+    if ( !self.isSynchronizing ) {
+        if (self.stateOfSync == ProductCollectionSyncStateStopped) {
+            [[QLog log] logWithFormat:@"Start synchronization for Collection Cache with URL: %@",
+             self.collectionURLString];
+            assert(self.getCollectionOperation == nil);
+            self.errorFromLastSync = nil;
+            [self startGetOperation:relativePath];
+        }
+    }
+}
+
+// Method that stops the synchronization process
+- (void)stopSynchronization
+{
+    if (self.isSynchronizing) {
+        if (self.getCollectionOperation != nil) {
+            [[NetworkManager sharedManager] cancelOperation:self.getCollectionOperation];
+            self.getCollectionOperation = nil;
+        }
+        if (self.parserOperation) {
+            [[NetworkManager sharedManager] cancelOperation:self.parserOperation];
+            self.parserOperation = nil;
+        }
+        self.errorFromLastSync = [NSError errorWithDomain:NSCocoaErrorDomain code:NSUserCancelledError userInfo:nil];
+        self.stateOfSync = ProductCollectionSyncStateStopped;
+        [[QLog log] logWithFormat:@"Stopped synchronization for Collection Cache with URL: %@", self.collectionURLString];
+    }
+}
+
 
 
 
