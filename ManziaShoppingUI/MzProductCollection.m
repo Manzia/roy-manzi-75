@@ -594,7 +594,10 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     // the MzProductCollectionViewController - checked in startSynchronization method
     
     assert(pathsOldResults != nil);
-    if ([pathsOldResults count] > 0) {
+    
+    // Check that we have more than 1 entry in the pathsOldResults map. If only 1 entry,
+    // don't bother looking for the "oldest" and just refresh that entry
+    if ([pathsOldResults count] > 1) {
         
         [[QLog log] logWithFormat:@"Start Refresh of Collection Cache with URL: %@", self.collectionURLString];
         
@@ -621,22 +624,58 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
         
         // Sort by the Date values
         pathsValues = [pathsToDates allValues];
-        assert(pathsValues != nil); 
+        assert(pathsValues != nil);
+        assert([pathsValues count] > 0);
         [pathsValues sortedArrayUsingComparator:^(id obj1, id obj2) {
             return [obj1 compare:obj2];
         }];
         
-        // Get the "oldest" key - associated with earliest parserResult
-        oldestKey = [pathsToDates allKeysForObject:[pathsValues objectAtIndex:0]];
-        assert(oldestKey != nil);
-        assert([oldestKey count] == 1);
-        pathToRefresh = [oldestKey objectAtIndex:0];
-    
+        // Check that the oldest Date value is more than kTimeIntervalToRefreshCollection
+        // so we do not waste time hitting the network
+        NSDate *currentTime;
+        currentTime = [NSDate date];
+        assert(currentTime!= nil);
+        
+        if ([currentTime timeIntervalSinceDate:[pathsValues objectAtIndex:0]] > kTimeIntervalToRefreshCollection) {
+            
+            // Get the "oldest" key - associated with earliest parserResult
+            oldestKey = [pathsToDates allKeysForObject:[pathsValues objectAtIndex:0]];
+            assert(oldestKey != nil);
+            assert([oldestKey count] == 1);
+            pathToRefresh = [oldestKey objectAtIndex:0];
+            assert(pathToRefresh!= nil);
+            
             // we can now start synchronization to Refresh
-        [self startSynchronization:pathToRefresh];
+            [self startSynchronization:pathToRefresh];
 
+        } else {
+            // Ignore the Refresh
+            [[QLog log] logWithFormat:@"Too soon to Refresh Collection Cache with URL: %@", self.collectionURLString];
+        }
+        
+        
     } else {
-        [[QLog log] logWithFormat:@"Cannot Refresh Collection Cache with URL: %@", self.collectionURLString];
+        // We have 0 or 1 entry in the pathsOldResults map
+        if ([pathsOldResults count] > 0) {
+            
+            [[QLog log] logWithFormat:@"Start Refresh of Collection Cache with URL: %@", self.collectionURLString];
+            
+            NSString * pathToRefresh;
+            NSArray *pathKeys;
+            pathKeys = [pathsOldResults allKeys];
+            assert(pathKeys != nil);
+            pathToRefresh = [pathKeys lastObject];
+            assert(pathToRefresh != nil);
+            
+            // Refresh
+            [self startSynchronization:pathToRefresh];
+        } else {
+            
+            // Ignore Refresh
+            [[QLog log] logWithFormat:@"Cannot Refresh Collection Cache with URL: %@", self.collectionURLString];
+            return;
+        }
+        
     }
     
         
