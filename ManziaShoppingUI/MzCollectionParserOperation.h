@@ -5,27 +5,6 @@
 //  Created by Roy Manzi Tumubweinee on 6/3/12.
 //  Copyright (c) 2012 Manzia Corporation. All rights reserved.
 
-/*
- Below is sample XML product Item entry:
- <entry>
- <title type="text">Tadashi Shoji One Shoulder Lace Sheath Dress</title>
- <link rel="alternate" type="text/html" href="http://shop.nordstrom.com/s/tadashi-shoji-one-shoulder-lace-sheath-dress/3205422?"/>
- <mz:image_link>http://aws.amazon.com/image/120000</mz:image_link>
- <mz:thumbnail_link>http://aws.amazon.com/thumbnail/120000<thumbnail_link>
- <mz:id>100303001</mz:id>
- <content type="xhtml">
- <p> Tadashi Shoji One Shoulder Lace Sheath Dress. </p>
- </content>
- <mz:content_language>en</mz:content_language>
- <mz:target_country>US</mz:target_country>
- <mz:product_type classId="10010" subClassId="3">Women's Dresses &amp; Dresses</mz:product_type>
- <mz:price unit="usd">298.00</mz:price>
- <mz:brand>Tadashi Shoji</mz:brand>
- <mz:condition>new</mz:condition>
- <mz:availability>In Stock</mz:availability>
- </entry>
-
- */
 
 #import <Foundation/Foundation.h>
 
@@ -40,6 +19,8 @@
     NSXMLParser *collectionParser;
     NSMutableArray *mutableResults;
     NSMutableDictionary *productItemProperties;
+    BOOL storeCharacters;
+    NSMutableString *currentStringValue;
 }
 
 // Initialize with XML data

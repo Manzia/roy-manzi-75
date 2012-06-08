@@ -13,6 +13,20 @@
 @class RetryingHTTPOperation;
 @class MakeThumbnailOperation;
 
+// Available ThumbNail sizes states- these are created on-demand
+// and stored in the Core Data database. The default is the
+// small ThumbnailImage, 60x60
+// The getThumbnailOperation and the resizeThumbnailOperation
+// operate within one of these Thumbnail size states.
+
+enum kSizeThumbnailImageState {
+    
+    kSmallThumbnailImageState, 
+    kMediumThumbnailImageState, 
+    kLargeThumbnailImageState
+};
+typedef enum kSizeThumbnailImageState kSizeThumbnailImageState;
+
 @interface MzProductItem : NSManagedObject
 {
     UIImage *thumbnailImage;
@@ -23,6 +37,8 @@
     NSString *getPhotoFilePath;
     NSUInteger photoNeededAssertions;
     NSError *errorGettingImage;
+    CGFloat kThumbnailSize;
+    kSizeThumbnailImageState thumbnailSizeState;
 }
 
 // Creates a MzProductItem object with the specified properties in the specified context. 
@@ -99,6 +115,10 @@
 // KVO observable, returns nil if the photo isn't available yet
 @property (nonatomic, retain, readonly ) UIImage * productImage;   
 
+// View controllers can call this method to obtain thumbnails of different sizes
+// This method will create and return a thumbnail of the requested size. The default
+// is provide a kSmallThumbnailImage
+- (UIImage *)createThumbnailImage:(kSizeThumbnailImage)thumbnailSize;
 
 // The view controllers call the following methods to register/unregister to be provided
 // with the full size image. Only if a view controller has explicitly registered will

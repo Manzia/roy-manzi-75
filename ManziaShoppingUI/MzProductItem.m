@@ -59,6 +59,8 @@ const CGFloat kThumbNailSizeLarge = 90.0f;
 @property (nonatomic, retain, readwrite) RetryingHTTPOperation *getPhotoOperation;
 @property (nonatomic, copy,   readwrite) NSString *getPhotoFilePath;
 @property (nonatomic, assign, readwrite) BOOL thumbnailImageIsPlaceholder;
+@property (nonatomic, assign, readwrite) CGFloat kThumbnailSize;
+@property (nonatomic, assign, readwrite) kSizeThumbnailImageState thumbnailSizeState;
 
 // forward declarations
 
@@ -99,6 +101,8 @@ const CGFloat kThumbNailSizeLarge = 90.0f;
 @synthesize thumbnailImageIsPlaceholder;
 @synthesize getPhotoFilePath;
 @synthesize productCollectionContext;
+@synthesize kThumbnailSize;
+@synthesize thumbnailSizeState;
 
 #pragma mark * Insert & Update Product Items
 // Creates a MzProductItem object with the specified properties in the specified context. 
@@ -414,7 +418,7 @@ const CGFloat kThumbNailSizeLarge = 90.0f;
         self.resizethumbnailOperation = [[MakeThumbnailOperation alloc] initWithImageData:operation.responseContent MIMEType:operation.responseMIMEType];
         assert(self.resizethumbnailOperation != nil);
         
-        self.resizethumbnailOperation.thumbnailSize = kThumbNailSizeSmall;
+        self.resizethumbnailOperation.thumbnailSize = self.kThumbnailSize;
         
         // We want thumbnails resizes to soak up unused CPU time, but the main thread should 
         // always run if it can.  The operation priority is a relative value (courtesy of the 
@@ -435,7 +439,7 @@ const CGFloat kThumbNailSizeLarge = 90.0f;
 // If all is well, we commit the thumbnail to our database.
 - (void)thumbnailResizeDone:(MakeThumbnailOperation *)operation
 {
-    UIImage *productImage;
+    UIImage *productThumbImage;
     
     assert([NSThread isMainThread]);
     assert([operation isKindOfClass:[MakeThumbnailOperation class]]);
@@ -446,13 +450,13 @@ const CGFloat kThumbNailSizeLarge = 90.0f;
     
     if (operation.thumbnail == NULL) {
         [[QLog log] logWithFormat:@"Failed thumbnail resize for Product Item %@", self.productID];
-        productImage = nil;
+        productThumbImage = nil;
     } else {
-        productImage = [UIImage imageWithCGImage:operation.thumbnail];
-        assert(productImage != nil);
+        productThumbImage = [UIImage imageWithCGImage:operation.thumbnail];
+        assert(productThumbImage != nil);
     }
     
-    [self thumbnailCommitImage:productImage isPlaceholder:NO];
+    [self thumbnailCommitImage:productThumbImage isPlaceholder:NO];
     [self stopThumbnail];
 }
 
@@ -522,6 +526,10 @@ const CGFloat kThumbNailSizeLarge = 90.0f;
 
 - (UIImage *)thumbnailImage
 {
+    // Set thumbnailSizeState to return a default kSmallThumbnailImage
+    
+    self.thumbnailSizeState = kSmallThumbnailImageState;
+    
     if (self->thumbnailImage == nil) {
         if ( (self.thumbnail != nil) && (self.thumbnail.imageDataSmall != nil) ) {
             
@@ -576,6 +584,14 @@ const CGFloat kThumbNailSizeLarge = 90.0f;
     }
 }
 
+// View controllers can call this method to obtain thumbnails of different sizes
+// This method will create and return a thumbnail of the requested size. The default
+// is provide a kSmallThumbnailImage
+- (UIImage *)createThumbnailImage:(kSizeThumbnailImage)thumbnailSize
+{
+    
+}
+
 #pragma mark * Product Image
 
 - (void)startGetPhoto
@@ -623,7 +639,7 @@ const CGFloat kThumbNailSizeLarge = 90.0f;
 }
 
 // Called when the HTTP operation to GET the photo completes.  
-// If all is well, we commit the photo to the database.
+// Commits the product Image on success.
 - (void)photoGetDone:(RetryingHTTPOperation *)operation
 {
     assert([NSThread isMainThread]);
