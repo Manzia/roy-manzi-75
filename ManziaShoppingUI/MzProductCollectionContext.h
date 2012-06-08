@@ -16,6 +16,10 @@
 // Properties
 @property (nonatomic, copy, readonly) NSString *collectionCachePath;
 
+// path to product Images directory within CollectionCachePath
+
+@property (nonatomic, copy, readonly ) NSString *productImagesDirectoryPath;    
+
 // Initializer
 - (id)initWithCollectionURLString:(NSString *)URLString cachePath:(NSString *)collectionCachePath;
 

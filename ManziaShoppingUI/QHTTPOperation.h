@@ -113,7 +113,7 @@
     NSURLRequest *      _request;
     NSIndexSet *        _acceptableStatusCodes;
     NSSet *             _acceptableContentTypes;
-    id<QHTTPOperationAuthenticationDelegate>    _authenticationDelegate;
+    id<QHTTPOperationAuthenticationDelegate> _authenticationDelegate;
     NSOutputStream *    _responseOutputStream;
     NSUInteger          _defaultResponseSize;
     NSUInteger          _maximumResponseSize;
@@ -144,6 +144,7 @@
 @property (copy,   readwrite) NSIndexSet *          acceptableStatusCodes;  // default is nil, implying 200..299
 @property (copy,   readwrite) NSSet *               acceptableContentTypes; // default is nil, implying anything is acceptable
 @property (assign, readwrite) id<QHTTPOperationAuthenticationDelegate>  authenticationDelegate;
+//@property (weak) id<QHTTPOperationAuthenticationDelegate>  authenticationDelegate;
 
 #if ! defined(NDEBUG)
 @property (copy,   readwrite) NSError *             debugError;             // default is nil

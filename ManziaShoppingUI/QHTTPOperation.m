@@ -106,6 +106,8 @@
     return [self initWithRequest:[NSURLRequest requestWithURL:url]];
 }
 
+// COMMENT OUT SINCE WE ARE USING ARC
+/*
 - (void)dealloc
 {
     #if ! defined(NDEBUG)
@@ -124,7 +126,7 @@
     [self->_lastResponse release];
     [self->_responseBody release];
     [super dealloc];
-}
+} */
 
 #pragma mark * Properties
 
@@ -168,7 +170,8 @@
 
 - (NSIndexSet *)acceptableStatusCodes
 {
-    return [[self->_acceptableStatusCodes retain] autorelease];
+    //return [[self->_acceptableStatusCodes retain] autorelease];
+    return self->_acceptableStatusCodes;
 }
 
 - (void)setAcceptableStatusCodes:(NSIndexSet *)newValue
@@ -178,7 +181,7 @@
     } else {
         if (newValue != self->_acceptableStatusCodes) {
             [self willChangeValueForKey:@"acceptableStatusCodes"];
-            [self->_acceptableStatusCodes autorelease];
+            //[self->_acceptableStatusCodes autorelease];
             self->_acceptableStatusCodes = [newValue copy];
             [self didChangeValueForKey:@"acceptableStatusCodes"];
         }
@@ -194,7 +197,8 @@
 
 - (NSSet *)acceptableContentTypes
 {
-    return [[self->_acceptableContentTypes retain] autorelease];
+    //return [[self->_acceptableContentTypes retain] autorelease];
+    return self->_acceptableContentTypes;
 }
 
 - (void)setAcceptableContentTypes:(NSSet *)newValue
@@ -204,7 +208,7 @@
     } else {
         if (newValue != self->_acceptableContentTypes) {
             [self willChangeValueForKey:@"acceptableContentTypes"];
-            [self->_acceptableContentTypes autorelease];
+            //[self->_acceptableContentTypes autorelease];
             self->_acceptableContentTypes = [newValue copy];
             [self didChangeValueForKey:@"acceptableContentTypes"];
         }
@@ -220,7 +224,8 @@
 
 - (NSOutputStream *)responseOutputStream
 {
-    return [[self->_responseOutputStream retain] autorelease];
+    //return [[self->_responseOutputStream retain] autorelease];
+    return self->_responseOutputStream;
 }
 
 - (void)setResponseOutputStream:(NSOutputStream *)newValue
@@ -230,8 +235,9 @@
     } else {
         if (newValue != self->_responseOutputStream) {
             [self willChangeValueForKey:@"responseOutputStream"];
-            [self->_responseOutputStream autorelease];
-            self->_responseOutputStream = [newValue retain];
+            //[self->_responseOutputStream autorelease];
+            //self->_responseOutputStream = [newValue retain];
+            self->_responseOutputStream = newValue;
             [self didChangeValueForKey:@"responseOutputStream"];
         }
     }
@@ -353,7 +359,8 @@
     // Create a connection that's scheduled in the required run loop modes.
         
     assert(self.connection == nil);
-    self.connection = [[[NSURLConnection alloc] initWithRequest:self.request delegate:self startImmediately:NO] autorelease];
+    //self.connection = [[[NSURLConnection alloc] initWithRequest:self.request delegate:self startImmediately:NO] autorelease];
+    self.connection = [[NSURLConnection alloc] initWithRequest:self.request delegate:self startImmediately:NO];
     assert(self.connection != nil);
     
     for (NSString * mode in self.actualRunLoopModes) {
@@ -435,7 +442,8 @@
     
     assert(timer == self.debugDelayTimer);
 
-    error = [[[timer userInfo] retain] autorelease];
+    //error = [[[timer userInfo] retain] autorelease];
+    error = [timer userInfo];
     assert( (error == nil) || [error isKindOfClass:[NSError class]] );
     
     [self.debugDelayTimer invalidate];

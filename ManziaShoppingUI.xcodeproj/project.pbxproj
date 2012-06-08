@@ -11,6 +11,7 @@
 		840BF0DD1577416F0087081C /* QLog.m in Sources */ = {isa = PBXBuildFile; fileRef = 840BF0D91577416F0087081C /* QLog.m */; };
 		840BF0DE1577416F0087081C /* QLogViewer.m in Sources */ = {isa = PBXBuildFile; fileRef = 840BF0DB1577416F0087081C /* QLogViewer.m */; };
 		840BF0DF1577416F0087081C /* Settings.bundle in Resources */ = {isa = PBXBuildFile; fileRef = 840BF0DC1577416F0087081C /* Settings.bundle */; };
+		8415C170158101BB0047C9C5 /* MakeThumbnailOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 8415C16F158101BB0047C9C5 /* MakeThumbnailOperation.m */; };
 		845DDA201577CCDF00851EF8 /* MessageUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 845DDA1F1577CCDF00851EF8 /* MessageUI.framework */; };
 		845DDA221577CD0B00851EF8 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 845DDA211577CD0B00851EF8 /* libz.dylib */; };
 		845DDA291577EDAD00851EF8 /* MzProductCollectionTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 845DDA281577EDAD00851EF8 /* MzProductCollectionTests.m */; };
@@ -68,6 +69,8 @@
 		840BF0DA1577416F0087081C /* QLogViewer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = QLogViewer.h; sourceTree = "<group>"; };
 		840BF0DB1577416F0087081C /* QLogViewer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = QLogViewer.m; sourceTree = "<group>"; };
 		840BF0DC1577416F0087081C /* Settings.bundle */ = {isa = PBXFileReference; explicitFileType = wrapper.application; path = Settings.bundle; sourceTree = "<group>"; };
+		8415C16E158101BB0047C9C5 /* MakeThumbnailOperation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MakeThumbnailOperation.h; sourceTree = "<group>"; };
+		8415C16F158101BB0047C9C5 /* MakeThumbnailOperation.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MakeThumbnailOperation.m; sourceTree = "<group>"; };
 		845DDA1F1577CCDF00851EF8 /* MessageUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MessageUI.framework; path = System/Library/Frameworks/MessageUI.framework; sourceTree = SDKROOT; };
 		845DDA211577CD0B00851EF8 /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
 		845DDA271577EDAD00851EF8 /* MzProductCollectionTests.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MzProductCollectionTests.h; sourceTree = "<group>"; };
@@ -255,6 +258,8 @@
 			children = (
 				845DDA2A15787B9500851EF8 /* RecursiveDeleteOperation.h */,
 				845DDA2B15787B9500851EF8 /* RecursiveDeleteOperation.m */,
+				8415C16E158101BB0047C9C5 /* MakeThumbnailOperation.h */,
+				8415C16F158101BB0047C9C5 /* MakeThumbnailOperation.m */,
 				84E707B41576971200A65BBC /* MzProductCollection.h */,
 				84E707B51576971200A65BBC /* MzProductCollection.m */,
 				840BF0D21577199B0087081C /* MzProductCollectionContext.h */,
@@ -438,6 +443,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				84E707A4157691CC00A65BBC /* ManziaShoppingUITests.m in Sources */,
+				8415C170158101BB0047C9C5 /* MakeThumbnailOperation.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

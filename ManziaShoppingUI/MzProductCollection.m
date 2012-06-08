@@ -67,6 +67,7 @@
 @synthesize pathsOldResults;
 @synthesize variableRelativePath;
 @synthesize timeToRefresh;
+@synthesize synchronizing;
 
 
 // Other Getters
@@ -1086,7 +1087,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
                     assert(productIDToRetrievedProduct != nil);
                     
                     for (existingProduct in retrievedProducts) {
-                        assert(existingProduct isKindOfClass:[MzProductItem class]);
+                        assert([existingProduct isKindOfClass:[MzProductItem class]]);
                         
                         [productIDToRetrievedProduct setObject:existingProduct forKey:existingProduct.productID];
                     }
@@ -1144,7 +1145,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
                                 //Create a new ProductItem with the specified properties.
                                 
                                 [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Create  ProductItem: %@ for Collection Cache with URL: %@", productID, self.collectionURLString];
-                                newProduct = [MzProductItem insertNewProductItemWithProperties:properties inManagedObjectContext:self.productCollectionContext];
+                                newProduct = [MzProductItem insertNewMzProductItemWithProperties:properties inManagedObjectContext:self.productCollectionContext];
                                 assert(newProduct != nil);
                                 assert(newProduct.productID != nil);
                                 assert(newProduct.localImagePath == nil);
@@ -1227,7 +1228,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
                   //Create a new ProductItem with the specified properties.
                     
                     [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Create  ProductItem: %@ for Collection Cache with URL: %@", productID, self.collectionURLString];
-                    newProduct = [MzProductItem insertNewProductItemWithProperties:properties inManagedObjectContext:self.productCollectionContext];
+                    newProduct = [MzProductItem insertNewMzProductItemWithProperties:properties inManagedObjectContext:self.productCollectionContext];
                     assert(newProduct != nil);
                     assert(newProduct.productID != nil);
                     assert(newProduct.localImagePath == nil);
