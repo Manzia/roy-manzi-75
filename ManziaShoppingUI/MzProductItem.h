@@ -13,32 +13,17 @@
 @class RetryingHTTPOperation;
 @class MakeThumbnailOperation;
 
-// Available ThumbNail sizes states- these are created on-demand
-// and stored in the Core Data database. The default is the
-// small ThumbnailImage, 60x60
-// The getThumbnailOperation and the resizeThumbnailOperation
-// operate within one of these Thumbnail size states.
-
-enum kSizeThumbnailImageState {
-    
-    kSmallThumbnailImageState, 
-    kMediumThumbnailImageState, 
-    kLargeThumbnailImageState
-};
-typedef enum kSizeThumbnailImageState kSizeThumbnailImageState;
 
 @interface MzProductItem : NSManagedObject
 {
-    UIImage *thumbnailImage;
+    NSMutableDictionary *thumbnailImages;
     BOOL thumbnailImageIsPlaceholder;
-    RetryingHTTPOperation *getthumbnailOperation;
+    RetryingHTTPOperation *getThumbnailOperation;
     MakeThumbnailOperation *resizethumbnailOperation;
     RetryingHTTPOperation *getPhotoperation;
     NSString *getPhotoFilePath;
     NSUInteger photoNeededAssertions;
     NSError *errorGettingImage;
-    CGFloat kThumbnailSize;
-    kSizeThumbnailImageState thumbnailSizeState;
 }
 
 // Creates a MzProductItem object with the specified properties in the specified context. 
@@ -109,16 +94,12 @@ typedef enum kSizeThumbnailImageState kSizeThumbnailImageState;
 // Pointer to the thumbnail object associated with the productItem
 @property (nonatomic, retain, readonly) MzProductThumbNail *thumbnail;
 
-// KVO observable, returns a placeholder if the thumbnail isn't available yet.
-@property (nonatomic, retain, readonly ) UIImage * thumbnailImage; 
-
 // KVO observable, returns nil if the photo isn't available yet
-@property (nonatomic, retain, readonly ) UIImage * productImage;   
+@property (nonatomic, retain, readonly ) UIImage * productImage;  
 
-// View controllers can call this method to obtain thumbnails of different sizes
-// This method will create and return a thumbnail of the requested size. The default
-// is provide a kSmallThumbnailImage
-- (UIImage *)createThumbnailImage:(kSizeThumbnailImage)thumbnailSize;
+// Property that returns getThumbnailOperation
+@property(nonatomic, retain, readonly) RetryingHTTPOperation *getThumbnailOperation;
+
 
 // The view controllers call the following methods to register/unregister to be provided
 // with the full size image. Only if a view controller has explicitly registered will

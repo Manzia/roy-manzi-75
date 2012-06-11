@@ -9,6 +9,9 @@
 #import <Foundation/Foundation.h>
 #import <CoreData/CoreData.h>
 
+/* There's a one-to-one relationship between MzProductCollection and MzProductCollectionContext objects. The MzProductItem and MzProductThumbNail managed objects, can access this context  easily (via their managedObjectContext property).
+ */
+
 @interface MzProductCollectionContext : NSManagedObjectContext {
     NSString *collectionCachePath;
     NSString *collectionURLString;

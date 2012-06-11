@@ -8,7 +8,28 @@
 
 #import "MzProductThumbNail.h"
 #import "MzProductItem.h"
+#import "RetryingHTTPOperation.h"
+#import "Logging.h"
+#import "MakeThumbnailOperation.h"
+#import "NetworkManager.h"
 
+// Available Thumbnail Sizes
+NSString *const kThumbNailSizeSmall = @"60.0";
+NSString *const kThumbNailSizeMedium = @"75.0";
+NSString *const kThumbNailSizeLarge = @"90.0";
+
+@interface MzProductThumbNail ()
+
+// read/write 
+@property (nonatomic, retain, readwrite) NSData *imageDataLarge;
+@property (nonatomic, retain, readwrite) NSData *imageDataMedium;
+@property (nonatomic, retain, readwrite) NSData *imageDataSmall;
+
+// private properties
+@property (nonatomic, retain, readwrite) NSArray *resizeOperations;
+@property (nonatomic, retain, readwrite) NSMutableDictionary *resizedThumbnails;
+
+@end
 
 @implementation MzProductThumbNail
 
@@ -16,5 +37,262 @@
 @dynamic imageDataMedium;
 @dynamic imageDataSmall;
 @dynamic productItem;
+
+// Getters/Setters
+@synthesize resizeOperations;
+@synthesize resizedThumbnails;
+
+#pragma mark * Resize operations
+
+// Method is called when the HTTP operation to GET the productImage's thumbnail completes.  
+
+- (void)startThumbnailResize:(RetryingHTTPOperation *)operation
+{
+    // Ensure we are in the right state and got called by our MzProductItem object
+    assert([operation isKindOfClass:[RetryingHTTPOperation class]]);
+    assert(operation == self.productItem.getThumbnailOperation);
+    assert([self.productItem.getThumbnailOperation isFinished]);
+    
+    // If we already have on-going resize operations when we are called, we cancel
+    // them since we now have new thumbnail data
+    
+    [self stopResizeOperations:self.productItem];
+    assert(self.resizeOperations == nil);
+    
+    // Start the resize Operations
+    [[QLog log] logWithFormat:@"Starting Resize for Product Item %@", self.productItem.productID];
+    MakeThumbnailOperation *resizeOperationSmall;
+    MakeThumbnailOperation *resizeOperationMedium;
+    MakeThumbnailOperation *resizeOperationLarge;
+    
+    // small resize Operation
+    resizeOperationSmall = [[MakeThumbnailOperation alloc] initWithImageData:operation.responseContent MIMEType:operation.responseMIMEType];
+    assert(resizeOperationSmall != nil);
+    
+    resizeOperationSmall.thumbnailSize = kThumbNailSizeSmall.floatValue;
+    
+    // medium resize Operation
+    resizeOperationMedium = [[MakeThumbnailOperation alloc] initWithImageData:operation.responseContent MIMEType:operation.responseMIMEType];
+    assert(resizeOperationMedium != nil);
+    
+    resizeOperationMedium.thumbnailSize = kThumbNailSizeMedium.floatValue;
+    
+    // large resize Operation
+    resizeOperationLarge = [[MakeThumbnailOperation alloc] initWithImageData:operation.responseContent MIMEType:operation.responseMIMEType];
+    assert(resizeOperationLarge != nil);
+    
+    resizeOperationLarge.thumbnailSize = kThumbNailSizeLarge.floatValue;
+    
+    // store
+    self.resizeOperations = [NSArray arrayWithObjects:resizeOperationSmall, resizeOperationMedium, resizeOperationLarge, nil];
+    assert(self.resizeOperations != nil);
+    
+    // We want thumbnails resizes to soak up unused CPU time, but the main thread should 
+    // always run if it can.  The operation priority is a relative value (courtesy of the 
+    // underlying Mach THREAD_PRECEDENCE_POLICY), that is, it sets the priority relative 
+    // to other threads in the same process.  A value of 0.5 is the default, so we set a 
+    // value significantly lower than that.
+    for (MakeThumbnailOperation *thumbnailOperation in self.resizeOperations) {
+        if ([thumbnailOperation respondsToSelector:@selector(setThreadPriority:)] ) {
+            [thumbnailOperation setThreadPriority:0.2];
+        }
+        [[NetworkManager sharedManager] addCPUOperation:thumbnailOperation finishedTarget:self action:@selector(thumbnailResizeComplete:)]; 
+    }    
+}
+
+// Method to stop resize operations
+- (BOOL)stopResizeOperations:(id)sender
+{
+    // We only take "orders" from the MzProductItem that owns us
+    if (![sender isKindOfClass:[MzProductItem class]]) {
+        return NO;
+    }
+    if (sender != self.productItem) {
+        return NO;
+    }
+    
+    // Carry out the stop resize
+    BOOL didSomething = NO;
+        
+    // stop resize operations
+    if (self.resizeOperations != nil && [self.resizeOperations count] > 0) {
+        
+        for (MakeThumbnailOperation *operation in self.resizeOperations) {
+            [[NetworkManager sharedManager] cancelOperation:operation];
+        }
+        self.resizeOperations = nil;        // ARC releases the operations as well
+        didSomething = YES;
+    } else {
+        self.resizeOperations = nil;
+        didSomething = YES;
+    }
+    
+    // clear our dictionary
+    if (self.resizedThumbnails != nil && [self.resizedThumbnails count] > 0) {
+        [self.resizedThumbnails removeAllObjects];
+        self.resizedThumbnails = nil;
+        didSomething = YES;
+    } else {
+        self.resizedThumbnails = nil;
+        didSomething = YES;
+    }
+    return didSomething;                                      
+}
+
+// Called when the operation to resize the thumbnail completes.  
+// If all is well, we commit the thumbnail to our database.
+- (void)thumbnailResizeComplete:(MakeThumbnailOperation *)operation
+{
+    UIImage *productThumbImage;
+    __block BOOL validOperation = NO;
+    
+    assert([NSThread isMainThread]);
+    assert([self.resizeOperations count] > 0 );
+    assert([operation isKindOfClass:[MakeThumbnailOperation class]]);
+    
+    // check that this is one of "our" operations
+    for (MakeThumbnailOperation *thumbOperation in self.resizeOperations)
+     {
+         if(operation == thumbOperation) validOperation = YES;
+     }
+    assert(validOperation);
+    assert([operation isFinished]);
+    
+    [[QLog log] logWithFormat:@"Completed thumbnail resize for Product Item %@", self.productItem.productID];
+    
+    if (operation.thumbnail == NULL) {
+        [[QLog log] logWithFormat:@"Failed thumbnail resize for Product Item %@", self.productItem.productID];
+        productThumbImage = nil;
+    } else {
+        productThumbImage = [UIImage imageWithCGImage:operation.thumbnail];
+        assert(productThumbImage != nil);
+        
+        // Add entries to our dictionary
+        // check the thumbnail sizes
+        assert(operation.thumbnailSize == [kThumbNailSizeSmall floatValue] || operation.thumbnailSize == [kThumbNailSizeMedium floatValue] || operation.thumbnailSize == [kThumbNailSizeLarge floatValue]);
+        
+        if(self.resizedThumbnails == nil) {
+            self.resizedThumbnails = [[NSMutableDictionary alloc] init];
+            assert(self.resizedThumbnails != nil);
+        }
+        
+        if (operation.thumbnailSize == [kThumbNailSizeSmall floatValue]) {
+            [self.resizedThumbnails setObject:productThumbImage forKey:kThumbNailSizeSmall];
+            
+        } else if (operation.thumbnailSize == [kThumbNailSizeMedium floatValue]) {
+            [self.resizedThumbnails setObject:productThumbImage forKey:kThumbNailSizeMedium];
+            
+        } else if (operation.thumbnailSize == [kThumbNailSizeLarge floatValue]) {
+            [self.resizedThumbnails setObject:productThumbImage forKey:kThumbNailSizeLarge];
+            
+        } else {
+            // No code path leads here but who knows....
+            [[QLog log] logWithFormat:@"Invalid thumbnail resize for Product Item %@", self.productItem.productID];
+            productThumbImage = nil;
+        }
+        
+    }
+    
+    // Commit the thumbnail based on its size
+    [self thumbnailCommitImage:productThumbImage isPlaceholder:NO];
+    
+}
+
+// Commits the thumbnail image to the object itself and to the Core Data database.
+- (void)thumbnailCommitImage:(UIImage *)image isPlaceholder:(BOOL)isPlaceholder
+{
+       
+    // If we were given no image, we assign the bad image placeholder.     
+    if (image == nil) {
+        isPlaceholder = YES;
+        image = [UIImage imageNamed:@"Placeholder-Bad.png"];
+        assert(image != nil);
+    }
+    
+    // If we got a non-placeholder image, commit its PNG representation into our thumbnail 
+    // database.  To avoid the scroll view stuttering, we only want to do this if the run loop 
+    // is running in the default mode.  Thus, we check the mode and either do it directly or 
+    // defer the work until the next time the default run loop mode runs.
+            
+    if ( ! isPlaceholder ) {
+        [[QLog log] logWithFormat:@"Commit thumbnail for Product Item %@ thumbnail commit", self.productItem.productID];
+        if ( [[[NSRunLoop currentRunLoop] currentMode] isEqual:NSDefaultRunLoopMode] ) {
+            [self thumbnailCommitImageData:image];
+        } else {
+            [self performSelector:@selector(thumbnailCommitImageData:) withObject:image afterDelay:0.0 inModes:[NSArray arrayWithObject:NSDefaultRunLoopMode]];
+            
+        }
+    }
+    
+}
+
+// Manual KVO notifications
++(BOOL)automaticallyNotifiesObserversOfImageDataSmall
+{
+    return NO;
+}
+
++(BOOL)automaticallyNotifiesObserversOfImageDataMedium
+{
+    return NO;
+}
+
++(BOOL)automaticallyNotifiesObserversOfImageDataLarge
+{
+    return NO;
+}
+
+// Commit the image based on thumbnailSize
+- (void)thumbnailCommitImageData:(UIImage *)image
+{
+    __block NSString *imageSize;
+    
+    [[QLog log] logWithFormat:@"Commit thumbnailImage data for Product Item %@", self.productItem.productID];
+    assert([self.resizedThumbnails count] > 0);
+    
+    // we only commit images that are in our resizedThumbnails dictionary
+    [self.resizedThumbnails enumerateKeysAndObjectsUsingBlock:^(id key, id value, BOOL *stop)
+     {
+         if (image == value) { //we compare the actual pointer values
+             imageSize = [NSString stringWithString:key];
+         } 
+     }];
+    
+    if (imageSize == nil) {
+        [[QLog log] logWithFormat:@"Invalid thumbnailImage data to commit for Product Item %@", self.productItem.productID];
+        return;
+    }
+          
+    // Store the thumbnail's imageData in the imageData property but first clear
+    // any existing thumbnail imageData
+    if ([imageSize isEqualToString:kThumbNailSizeSmall]) {
+        self.imageDataSmall = nil;
+        [self willChangeValueForKey:@"imageDataSmall"];
+        self.imageDataSmall = UIImagePNGRepresentation(image);
+        assert(self.imageDataSmall != nil);
+        [self didChangeValueForKey:@"imageDataSmall"];
+        
+    } else if ([imageSize isEqualToString:kThumbNailSizeMedium]) {
+        self.imageDataMedium = nil;
+        [self willChangeValueForKey:@"imageDataMedium"];
+        self.imageDataMedium = UIImagePNGRepresentation(image);
+        assert(self.imageDataMedium != nil);
+        [self didChangeValueForKey:@"imageDataMedium"];
+        
+    } else if ([imageSize isEqualToString:kThumbNailSizeLarge]) {
+        self.imageDataLarge = nil;
+        [self willChangeValueForKey:@"imageDataLarge"];
+        self.imageDataLarge = UIImagePNGRepresentation(image);
+        assert(self.imageDataLarge != nil);
+        [self didChangeValueForKey:@"imageDataLarge"];
+    }   
+    
+    [[QLog log] logWithFormat:@"Successful Commit thumbnailImage data for Product Item %@", self.productItem.productID];
+}
+
+    
+
+
+
 
 @end
