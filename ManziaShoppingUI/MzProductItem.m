@@ -28,6 +28,15 @@ extern NSString *const kThumbNailSizeSmall;
 extern NSString *const kThumbNailSizeMedium;
 extern NSString *const kThumbNailSizeLarge;
 
+// Key whose value is a PlaceHolder thumbnail Image. The PlaceHolder
+// is stored in the thumbnailImages dictionary and one placeholder image is stored
+// when there is no product Item thumbnail yet in the dictionary or
+// Core Data database and another placeholder image is stored when the 
+// HTTP GET operation for the product Item thumbnail fails in retry. Clients
+// should KVO observe the value for this key and thus display the appropriate
+// placeholder.
+NSString *const kThumbnailPlaceHolder = @"placeholderImage";
+
 // KVO contexts
 static void *GetOperationContext = &GetOperationContext;
 static void *ThumbnailStatusContext = &ThumbnailStatusContext;
@@ -56,14 +65,17 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
 @property (nonatomic, copy, readwrite) NSError *errorGettingImage;
 
 // The thumbnailImages dictionary keeps the "newest" thumbnailImages for our
-// MzProductItem. The keys indicate the thumbnail Size
+// MzProductItem with keys that indicate the thumbnail Size. The dictionary also
+// stores the PlaceHolder thumbnails and provides a different one depending on
+// whether we are getting a thumbnail from the network or if the GET from
+// the network failed on retry. The thumbnails in this dictionary are updated
+// by KVO observing our thumbnail property's imageData attributes.
 @property (nonatomic, retain, readwrite) NSMutableDictionary * thumbnailImages;
 
 // private properties
 
 @property (nonatomic, retain, readonly ) MzProductCollectionContext *      productCollectionContext;
 @property (nonatomic, retain, readwrite) RetryingHTTPOperation *getThumbnailOperation;
-@property (nonatomic, retain, readwrite) MakeThumbnailOperation *resizethumbnailOperation;
 @property (nonatomic, retain, readwrite) RetryingHTTPOperation *getPhotoOperation;
 @property (nonatomic, copy,   readwrite) NSString *getPhotoFilePath;
 @property (nonatomic, assign, readwrite) BOOL thumbnailImageIsPlaceholder;
@@ -73,9 +85,6 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
 
 - (void)updateProductThumbnail;
 - (void)updateProductImage;
-
-- (void)thumbnailCommitImage:(UIImage *)image isPlaceholder:(BOOL)isPlaceholder;
-- (void)thumbnailCommitImageData:(UIImage *)image;
 
 @end
 
@@ -103,7 +112,6 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
 
 // Synthesized getters/setters
 @synthesize getThumbnailOperation;
-@synthesize resizethumbnailOperation;
 @synthesize getPhotoOperation;
 @synthesize thumbnailImageIsPlaceholder;
 @synthesize getPhotoFilePath;
@@ -358,7 +366,9 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
         
     // Initialize our dictionary to store thumbnail Images
     if (self.thumbnailImages == nil) {
-        self.thumbnailImages = [[NSMutableDictionary alloc] init];
+        
+        // Init with the default Placeholder thumbnail Image
+        self.thumbnailImages = [[NSMutableDictionary alloc] initWithObjectsAndKeys:[UIImage imageNamed:@"Placeholder.png"], kThumbnailPlaceHolder, nil];
     }
     assert(self.thumbnailImages != nil);
     
@@ -368,7 +378,11 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
     
     if (request == nil) {
         [[QLog log] logWithFormat:@"Bad ThumbnailPath: %@ for Product Item: %@  path '%@'", self.remoteThumbnailPath, self.productID];
-        [self thumbnailCommitImage:nil isPlaceholder:YES];
+        
+        // Change the PlaceHolder thumbnail - this will trigger a KVO notification
+        [self.thumbnailImages removeObjectForKey:kThumbnailPlaceHolder];
+        [self.thumbnailImages setObject:[UIImage imageNamed:@"PlaceHolder-Deferred"] forKey:kThumbnailPlaceHolder];
+        
     } else {
         self.getThumbnailOperation = [[RetryingHTTPOperation alloc] initWithRequest:request];
         assert(self.getThumbnailOperation != nil);
@@ -399,7 +413,17 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
         // thumbnail with a placeholder.
         
         if (self.thumbnailImageIsPlaceholder && self.getThumbnailOperation.hasHadRetryableFailure) {
-            [self thumbnailCommitImage:[UIImage imageNamed:@"Placeholder-Deferred.png"] isPlaceholder:YES];
+            
+            if (self.thumbnailImages == nil) {
+                
+                // Init with the deferred Placeholder thumbnail Image
+                self.thumbnailImages = [[NSMutableDictionary alloc] initWithObjectsAndKeys:[UIImage imageNamed:@"Placeholder-Deferred.png"], kThumbnailPlaceHolder, nil];
+            } else {
+                
+                //// Change the PlaceHolder thumbnail - this will trigger a KVO notification
+                [self.thumbnailImages removeObjectForKey:kThumbnailPlaceHolder];
+                [self.thumbnailImages setObject:[UIImage imageNamed:@"PlaceHolder-Deferred.png"] forKey:kThumbnailPlaceHolder];
+            }
         }
     } else        
      
@@ -412,7 +436,9 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
         // then we remove the old key-value pair before we insert the new key-value pair
         
         if (self.thumbnailImages == nil) {
-            self.thumbnailImages = [[NSMutableDictionary alloc] init];
+            
+            // Init with the default Placeholder thumbnail Image
+            self.thumbnailImages = [[NSMutableDictionary alloc] initWithObjectsAndKeys:[UIImage imageNamed:@"Placeholder.png"], kThumbnailPlaceHolder, nil];
         }
         assert(self.thumbnailImages != nil);
         
@@ -481,8 +507,8 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
     // Check our thumbnailImages dictionary first and return
     UIImage *returnImage;
     self.thumbnailImageIsPlaceholder = NO;
-    assert(thumbnailImages != nil);
-    assert([thumbnailImages count] > 0);
+    assert(self.thumbnailImages != nil);
+    assert([self.thumbnailImages count] > 0);
     
     switch (thumbnailSize) {
         case kSmallThumbnailImage: {
@@ -506,7 +532,7 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
                 // in progress they will be stopped by the new GET operations - this scenario
                 // should be rare but may occur only the first time a thumbnailImage is requested.
             
-                returnImage = [UIImage imageNamed:@"Placeholder.png"];
+                returnImage = [self.thumbnailImages objectForKey:kThumbnailPlaceHolder];
                 self.thumbnailImageIsPlaceholder = YES;
             }
             assert(returnImage != nil);
@@ -532,7 +558,7 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
                 // in progress they will be stopped by the new GET operations - this scenario
                 // should be rare but may occur only the first time a thumbnailImage is requested.
                 
-                returnImage = [UIImage imageNamed:@"Placeholder.png"];
+                returnImage = [self.thumbnailImages objectForKey:kThumbnailPlaceHolder];
                 self.thumbnailImageIsPlaceholder = YES;
             }
             assert(returnImage != nil);
@@ -559,7 +585,7 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
                 // in progress they will be stopped by the new GET operations - this scenario
                 // should be rare but may occur only the first time a thumbnailImage is requested.
                 
-                returnImage = [UIImage imageNamed:@"Placeholder.png"];
+                returnImage = [self.thumbnailImages objectForKey:kThumbnailPlaceHolder];
                 self.thumbnailImageIsPlaceholder = YES;
             }
             assert(returnImage != nil);

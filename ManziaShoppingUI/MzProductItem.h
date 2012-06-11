@@ -8,10 +8,13 @@
 
 #import <Foundation/Foundation.h>
 #import <CoreData/CoreData.h>
+#import "MzProductThumbNail.h"
 
 @class MzProductThumbNail;
 @class RetryingHTTPOperation;
 @class MakeThumbnailOperation;
+
+
 
 
 @interface MzProductItem : NSManagedObject
@@ -19,7 +22,6 @@
     NSMutableDictionary *thumbnailImages;
     BOOL thumbnailImageIsPlaceholder;
     RetryingHTTPOperation *getThumbnailOperation;
-    MakeThumbnailOperation *resizethumbnailOperation;
     RetryingHTTPOperation *getPhotoperation;
     NSString *getPhotoFilePath;
     NSUInteger photoNeededAssertions;
@@ -34,6 +36,11 @@
 // readonly properties listed below, triggering KVO notifications along the way
 - (void)updateWithProperties:(NSDictionary *)properties;
 
+// This method returns a thumbnail Image of the requested size, if there
+// is no thumbnail in the thumbnailImages dictionary or in the Core Data
+// database, we hit the network. In the latter case, a PlaceHolder image is
+// returned in the meantime.
+- (UIImage *)getthumbnailImage:(kThumbnailImageSize)thumbnailSize;
 
 // Read-only public properties
 

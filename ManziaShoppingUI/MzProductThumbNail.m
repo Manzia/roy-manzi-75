@@ -191,39 +191,16 @@ NSString *const kThumbNailSizeLarge = @"90.0";
             productThumbImage = nil;
         }
         
-    }
-    
-    // Commit the thumbnail based on its size
-    [self thumbnailCommitImage:productThumbImage isPlaceholder:NO];
-    
-}
-
-// Commits the thumbnail image to the object itself and to the Core Data database.
-- (void)thumbnailCommitImage:(UIImage *)image isPlaceholder:(BOOL)isPlaceholder
-{
-       
-    // If we were given no image, we assign the bad image placeholder.     
-    if (image == nil) {
-        isPlaceholder = YES;
-        image = [UIImage imageNamed:@"Placeholder-Bad.png"];
-        assert(image != nil);
-    }
-    
-    // If we got a non-placeholder image, commit its PNG representation into our thumbnail 
-    // database.  To avoid the scroll view stuttering, we only want to do this if the run loop 
-    // is running in the default mode.  Thus, we check the mode and either do it directly or 
-    // defer the work until the next time the default run loop mode runs.
-            
-    if ( ! isPlaceholder ) {
+        /* commit PNG representation into our thumbnail database.  To avoid the scroll view stuttering, we only want to do this if the run loop is running in the default mode.  Thus, we check the mode and either do it directly or defer the work until the next time the default run loop mode runs.
+         */
         [[QLog log] logWithFormat:@"Commit thumbnail for Product Item %@ thumbnail commit", self.productItem.productID];
         if ( [[[NSRunLoop currentRunLoop] currentMode] isEqual:NSDefaultRunLoopMode] ) {
-            [self thumbnailCommitImageData:image];
+            [self thumbnailCommitImageData:productThumbImage];
         } else {
-            [self performSelector:@selector(thumbnailCommitImageData:) withObject:image afterDelay:0.0 inModes:[NSArray arrayWithObject:NSDefaultRunLoopMode]];
-            
-        }
-    }
-    
+            [self performSelector:@selector(thumbnailCommitImageData:) withObject:productThumbImage afterDelay:0.0 inModes:[NSArray arrayWithObject:NSDefaultRunLoopMode]];            
+        }        
+    }   
+        
 }
 
 // Manual KVO notifications
