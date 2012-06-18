@@ -550,7 +550,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
 - (void)startCollection
 {
     BOOL success;
-    
+       
     assert(self.collectionURLString != nil);
     
     // Start up the Collection Cache.  Abandon the Collection, and retry once more
@@ -566,6 +566,9 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     // and we crash.
     
     if (success) {
+        
+        // append the variableRelativePath to collectionURLString happens in the
+        // startGetOperation: method
         [self startSynchronization:self.variableRelativePath];
         
         // start the Refresh Timer
