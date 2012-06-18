@@ -41,6 +41,7 @@
 @synthesize mutableResults;
 @synthesize collectionParser;
 @synthesize currentStringValue;
+@synthesize xmldata;
 
 // Initialization
 - (id)initWithXMLData:(NSData *)data
@@ -58,7 +59,7 @@
 }
 
 // Returns a copy of the current parseResults
-- (NSArray *)results
+- (NSArray *)parseResults
 {
     return [self->mutableResults copy];
 }
