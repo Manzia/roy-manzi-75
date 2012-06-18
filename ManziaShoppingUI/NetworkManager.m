@@ -147,8 +147,6 @@
     return self;
 }
 
-// COMMENT OUT - using ARC
-/*
 - (void)dealloc
 {
     // This object lives for the entire life of the application.  Getting it to support being 
@@ -156,7 +154,7 @@
     // don't even try.
     assert(NO);
     [super dealloc];
-} */
+}
 
 - (NSMutableURLRequest *)requestToGetURL:(NSURL *)url
     // See comment in header.
@@ -194,17 +192,14 @@
 {
     assert( ! [NSThread isMainThread] );
     while (YES) {
-        //NSAutoreleasePool * pool;
-        @autoreleasepool {
-            [[NSRunLoop currentRunLoop] run];
-        }
+        NSAutoreleasePool * pool;
 
-        //pool = [[NSAutoreleasePool alloc] init];
-       // assert(pool != nil);
+        pool = [[NSAutoreleasePool alloc] init];
+        assert(pool != nil);
 
-       // [[NSRunLoop currentRunLoop] run];
+        [[NSRunLoop currentRunLoop] run];
 
-        //[pool drain];
+        [pool drain];
     }
     assert(NO);
 }
