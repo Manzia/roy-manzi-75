@@ -117,6 +117,7 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
 @synthesize getPhotoFilePath;
 @synthesize productCollectionContext;
 @synthesize thumbnailImages;
+@synthesize errorGettingImage;
 
 #pragma mark * Insert & Update Product Items
 // Creates a MzProductItem object with the specified properties in the specified context. 
