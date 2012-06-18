@@ -131,8 +131,7 @@ static NSString * kRetryingHTTPOperationTransferDidSucceedHostKey = @"hostName";
     }
     return self;
 }
-// COMMENT OUT - Converted to ARC
-/*
+
 - (void)dealloc
 {
     [self->_request release];
@@ -144,7 +143,7 @@ static NSString * kRetryingHTTPOperationTransferDidSucceedHostKey = @"hostName";
     assert(self->_retryTimer == nil);
     assert(self->_reachabilityOperation == nil);
     [super dealloc];
-} */
+}
 
 #pragma mark * Properties
 
@@ -310,8 +309,7 @@ static NSString * kRetryingHTTPOperationTransferDidSucceedHostKey = @"hostName";
     
     // Create the network operation.
     
-    //self.networkOperation = [[[QHTTPOperation alloc] initWithRequest:self.request] autorelease];
-    self.networkOperation = [[QHTTPOperation alloc] initWithRequest:self.request];
+    self.networkOperation = [[[QHTTPOperation alloc] initWithRequest:self.request] autorelease];
     assert(self.networkOperation != nil);
     
     // Copy our properties over to the network operation.
@@ -484,8 +482,7 @@ static NSString * kRetryingHTTPOperationTransferDidSucceedHostKey = @"hostName";
     [[QLog log] logOption:kLogOptionNetworkDetails withFormat:@"http %zu %sreachable start", (size_t) self->_sequenceNumber, reachable ? "" : "un" ];
 
     assert(self.reachabilityOperation == nil);
-    //self.reachabilityOperation = [[[QReachabilityOperation alloc] initWithHostName:[[self.request URL] host]] autorelease];
-    self.reachabilityOperation = [[QReachabilityOperation alloc] initWithHostName:[[self.request URL] host]];
+    self.reachabilityOperation = [[[QReachabilityOperation alloc] initWithHostName:[[self.request URL] host]] autorelease];
     assert(self.reachabilityOperation != nil);
 
     // In the reachable case the default mask and value is fine.  In the unreachable case 
