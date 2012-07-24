@@ -488,7 +488,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     if (success) {
         NSString *collectionModelPath;
         
-        collectionModelPath = [[NSBundle bundleForClass:[self class]] pathForResource:@"ProductItems" ofType:@"mom"];
+        collectionModelPath = [[NSBundle bundleForClass:[self class]] pathForResource:@"MzProductItems" ofType:@"momd"]; // should be @"momd" or @"mom"
         assert(collectionModelPath != nil);
         
         collectionModel = [[NSManagedObjectModel alloc] initWithContentsOfURL:[NSURL fileURLWithPath:collectionModelPath]];
