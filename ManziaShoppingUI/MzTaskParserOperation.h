@@ -17,9 +17,7 @@
 #endif
     NSXMLParser *collectionParser;
     NSMutableArray *mutableResults;
-    NSMutableDictionary *tasksProperties;
-    BOOL storeCharacters;
-    NSMutableString *currentStringValue;
+    NSMutableDictionary *tasksProperties;    
 }
 
 // Initialize with XML data

@@ -24,7 +24,6 @@
 @property (retain, readonly ) NSMutableArray *mutableResults;
 @property (retain, readwrite) NSXMLParser *collectionParser;
 @property (retain, readonly ) NSMutableDictionary *tasksProperties;
-@property(nonatomic, retain) NSMutableString *currentStringValue;
 
 @end
 
@@ -37,7 +36,6 @@
 @synthesize debugDelaySoFar;
 @synthesize mutableResults;
 @synthesize collectionParser;
-@synthesize currentStringValue;
 @synthesize xmldata;
 
 // Initialization
@@ -122,6 +120,28 @@
 }
 
 /* Basic Parse Algorithm
+ Sample XML Data
+ <?xml version="1.0"?>
+ <feed xmlns="http://www.w3.org/2005/Atom" xmlns:mz="http://www.manzia.com/productContent">
+ <mz:categories>
+    <mz:category id="1000" name="Electronics" thumbnail_link="http://www.manzia.com/tasks/thumbnails/1000.jpg>
+        <mz:taskTypes>
+            <mz:taskType id="LN10001" name="Laptops & Netbooks" thumbnail_link="http://www.manzia.com/tasks/thumbnails/LN10001.jpg">
+                <mz:taskAttributes>
+                    <mz:taskAttributesCount>13</mz:taskAttributeCount>
+                    <mz:taskAttribute id="LN100010" name="Memory">
+                        <mz:taskAttributeValues value1="4GB or less" value2="8GB" value3="16GB" value4="32GB or more"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="LN100011" name="Brand">
+                        <mz:taskAttributeValues value1="Apple" value2="Dell" value3="HP" value4="Lenovo" value5="Samsung"
+                            value6="Toshiba" value7="Acer" value8="Sony" value9="Asus" value10="Compaq"
+                            value11="Gateway" value12="Fujitsu" value13="Alienware"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="LN100012" name="Condition">
+                        <mz:taskAttributeValues value1="New" value2="Used" value3="Refurbished"/>
+                    </mz:taskAttribute>....
+ 
+ 
  Data Structure: uses an NSArray with NSMutableDictionary entries
  1- <category> tag - insert "id" and "name" into dictionary
  2- <taskType> tag - insert "id", "name", "thumbnailURL" into dictionary
@@ -283,7 +303,7 @@
         NSString *taskAttributeId = [self.tasksProperties objectForKey:kTaskParserResultTaskAttributeId];
         assert(taskAttributeId != nil);
         
-        // Note that according to our schema it does not make sense to have an attribute
+        // Note that according to our XML schema it does not make sense to have a taskAttribute
         // which has no values...nonetheless an attribute can have one value and that value
         // could be the attribute
         // Note that the attributeOptionId == associated taskAttributeId
@@ -299,6 +319,56 @@
     return;    
 }
 
+// Delegate methods for when parser encounters end of tag elements
+-(void)parser:(NSXMLParser *)parser didEndElement:(NSString *)elementName namespaceURI:(NSString *)namespaceURI qualifiedName:(NSString *)qName {
+    
+    // ignore root, empty and unused elements
+    if ([elementName isEqualToString:@"categories"] || [elementName isEqualToString:@"taskTypes"]
+        || [elementName isEqualToString:@"taskAttributes"] || [elementName isEqualToString:
+                                                               @"taskAttributesCount"]) {
+        return;
+    }
+    
+    // taskAttribute end element
+    if ([self.tasksProperties count] == 0) {
+        [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"XML parse skipped - missing all keys "];
+    } else {
+        
+        // check the dictionary entries
+        assert([[self.tasksProperties objectForKey:kTaskParserResultCategoryId] isKindOfClass:[NSString class]]);
+        assert([[self.tasksProperties objectForKey:kTaskParserResultCategoryName] isKindOfClass:[NSString class]]);
+        assert([[self.tasksProperties objectForKey:kTaskParserResultCategoryImageURL] isKindOfClass:[NSString class]]);
+        assert([[self.tasksProperties objectForKey:kTaskParserResultTaskTypeId] isKindOfClass:[NSString class]]);
+        assert([[self.tasksProperties objectForKey:kTaskParserResultTaskTypeName] isKindOfClass:[NSString class]]);
+        assert([[self.tasksProperties objectForKey:kTaskParserResultTaskTypeImageURL] isKindOfClass:[NSString class]]);
+        assert([[self.tasksProperties objectForKey:kTaskParserResultTaskAttributeId] isKindOfClass:[NSString class]]);
+        assert([[self.tasksProperties objectForKey:kTaskParserResultTaskAttributeName] isKindOfClass:[NSString class]]);
+        assert([[self.tasksProperties objectForKey:kTaskParserResultAttributeOptionId] isKindOfClass:[NSString class]]);
+        assert([[self.tasksProperties objectForKey:kTaskParserResultAttributeOptionName] isKindOfClass:[NSString class]]);
+        
+        // insert the dictionary into the array
+        [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"XML parse success for category: %@, tasktype: %@, taskAttribute: %@", [self.tasksProperties objectForKey:kTaskParserResultCategoryName], [self.tasksProperties objectForKey:kTaskParserResultTaskTypeName], [self.tasksProperties objectForKey:kTaskParserResultTaskAttributeName]];
+        
+        [self.mutableResults addObject:[self.tasksProperties copy]];
+        
+        // Remove the taskAttribute keys for the next pass...
+        NSArray *keyArray = [NSArray arrayWithObjects:kTaskParserResultTaskAttributeId, kTaskParserResultTaskAttributeName, kTaskParserResultAttributeOptionId, kTaskParserResultAttributeOptionName, nil];
+        [self.tasksProperties removeObjectsForKeys:keyArray];
+    }
+    
+    // </taskType> tag - remove the taskType(id, name, thumbnailURL) from dictionary
+    if ([elementName isEqualToString:@"taskType"]) {
+        NSArray *keyArray = [NSArray arrayWithObjects:kTaskParserResultTaskTypeId, 
+                             kTaskParserResultTaskTypeName, kTaskParserResultTaskTypeImageURL, nil];
+        [self.tasksProperties removeObjectsForKeys:keyArray];
+    }
+    
+    //</category> tag - remove all entries from the dictionary
+    if ([elementName isEqualToString:@"category"]) {
+        
+        [self.tasksProperties removeAllObjects];        
+    }
+}
 
 // Keys for task Category model objects
 NSString *kTaskParserResultCategoryId = @"categoryId";      
