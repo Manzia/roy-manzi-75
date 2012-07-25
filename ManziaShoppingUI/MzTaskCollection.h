@@ -59,7 +59,7 @@ typedef enum TaskCollectionSyncState TaskCollectionSyncState;
 @interface MzTaskCollection : NSObject {
     NSString *tasksURLString;
     MzTaskCollectionContext *taskCollectionContext;
-    NSEntityDescription *tasksEntity;
+    NSEntityDescription *tasksEntity;       // MzTaskCategory entity
     NSDate *dateLastSynced;
     TaskCollectionSyncState stateOfSync;
     NSError *errorFromLastSync;
@@ -68,7 +68,7 @@ typedef enum TaskCollectionSyncState TaskCollectionSyncState;
     MzTaskParserOperation *parserOperation;
 }
 
-// Properties
+// Properties related to Data Management
 @property(nonatomic, copy, readonly) NSString *tasksURLString;
 @property(nonatomic, retain, readonly)NSManagedObjectContext *managedObjectContext;
 @property(nonatomic, retain, readonly)NSEntityDescription *tasksEntity;
@@ -82,9 +82,6 @@ typedef enum TaskCollectionSyncState TaskCollectionSyncState;
 @property (nonatomic, copy, readonly) NSDateFormatter *dateFormatter; 
 
 
-// Class method to manage the TaskCollection Cache directory
-+(void)applicationInBackground;
-
 // initialize
 -(id)initWithTasksURLString:(NSString *)tasksURLString;
 
@@ -94,7 +91,7 @@ typedef enum TaskCollectionSyncState TaskCollectionSyncState;
 -(void)saveCollection;
 
 // methods to control the synchronization process
--(void)startSynchronization:(NSString *)relativePath;
+-(void)startSynchronization;
 -(void)stopSynchronization;
 
 
