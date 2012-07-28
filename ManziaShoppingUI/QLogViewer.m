@@ -95,7 +95,7 @@
     [[NSNotificationCenter defaultCenter] removeObserver:self name:UIApplicationWillResignActiveNotification object:nil];
     assert(self->_actionSheet == nil);          // should be gone at this point
     assert(self->_alertView == nil);            // should be gone at this point
-//    [super dealloc];
+    [super dealloc];
 }
 
 #pragma mark * General view controller stuff
@@ -214,7 +214,7 @@
 
     cell = [self.tableView dequeueReusableCellWithIdentifier:@"cell"];
     if (cell == nil) {
-        cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"cell"]; // autorelease];
+        cell = [[[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"cell"] autorelease];
         assert(cell != nil);
         
         cell.textLabel.font = [UIFont systemFontOfSize:12.0f];
@@ -238,12 +238,12 @@
 {
     UINavigationController *    navController;
     
-    navController = [[UINavigationController alloc] initWithRootViewController:self]; // autorelease];
+    navController = [[[UINavigationController alloc] initWithRootViewController:self]autorelease];
     assert(navController != nil);
 
     self.navigationItem.title = @"Log";
-    self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAction target:self action:@selector(actionAction:)]; // autorelease];
-    self.navigationItem.leftBarButtonItem  = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone   target:self action:@selector(doneAction:)  ]; // autorelease];
+    self.navigationItem.rightBarButtonItem = [[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAction target:self action:@selector(actionAction:)] autorelease];
+    self.navigationItem.leftBarButtonItem  = [[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone   target:self action:@selector(doneAction:)  ] autorelease];
 
     [controller presentModalViewController:navController animated:animated];
 }
@@ -417,7 +417,7 @@ static BOOL gzwrite_all(gzFile file, const uint8_t * buffer, size_t bytesToWrite
     // Shows an alert view containing the specified error message.
 {
     assert(self.alertView == nil);
-    self.alertView = [[UIAlertView alloc] initWithTitle:@"Error" message:message delegate:nil cancelButtonTitle:nil otherButtonTitles:@"Drat!", nil]; // autorelease];
+    self.alertView = [[[UIAlertView alloc] initWithTitle:@"Error" message:message delegate:nil cancelButtonTitle:nil otherButtonTitles:@"Drat!", nil] autorelease];
     assert(self.alertView != nil);
     
     self.alertView.cancelButtonIndex = 0;
@@ -449,7 +449,7 @@ enum {
         mailTitle = nil;
     }
     assert(self.actionSheet == nil);
-    self.actionSheet = [[UIActionSheet alloc] initWithTitle:nil delegate:self cancelButtonTitle:@"Cancel" destructiveButtonTitle:@"Clear" otherButtonTitles:@"Copy", @"Print to StdErr", mailTitle, nil]; // autorelease];
+    self.actionSheet = [[[UIActionSheet alloc] initWithTitle:nil delegate:self cancelButtonTitle:@"Cancel" destructiveButtonTitle:@"Clear" otherButtonTitles:@"Copy", @"Print to StdErr", mailTitle, nil] autorelease];
     assert(self.actionSheet != nil);
 
     [self.actionSheet showInView:self.view];
@@ -468,7 +468,7 @@ enum {
             // The user tapped Clear; put up an alert view to confirm that.
             
             assert(self.alertView == nil);
-            self.alertView = [[UIAlertView alloc] initWithTitle:@"Clear Log?" message:@"Are you sure you want to clear the log completely?" delegate:self cancelButtonTitle:@"Cancel" otherButtonTitles:@"Clear", nil]; // autorelease];
+            self.alertView = [[[UIAlertView alloc] initWithTitle:@"Clear Log?" message:@"Are you sure you want to clear the log completely?" delegate:self cancelButtonTitle:@"Cancel" otherButtonTitles:@"Clear", nil] autorelease];
             assert(self.alertView != nil);
             
             self.alertView.delegate = self;

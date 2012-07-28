@@ -308,7 +308,7 @@
         // Create the log entry.  Note that the log entry header is formatted to look like the 
         // result of NSLog.
 
-        formattedArgs = [[NSString alloc] initWithFormat:format arguments:argList];//autorelease];
+        formattedArgs = [[[NSString alloc] initWithFormat:format arguments:argList] autorelease];
         assert(formattedArgs != nil);
 
         success = gettimeofday(&now, NULL) == 0;
@@ -420,7 +420,7 @@
     // Steal the entries from the _pendingEntries array.
     
     @synchronized (self) {
-        entriesToAdd = [self->_pendingEntries copy]; // autorelease];
+        entriesToAdd = [[self->_pendingEntries copy] autorelease];
         [self->_pendingEntries removeAllObjects];
     }
 
