@@ -3,7 +3,7 @@
     <entity name="MzTaskAttribute" representedClassName="MzTaskAttribute" syncable="YES">
         <attribute name="taskAttributeId" attributeType="String" indexed="YES" syncable="YES"/>
         <attribute name="taskAttributeName" attributeType="String" syncable="YES"/>
-        <relationship name="attributeOptions" toMany="YES" minCount="1" deletionRule="Nullify" ordered="YES" destinationEntity="MzTaskAttributeOption" inverseName="taskAttribute" inverseEntity="MzTaskAttributeOption" syncable="YES"/>
+        <relationship name="attributeOptions" toMany="YES" minCount="1" deletionRule="Cascade" ordered="YES" destinationEntity="MzTaskAttributeOption" inverseName="taskAttribute" inverseEntity="MzTaskAttributeOption" syncable="YES"/>
         <relationship name="taskType" minCount="1" maxCount="1" deletionRule="Nullify" destinationEntity="MzTaskType" inverseName="taskAttributes" inverseEntity="MzTaskType" syncable="YES"/>
     </entity>
     <entity name="MzTaskAttributeOption" representedClassName="MzTaskAttributeOption" syncable="YES">
@@ -15,15 +15,15 @@
         <attribute name="categoryId" attributeType="String" indexed="YES" syncable="YES"/>
         <attribute name="categoryImageURL" optional="YES" attributeType="String" syncable="YES"/>
         <attribute name="categoryName" optional="YES" attributeType="String" syncable="YES"/>
-        <relationship name="taskTypes" toMany="YES" minCount="1" deletionRule="Nullify" ordered="YES" destinationEntity="MzTaskType" inverseName="taskCategory" inverseEntity="MzTaskType" syncable="YES"/>
+        <relationship name="taskTypes" toMany="YES" minCount="1" deletionRule="Cascade" ordered="YES" destinationEntity="MzTaskType" inverseName="taskCategory" inverseEntity="MzTaskType" syncable="YES"/>
     </entity>
     <entity name="MzTaskType" representedClassName="MzTaskType" syncable="YES">
         <attribute name="taskTypeId" attributeType="String" indexed="YES" syncable="YES"/>
         <attribute name="taskTypeImageURL" optional="YES" attributeType="String" syncable="YES"/>
         <attribute name="taskTypeName" optional="YES" attributeType="String" syncable="YES"/>
-        <relationship name="taskAttributes" toMany="YES" minCount="1" deletionRule="Nullify" ordered="YES" destinationEntity="MzTaskAttribute" inverseName="taskType" inverseEntity="MzTaskAttribute" syncable="YES"/>
+        <relationship name="taskAttributes" toMany="YES" minCount="1" deletionRule="Cascade" ordered="YES" destinationEntity="MzTaskAttribute" inverseName="taskType" inverseEntity="MzTaskAttribute" syncable="YES"/>
         <relationship name="taskCategory" minCount="1" maxCount="1" deletionRule="Nullify" destinationEntity="MzTaskCategory" inverseName="taskTypes" inverseEntity="MzTaskCategory" syncable="YES"/>
-        <relationship name="taskTypeImage" optional="YES" minCount="1" maxCount="1" deletionRule="Nullify" destinationEntity="MzTaskTypeImage" inverseName="taskType" inverseEntity="MzTaskTypeImage" syncable="YES"/>
+        <relationship name="taskTypeImage" optional="YES" minCount="1" maxCount="1" deletionRule="Cascade" destinationEntity="MzTaskTypeImage" inverseName="taskType" inverseEntity="MzTaskTypeImage" syncable="YES"/>
     </entity>
     <entity name="MzTaskTypeImage" representedClassName="MzTaskTypeImage" syncable="YES">
         <attribute name="taskTypeId" attributeType="String" indexed="YES" syncable="YES"/>
@@ -32,10 +32,10 @@
     </entity>
     <configuration name="Configuration"/>
     <elements>
-        <element name="MzTaskCategory" positionX="-1388" positionY="-1620" width="128" height="105"/>
-        <element name="MzTaskType" positionX="-1368" positionY="-1458" width="128" height="135"/>
         <element name="MzTaskAttribute" positionX="-1379" positionY="-1266" width="128" height="105"/>
         <element name="MzTaskAttributeOption" positionX="-1656" positionY="-1386" width="128" height="90"/>
+        <element name="MzTaskCategory" positionX="-1388" positionY="-1620" width="128" height="105"/>
+        <element name="MzTaskType" positionX="-1368" positionY="-1458" width="128" height="135"/>
         <element name="MzTaskTypeImage" positionX="-1602" positionY="-1494" width="128" height="90"/>
     </elements>
 </model>
