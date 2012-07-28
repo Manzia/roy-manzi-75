@@ -13,6 +13,10 @@
 #import "RecursiveDeleteOperation.h"
 #import "RetryingHTTPOperation.h"
 #import "NetworkManager.h"
+#import "MzTaskCategory.h"
+#import "MzTaskType.h"
+#import "MzTaskAttribute.h"
+#import "MzTaskAttributeOption.h"
 
 #define kAutoSaveContextChangesTimeInterval 5.0     // 5 secs to auto-save
 
@@ -61,6 +65,7 @@
 @synthesize getTasksOperation;
 @synthesize parserOperation;
 @synthesize synchronizing;
+@synthesize statusOfSync;
 
 // Other Getters
 -(id)managedObjectContext
@@ -689,6 +694,380 @@ static NSString * kTasksDataFileName    = @"Tasks.db";
     // Prepare for the next run..
     self.parserOperation = nil;
 }
+
+// Commit the parseResults to the Core Data database
+- (void)commitParserResults:(NSArray *)parserResults {
+    
+    assert(parserResults != nil);
+    
+    // Update, delete, insert the new task categories, types and attributes accordingly
+    
+    /*
+     Algorithm
+     1- create a set with all the categoryIds in the parserResults
+        i) get all the taskCategory objects in the database
+        ii) compare each categoryId from parserResults to that from database
+        iii) return, insert, delete accordingly based on comparison result above
+             
+     */
+    
+    if ([parserResults count] > 0) {
+        
+        NSMutableSet *taskCategorySet;
+        NSArray *retrievedCategory;
+        NSError *fetchCategoryError;
+        NSMutableArray *categoryToRemove;
+        NSArray * taskCategory;
+                       
+        // Get the taskCategory objects from the database
+        NSFetchRequest *fetchCategory = [self taskCategoryFetchRequest];
+        assert(fetchCategory != nil);
+        retrievedCategory = [self.taskCollectionContext executeFetchRequest:fetchCategory error:&fetchCategoryError];
+        assert(retrievedCategory != nil);
+        
+        // Create the set of categoryIds we got from the parserResults
+        taskCategorySet = [NSMutableSet set];
+        assert(taskCategorySet != nil);
+        NSString *categoryId;
+        NSString *uniqueCategoryId;
+        uniqueCategoryId = [NSString string];
+        assert(uniqueCategoryId != nil);
+        
+        for (NSDictionary *task in parserResults) {
+                                               
+            // category
+            categoryId = [task objectForKey:kTaskParserResultCategoryId];
+            assert([categoryId isKindOfClass:[NSString class]]);
+                        
+            if ([categoryId isEqualToString:uniqueCategoryId]) {
+                
+                // do nothing, we've seen this categoryId before, so skip...
+            } else {
+                // we use a an NSMutableSet so we have no duplicates
+                [taskCategorySet addObject:categoryId];
+                uniqueCategoryId = categoryId;  // keep track of the "old" value of categoryId
+            }                       
+        }
+        
+        // convert to array for performance reasons
+        assert([taskCategorySet count] > 0);
+        taskCategory = [taskCategorySet allObjects];
+        assert(taskCategory != nil); 
+        
+        // find all the taskCategory objects in database not in the set created from parserResults
+        categoryToRemove = [NSMutableArray array];
+        if ([retrievedCategory count] > 0) {
+            BOOL foundCategory = NO;
+            
+            // May need to revisit this block of code its N^3 (cubic) loop but fortunately N is likely to be
+            // very small, 1 to 5.
+            for (MzTaskCategory *existingCategory in retrievedCategory) {
+                for (NSString *category in taskCategory) {
+                    if ([existingCategory.categoryId isEqualToString:category]) {
+                        
+                        /* This looks untidy but the its warranted by the nature of the task i.e, we need to be able to automatically update existing taskCategory's but I'm not seeing a really efficient way of determining when to update !!!! */
+                        for (NSDictionary *task in parserResults) {
+                            if ([existingCategory.categoryId isEqualToString:[task objectForKey:kTaskParserResultCategoryId]]) {
+                                [existingCategory updateWithProperties:task];
+                            }
+                        }                        
+                        foundCategory = YES;
+                        break;          // no need to continue
+                    }
+                }
+                // we remove those taskCategory's in the database not in our new categoryId array
+                if (!foundCategory) {
+                    [categoryToRemove addObject:existingCategory];
+                } else {
+                    
+                    // Check if we need to delete the taskTypes or taskAttributes of
+                    // any of the existing taskCategory's
+                    [self checkToDeleteTaskTypesAttributes:existingCategory withResults:parserResults];
+                }
+                foundCategory = NO;         // reset
+            }
+            // delete
+            if ([categoryToRemove count] > 0) {
+                for (MzTaskCategory *deleteCategory in categoryToRemove) {
+                    [self.taskCollectionContext deleteObject:deleteCategory];                     
+                }
+            
+            }
+        } else {
+             // we have an empty database so we populate with all the parseResults, one taskCategory
+            // at a time. Most likely we are populating the database for the first time
+                        
+            for (NSDictionary *task in parserResults) {
+                
+                // populate - note that the taskCategorySet populated earlier has all the unique
+                // categoryIds in the parserResults..NOTE that we are testing for identical NSString
+                // objects NOT identical NSString values. 
+                if ([taskCategorySet containsObject:[task objectForKey:kTaskParserResultCategoryId]]) {
+                    
+                    // a new category
+                    [MzTaskCategory insertNewMzTaskCategoryWithProperties:task inManagedObjectContext:self.taskCollectionContext];
+                }                
+            }
+            // Retrieve the MzTaskCategory objects inserted above and update them and then save all the changes
+            // Note that we have to follow the insert operation with an update operation because each NSDictionary
+            // in the NSArray of parserResults represents one branch of the taskCategory tree - refer to the 
+            // relevant XML schema...so we update to add all branches to complete the taskCategory tree
+            NSSet *insertedCategories;
+            insertedCategories = [self.taskCollectionContext insertedObjects];
+            assert(insertedCategories != nil);
+            if ([insertedCategories count] > 0) {
+                
+                [insertedCategories enumerateObjectsUsingBlock:^(MzTaskCategory * category, BOOL *stop) {
+                    for (NSDictionary *task in parserResults) {
+                        if ([category.categoryId isEqualToString:[task objectForKey:kTaskParserResultCategoryId]])
+                        {
+                            [category updateWithProperties:task];
+                        }
+                    }
+                }];
+            } else {
+                [[QLog log] logOption:kLogOptionSyncDetails withFormat:
+                 @"Empty initial Task Collection with URL: %@", self.tasksURLString];
+            }
+        }        
+        
+    } else {
+        [[QLog log] logOption:kLogOptionSyncDetails withFormat:
+         @"Empty Parse Results array for Task Collection Cache with URL: %@", self.tasksURLString];
+    }
+}
+
+// Method checks the MzTaskType and MzTaskAttribute objects associated with
+// a MzTaskCategory in the database against the parserResults and deletes the
+// objects in the database if they do not match the parserResults
+- (void) checkToDeleteTaskTypesAttributes:(MzTaskCategory *)taskCategory withResults:(NSArray *)parseResult
+{
+    /*1- create a set with all the taskTypeIds in the parserResults for each categoryId
+        i) get all the taskType objects for each categoryId in the database
+        iii) delete all taskType objects in the database but not in the set
+      2- create a set with all the taskAttributeIds in the parserResults for each categoryId
+        i) get all the taskAttribute objects for a set of taskTypeId's in the database
+        ii) delete all taskAttribute objects in the database but not in the set */
+    
+    assert(taskCategory != nil);
+    assert(parseResult != nil);
+    assert(taskCategory.taskTypes != nil);
+    
+    NSMutableSet *taskTypeSet;
+    NSMutableSet *taskAttributeSet;
+    //NSError *fetchTaskError;
+    //NSArray *retrievedTasks;
+    NSMutableArray *taskTypeToKeep;
+    NSArray *taskTypeArray;
+    NSArray *taskAttributeArray;
+    
+    // Initialize the sets
+    taskTypeSet = [NSMutableSet set];
+    taskAttributeSet = [NSMutableSet set];
+    assert(taskTypeSet != nil);
+    assert(taskAttributeSet != nil);
+    
+    //NSString *taskTypeProperty = @"taskCategory.categoryId";
+    //NSString *taskTypeValue = taskCategory.categoryId;
+    //NSString *taskAttributeProperty = @"taskType.taskTypeId";
+    //NSString *taskAttributeValue;
+    NSString *taskTypeId;
+    NSString *uniqueTaskTypeId = [NSString string];
+    assert(uniqueTaskTypeId != nil);
+    NSString *taskAttributeId;
+    NSString *uniqueAttributeId = [NSString string];
+    NSIndexSet *result;
+    NSIndexSet *resultAttribute;
+    
+    /* Retrieve the MzTaskType objects from the database
+    fetchTaskError = NULL;
+    NSPredicate *taskTypePredicate = [NSPredicate predicateWithFormat:@"%K like %@", taskTypeProperty, taskTypeValue];
+    NSFetchRequest *fetchTaskTypes = [NSFetchRequest fetchRequestWithEntityName:@"MzTaskType"];
+    assert(fetchTaskTypes != nil);
+    [fetchTaskTypes setPredicate:taskTypePredicate];
+    [fetchTaskTypes setRelationshipKeyPathsForPrefetching:[NSArray arrayWithObject:@"taskAttributes"]];
+    
+    retrievedTasks = [self.taskCollectionContext executeFetchRequest:fetchTaskTypes error:&fetchTaskError];
+    assert(retrievedTasks != nil);
+    
+    // Log any error
+    if (fetchTaskError) {
+        [[QLog log] logOption:kLogOptionSyncDetails withFormat:
+         @"Encountered error: %@ during taskType fetch for Task Collection with URL: %@",[fetchTaskError localizedDescription] ,self.tasksURLString];
+    } */
+    
+    // Create the sets from the parseResult
+    for (NSDictionary *task in parseResult) {
+        
+        // taskType
+        taskTypeId = [task objectForKey:kTaskParserResultTaskTypeId];
+        assert([taskTypeId isKindOfClass:[NSString class]]);
+        
+        if ([taskTypeId isEqualToString:uniqueTaskTypeId]) {
+            
+            // do nothing, we've seen this taskTypeId before, so skip...
+        } else {
+            // we use a an NSMutableSet so we have no duplicates
+            [taskTypeSet addObject:taskTypeId];
+            uniqueTaskTypeId = taskTypeId;  // keep track of the "old" value of categoryId
+        }
+        
+        // taskAttribute
+        taskAttributeId = [task objectForKey:kTaskParserResultTaskAttributeId];
+        assert(taskAttributeId != nil);
+        
+        if ([taskAttributeId isEqualToString:uniqueAttributeId]) {
+            
+            // do nothing, we've seen this taskAttributeId before, so skip...
+        } else {
+            // we use a an NSMutableSet so we have no duplicates
+            [taskAttributeSet addObject:taskAttributeId];
+            uniqueAttributeId = taskAttributeId;  // keep track of the "old" value of categoryId
+        }
+
+    }
+    // convert to array
+    taskTypeArray = [taskTypeSet allObjects];
+    assert(taskTypeArray != nil);
+    taskAttributeArray = [taskAttributeSet allObjects];
+    assert(taskAttributeArray != nil);
+    
+    if ([taskTypeArray count] == 0) {
+        
+        // return, we have nothing to do
+        [[QLog log] logOption:kLogOptionSyncDetails withFormat:
+         @"No taskTypeIds found in parseResults for Task Collection with URL: %@", self.tasksURLString];
+        return;
+    }
+    
+    // find all the taskType objects in database not in the set created from parserResults
+    // if we got no TaskType objects from the database we do nothing, this scenario is covered in the 
+    // commitParserResults instance method...so no worries
+    // Iterate over all the taskType objects
+    
+    taskTypeToKeep = [NSMutableArray array];   // array of MzTaskType object to keep
+    
+    if ([taskCategory.taskTypes count] > 0) {
+        for (NSString *taskString in taskTypeArray) {
+            result = [taskCategory.taskTypes indexesOfObjectsPassingTest:
+                      ^(MzTaskType *obj, NSUInteger idx, BOOL *stop) {
+                          if ([obj.taskTypeId isEqualToString:taskString]) {
+                              
+                              [taskTypeToKeep addObject:obj];
+                              return NO;   // keep looking
+                          } else {
+                              return  YES;   // found non-match
+                          }    
+                      }];
+        }
+        
+        if ([result firstIndex] != NSNotFound) {
+            // we can safely delete the TaskType objects that did not match
+            [taskCategory removeTaskTypesAtIndexes:result];                        
+        }
+    }
+    
+    // Repeat for the TaskAttributes
+    if ([taskTypeToKeep count] == 0) {
+        
+        // nothing to do..
+        return;
+    } else {
+        // check taskAttributes
+        for (MzTaskType *task in taskTypeToKeep) {
+            
+            for (NSString *attributeString in taskAttributeArray) {
+                resultAttribute = [task.taskAttributes indexesOfObjectsPassingTest:
+                                   ^(MzTaskAttribute *attribute, NSUInteger idx, BOOL *stop) {
+                                       if ([attribute.taskAttributeId isEqualToString:attributeString]) {
+                                           
+                                           return NO;   // keep looking
+                                       } else {
+                                           return YES;  // found non-match
+                                       }
+                                   }];
+                                   
+            }
+            if ([resultAttribute firstIndex] != NSNotFound) {
+                // we can safely delete the TaskAttribute objects
+                [task removeTaskAttributesAtIndexes:resultAttribute];
+            }
+            resultAttribute = nil;  // reset
+        }
+        
+    }
+
+
+}
+
+// Register the isSyncing as a dependent key for KVO notifications
++ (NSSet *)keyPathsForValuesAffectingSynchronizing
+{
+    return [NSSet setWithObject:@"stateOfSync"];
+}
+
+// Getter for isSyncing property
+- (BOOL)isSynchronizing
+{
+    return (self->stateOfSync > TaskCollectionSyncStateStopped);
+}
+
++ (BOOL)automaticallyNotifiesObserversOfStateOfSync
+{
+    return NO;
+}
+
+// Setter for the stateOfSync property, this property is KVO-observable
+- (void)setStateOfSync:(TaskCollectionSyncState)newValue
+{
+    if (newValue != self->stateOfSync) {
+        BOOL    isSyncingChanged;
+        
+        isSyncingChanged = (self->stateOfSync > TaskCollectionSyncStateStopped) != (newValue > TaskCollectionSyncStateStopped);
+        [self willChangeValueForKey:@"stateOfSync"];
+        if (isSyncingChanged) {
+            [self willChangeValueForKey:@"synchronizing"];
+        }
+        self->stateOfSync = newValue;
+        if (isSyncingChanged) {
+            [self didChangeValueForKey:@"synchronizing"];
+        }
+        [self didChangeValueForKey:@"stateOfSync"];
+    }
+}
+
+// Key method that starts the synchronization process
+- (void)startSynchronization:(NSString *)relativePath
+{
+    if ( !self.isSynchronizing ) {
+        if (self.stateOfSync == TaskCollectionSyncStateStopped) {
+            [[QLog log] logWithFormat:@"Start synchronization for Task Collection Cache with URL: %@",
+             self.tasksURLString];
+            assert(self.getTasksOperation == nil);
+            self.errorFromLastSync = nil;
+            [self startGetOperation:relativePath];
+        }
+    }
+}
+
+// Method that stops the synchronization process
+- (void)stopSynchronization
+{
+    if (self.isSynchronizing) {
+        if (self.getTasksOperation != nil) {
+            [[NetworkManager sharedManager] cancelOperation:self.getTasksOperation];
+            self.getTasksOperation = nil;
+        }
+        if (self.parserOperation) {
+            [[NetworkManager sharedManager] cancelOperation:self.parserOperation];
+            self.parserOperation = nil;
+        }
+        self.errorFromLastSync = [NSError errorWithDomain:NSCocoaErrorDomain code:NSUserCancelledError userInfo:nil];
+        self.stateOfSync = TaskCollectionSyncStateStopped;
+        [[QLog log] logWithFormat:@"Stopped synchronization for Collection Cache with URL: %@", self.tasksURLString];
+    }
+}
+
 
 
 @end
