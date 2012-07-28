@@ -19,6 +19,10 @@
 @property (nonatomic, retain) MzTaskCategory *taskCategory;
 @property (nonatomic, retain) MzTaskTypeImage *taskTypeImage;
 @property (nonatomic, retain) NSOrderedSet *taskAttributes;
+
+// Updates the TaskType thumbnail
+-(void) updateTaskTypeThumbnail;
+
 @end
 
 @interface MzTaskType (CoreDataGeneratedAccessors)

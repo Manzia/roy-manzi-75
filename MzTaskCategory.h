@@ -31,4 +31,11 @@
 - (void)removeTaskTypesObject:(MzTaskType *)value;
 - (void)addTaskTypes:(NSOrderedSet *)values;
 - (void)removeTaskTypes:(NSOrderedSet *)values;
+
+// Creates a MzTaskCategory object with the specified properties in the specified context. 
+// The properties dictionary is keyed by property names, in a KVC fashion.
++ (MzTaskCategory *)insertNewMzTaskCategoryWithProperties:(NSDictionary *)properties inManagedObjectContext:(NSManagedObjectContext *)managedObjectContext;
+
+// Updates the MzTaskCategory object with the specified properties. 
+- (void)updateWithProperties:(NSDictionary *)properties;
 @end
