@@ -330,32 +330,35 @@
     }
     
     // taskAttribute end element
-    if ([self.tasksProperties count] == 0) {
-        [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"XML parse skipped - missing all keys "];
-    } else {
+    if ([elementName isEqualToString:@"taskAttribute"]) {
         
-        // check the dictionary entries
-        assert([[self.tasksProperties objectForKey:kTaskParserResultCategoryId] isKindOfClass:[NSString class]]);
-        assert([[self.tasksProperties objectForKey:kTaskParserResultCategoryName] isKindOfClass:[NSString class]]);
-        assert([[self.tasksProperties objectForKey:kTaskParserResultCategoryImageURL] isKindOfClass:[NSString class]]);
-        assert([[self.tasksProperties objectForKey:kTaskParserResultTaskTypeId] isKindOfClass:[NSString class]]);
-        assert([[self.tasksProperties objectForKey:kTaskParserResultTaskTypeName] isKindOfClass:[NSString class]]);
-        assert([[self.tasksProperties objectForKey:kTaskParserResultTaskTypeImageURL] isKindOfClass:[NSString class]]);
-        assert([[self.tasksProperties objectForKey:kTaskParserResultTaskAttributeId] isKindOfClass:[NSString class]]);
-        assert([[self.tasksProperties objectForKey:kTaskParserResultTaskAttributeName] isKindOfClass:[NSString class]]);
-        assert([[self.tasksProperties objectForKey:kTaskParserResultAttributeOptionId] isKindOfClass:[NSString class]]);
-        assert([[self.tasksProperties objectForKey:kTaskParserResultAttributeOptionName] isKindOfClass:[NSString class]]);
-        
-        // insert the dictionary into the array
-        [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"XML parse success for category: %@, tasktype: %@, taskAttribute: %@", [self.tasksProperties objectForKey:kTaskParserResultCategoryName], [self.tasksProperties objectForKey:kTaskParserResultTaskTypeName], [self.tasksProperties objectForKey:kTaskParserResultTaskAttributeName]];
-        
-        [self.mutableResults addObject:[self.tasksProperties copy]];
-        
-        // Remove the taskAttribute keys for the next pass...
-        NSArray *keyArray = [NSArray arrayWithObjects:kTaskParserResultTaskAttributeId, kTaskParserResultTaskAttributeName, kTaskParserResultAttributeOptionId, kTaskParserResultAttributeOptionName, nil];
-        [self.tasksProperties removeObjectsForKeys:keyArray];
+        if ([self.tasksProperties count] == 0) {
+            [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"XML parse skipped - missing all keys "];
+        } else {
+            
+            // check the dictionary entries
+            assert([[self.tasksProperties objectForKey:kTaskParserResultCategoryId] isKindOfClass:[NSString class]]);
+            assert([[self.tasksProperties objectForKey:kTaskParserResultCategoryName] isKindOfClass:[NSString class]]);
+            assert([[self.tasksProperties objectForKey:kTaskParserResultCategoryImageURL] isKindOfClass:[NSString class]]);
+            assert([[self.tasksProperties objectForKey:kTaskParserResultTaskTypeId] isKindOfClass:[NSString class]]);
+            assert([[self.tasksProperties objectForKey:kTaskParserResultTaskTypeName] isKindOfClass:[NSString class]]);
+            assert([[self.tasksProperties objectForKey:kTaskParserResultTaskTypeImageURL] isKindOfClass:[NSString class]]);
+            assert([[self.tasksProperties objectForKey:kTaskParserResultTaskAttributeId] isKindOfClass:[NSString class]]);
+            assert([[self.tasksProperties objectForKey:kTaskParserResultTaskAttributeName] isKindOfClass:[NSString class]]);
+            assert([[self.tasksProperties objectForKey:kTaskParserResultAttributeOptionId] isKindOfClass:[NSString class]]);
+            assert([[self.tasksProperties objectForKey:kTaskParserResultAttributeOptionName] isKindOfClass:[NSArray class]]);
+            
+            // insert the dictionary into the array
+            [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"XML parse success for category: %@, tasktype: %@, taskAttribute: %@", [self.tasksProperties objectForKey:kTaskParserResultCategoryName], [self.tasksProperties objectForKey:kTaskParserResultTaskTypeName], [self.tasksProperties objectForKey:kTaskParserResultTaskAttributeName]];
+            
+            [self.mutableResults addObject:[self.tasksProperties copy]];
+            
+            // Remove the taskAttribute keys for the next pass...
+            NSArray *keyArray = [NSArray arrayWithObjects:kTaskParserResultTaskAttributeId, kTaskParserResultTaskAttributeName, kTaskParserResultAttributeOptionId, kTaskParserResultAttributeOptionName, nil];
+            [self.tasksProperties removeObjectsForKeys:keyArray];
+        }               
     }
-    
+        
     // </taskType> tag - remove the taskType(id, name, thumbnailURL) from dictionary
     if ([elementName isEqualToString:@"taskType"]) {
         NSArray *keyArray = [NSArray arrayWithObjects:kTaskParserResultTaskTypeId, 
