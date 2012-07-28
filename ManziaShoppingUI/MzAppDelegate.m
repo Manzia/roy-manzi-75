@@ -2,8 +2,8 @@
 //  MzAppDelegate.m
 //  ManziaShoppingUI
 //
-//  Created by Macbook Pro on 5/30/12.
-//  Copyright (c) 2012 __MyCompanyName__. All rights reserved.
+//  Created by Roy Manzi Tumubweinee on 5/30/12.
+//  Copyright (c) 2012 Manzia Corporation. All rights reserved.
 //
 
 #import "MzAppDelegate.h"
