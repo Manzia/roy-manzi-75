@@ -68,6 +68,7 @@
 @synthesize variableRelativePath;
 @synthesize timeToRefresh;
 @synthesize synchronizing;
+@synthesize statusOfSync;
 
 
 // Other Getters
@@ -137,7 +138,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
                         
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(appDidBecomeActive:) name:UIApplicationDidBecomeActiveNotification object:nil];
         
-        [[QLog log] logWithFormat:@"Collection cache instantiated with URL: %@", collectURLString];
+        [[QLog log] logWithFormat:@"Collection cache instantiated with URL: %@", self.collectionURLString];
     }
     return self;
 }
@@ -356,7 +357,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     return fetchRequest;
 }
 
-// Finds the associated CollectionCache(Path) given a CollectionURLString and
+// Finds the associated CollectionCache(Path) given a collectionURLString and
 // creates a new CollectionCache if none is found
 - (NSString *)findCacheForCollectionURLString
 {
@@ -678,10 +679,8 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
             // Ignore Refresh
             [[QLog log] logWithFormat:@"Cannot Refresh Collection Cache with URL: %@", self.collectionURLString];
             return;
-        }
-        
-    }
-    
+        }        
+    }   
         
 }
 
