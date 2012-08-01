@@ -18,17 +18,17 @@
 			<key>Key</key>
 			<string>qlogLoggingToFile</string>
 			<key>DefaultValue</key>
-			<string>NO</string>
+			<true/>
 		</dict>
 		<dict>
 			<key>Type</key>
 			<string>PSToggleSwitchSpecifier</string>
 			<key>Title</key>
-			<string>Log to stderr</string>
+			<true/>
 			<key>Key</key>
 			<string>qlogLoggingToStdErr</string>
 			<key>DefaultValue</key>
-			<string>NO</string>
+			<true/>
 		</dict>
 		<dict>
 			<key>Type</key>
@@ -38,7 +38,7 @@
 			<key>Key</key>
 			<string>qlogOption0</string>
 			<key>DefaultValue</key>
-			<string>NO</string>
+			<true/>
 		</dict>
 		<dict>
 			<key>Type</key>
@@ -48,7 +48,7 @@
 			<key>Key</key>
 			<string>qlogOption1</string>
 			<key>DefaultValue</key>
-			<string>NO</string>
+			<true/>
 		</dict>
 		<dict>
 			<key>Type</key>
@@ -58,7 +58,7 @@
 			<key>Key</key>
 			<string>qlogOption2</string>
 			<key>DefaultValue</key>
-			<string>NO</string>
+			<true/>
 		</dict>
 		<dict>
 			<key>Type</key>
@@ -68,7 +68,7 @@
 			<key>Key</key>
 			<string>qlogOption3</string>
 			<key>DefaultValue</key>
-			<string>NO</string>
+			<true/>
 		</dict>
 	</array>
 </dict>
