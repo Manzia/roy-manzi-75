@@ -26,6 +26,38 @@
 @dynamic categoryImageURL;
 @dynamic taskTypes;
 
+#pragma mark * Mutable Accessors
+
+// Mutable accessors for the Indexed collection to-many relationship
+- (void)addTaskTypesObject:(MzTaskType *)value;
+{
+    [self willChangeValueForKey:@"taskTypes"];
+    NSMutableOrderedSet *tempSet = [NSMutableOrderedSet orderedSetWithOrderedSet:self.taskTypes];
+    assert(tempSet != nil);
+    [tempSet addObject:value];
+    self.taskTypes = tempSet;
+    [self didChangeValueForKey:@"taskTypes"];
+}
+
+- (void)addTaskTypes:(NSOrderedSet *)values;
+{
+    [self willChangeValueForKey:@"taskTypes"];
+    NSMutableOrderedSet *tempSet = [NSMutableOrderedSet orderedSetWithOrderedSet:self.taskTypes];
+    assert(tempSet != nil);
+    [tempSet unionOrderedSet:values];
+    self.taskTypes = tempSet;
+    [self didChangeValueForKey:@"taskTypes"];
+}
+
+- (void)removeTaskTypesAtIndexes:(NSIndexSet *)indexes;
+{
+    [self willChangeValueForKey:@"taskTypes"];
+    NSMutableOrderedSet *tempSet = [NSMutableOrderedSet orderedSetWithOrderedSet:self.taskTypes];
+    assert(tempSet != nil);
+    [tempSet removeObjectsAtIndexes:indexes];
+    self.taskTypes = tempSet;
+    [self didChangeValueForKey:@"taskTypes"];
+}
 
 
 #pragma mark * Insert & Update Task Category
@@ -95,6 +127,11 @@
         if ([attributeOptions count] > 0) {
             
             // create the MzTaskAttributeOption objects
+            NSMutableArray *attributeArray;
+            attributeArray = [NSMutableArray array];
+            assert(attributeArray != nil);
+            NSOrderedSet *attributeSet;
+            
             for (NSString *options in attributeOptions ) {
                 insertAttributeOption = (MzTaskAttributeOption *) [NSEntityDescription insertNewObjectForEntityForName:@"MzTaskAttributeOption" inManagedObjectContext:managedObjectContext];
                 assert(insertAttributeOption != nil);
@@ -105,8 +142,13 @@
                 insertAttributeOption.attributeOptionName = options;
                 
                 // Link to the MzTaskAttribute
-                [insertTaskAttribute addAttributeOptionsObject:insertAttributeOption];
+                [attributeArray addObject:insertAttributeOption];
             }
+            // Link to the passed MzTaskAttribute object
+            attributeSet = [NSOrderedSet orderedSetWithArray:attributeArray];
+            assert(attributeSet != nil);
+            [insertTaskAttribute addAttributeOptions:attributeSet];
+            
         } else {
             [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Task Attribute: %@ for Task Category: %@ with Task Type: %@ has no attributeOptions", [properties objectForKey:@"taskAttributeName"], [properties objectForKey:@"categoryName"], [properties objectForKey:@"taskTypeName"]];
         }
@@ -126,7 +168,7 @@
 - (void)updateWithProperties:(NSDictionary *)properties
 {
     BOOL   categoryThumbnailNeedsUpdate;
-    BOOL   taskTypeThumbnailNeedsUpdate;
+    
         
     assert(properties != nil);
     assert( [[properties objectForKey:@"categoryId"] isKindOfClass:[NSString class]] );
@@ -142,7 +184,7 @@
     
     // Update the properties
     categoryThumbnailNeedsUpdate = NO;
-    taskTypeThumbnailNeedsUpdate = NO;
+    
     
     // This method was called on "us" (this MzTaskCategory object) because we have
     // the "right" categoryId value
@@ -256,6 +298,9 @@
             insertTaskType.taskTypeId = [[properties objectForKey:@"taskTypeId"] copy];
             insertTaskType.taskTypeName =[[properties objectForKey:@"taskTypeName"] copy];
             insertTaskType.taskTypeImageURL = [[properties objectForKey:@"taskTypeImageURL"] copy];
+            
+            // Add to the To-Many relationship
+            [self addTaskTypesObject:insertTaskType];
         }
         
     } else {
@@ -268,6 +313,9 @@
         insertTaskType.taskTypeId = [[properties objectForKey:@"taskTypeId"] copy];
         insertTaskType.taskTypeName =[[properties objectForKey:@"taskTypeName"] copy];
         insertTaskType.taskTypeImageURL = [[properties objectForKey:@"taskTypeImageURL"] copy];
+        
+        // Add to the To-Many relationship
+        [self addTaskTypesObject:insertTaskType];
     }
     
     // Update thumbnail
@@ -418,6 +466,12 @@
         
         // Now we can add the new attributeOption values that we did not already have
         if ([existingOption count] > 0) {
+            
+            NSMutableArray *attributeArray;
+            attributeArray = [NSMutableArray array];
+            assert(attributeArray != nil);
+            NSOrderedSet *attributeSet;
+            
             for (NSString *option in optionSet) {
                 
                 if (![existingOption containsObject:option]) {
@@ -431,12 +485,22 @@
                     insertAttributeOption.attributeOptionName = option;
                     
                     // Link to the passed MzTaskAttribute object
-                    [taskAttribute addAttributeOptionsObject:insertAttributeOption];
+                    [attributeArray addObject:insertAttributeOption];
                 }
             }
+            // Link to the passed MzTaskAttribute object
+            attributeSet = [NSOrderedSet orderedSetWithArray:attributeArray];
+            assert(attributeSet != nil);
+            [taskAttribute addAttributeOptions:attributeSet];
+            
         } else {
             
             // None of the new attributeOption values match any of existing attributeOptions so we add all the new ones
+            NSMutableArray *attributeArray;
+            attributeArray = [NSMutableArray array];
+            assert(attributeArray != nil);
+            NSOrderedSet *attributeSet;
+            
             for (NSString *option in optionSet) {
                                     
                     // add the MzTaskAttributeOption object relationship
@@ -448,16 +512,23 @@
                     insertAttributeOption.attributeOptionName = option;
                     
                     // Link to the passed MzTaskAttribute object
-                    [taskAttribute addAttributeOptionsObject:insertAttributeOption];                
+                [attributeArray addObject:insertAttributeOption];                
             }
-
-        }
-        
+            // Link to the passed MzTaskAttribute object
+            attributeSet = [NSOrderedSet orderedSetWithArray:attributeArray];
+            assert(attributeSet != nil);
+            [taskAttribute addAttributeOptions:attributeSet];
+        }        
                 
     } else {
         
         // In this case, the taskAttribute object has no attributeOption objects so we add all of the new
         // attributeOptions being passed in
+        NSMutableArray *attributeArray;
+        attributeArray = [NSMutableArray array];
+        assert(attributeArray != nil);
+        NSOrderedSet *attributeSet;
+        
         for (NSString *option in optionSet) {
             
             // add the MzTaskAttributeOption object relationship
@@ -466,16 +537,37 @@
             assert([insertAttributeOption isKindOfClass:[MzTaskAttributeOption class]]);
             
             insertAttributeOption.attributeOptionId = [[properties objectForKey:@"taskAttributeId"] copy];
-            insertAttributeOption.attributeOptionName = option;
-            
-            // Link to the passed MzTaskAttribute object
-            [taskAttribute addAttributeOptionsObject:insertAttributeOption];                
+            insertAttributeOption.attributeOptionName = option;            
+                       
+            [attributeArray addObject:insertAttributeOption];                
         }
         
+         // Link to the passed MzTaskAttribute object
+        attributeSet = [NSOrderedSet orderedSetWithArray:attributeArray];
+        assert(attributeSet != nil);
+        [taskAttribute addAttributeOptions:attributeSet];
+        
     }   
+}                                    
+                                
+// Helper method that works around Apple's Bug when you use the add<Key>Object: method on an NSOrderedSet
+// to-many relationship property generated automatically by CoreData....that method crashes with a [NSSet intersectsSet:]: error
+-(NSUInteger)indexToInsert
+{
+    assert(self.taskTypes != nil);
+    NSIndexSet *indexSet;
+    
+    indexSet = [self.taskTypes indexesOfObjectsPassingTest:^(id obj, NSUInteger idx, BOOL *stop) {
+        return  YES;
+    }];
+    
+    // determine the Index
+    if ([indexSet firstIndex] == NSNotFound) {
+        return 0;
+    } else {
+        return [indexSet lastIndex] + 1;
+    }
 }
-
-
 
 
 @end

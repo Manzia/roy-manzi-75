@@ -38,4 +38,8 @@
 
 // Updates the MzTaskCategory object with the specified properties. 
 - (void)updateWithProperties:(NSDictionary *)properties;
+
+// Helper method for Inserts
+-(NSUInteger)indexToInsert;
+
 @end

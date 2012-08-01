@@ -31,4 +31,8 @@
 - (void)removeAttributeOptionsObject:(MzTaskAttributeOption *)value;
 - (void)addAttributeOptions:(NSOrderedSet *)values;
 - (void)removeAttributeOptions:(NSOrderedSet *)values;
+
+// Helper method for inserts
+-(NSUInteger)indexToInsert;
+
 @end
