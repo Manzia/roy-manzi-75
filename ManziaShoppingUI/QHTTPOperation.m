@@ -52,6 +52,7 @@
 */
 
 #import "QHTTPOperation.h"
+#import "Logging.h"
 
 @interface QHTTPOperation ()
 
@@ -323,6 +324,7 @@
     
     assert(self.lastResponse != nil);
     contentType = [self.lastResponse MIMEType];
+    [[QLog log] logWithFormat:@"MIME Type from Last Response: %@", contentType];
     return (self.acceptableContentTypes == nil) || ((contentType != nil) && [self.acceptableContentTypes containsObject:contentType]);
 }
 
