@@ -36,7 +36,7 @@
 @synthesize debugDelaySoFar;
 @synthesize mutableResults;
 @synthesize collectionParser;
-@synthesize xmldata;
+@synthesize xmlData;
 
 // Initialization
 - (id)initWithXMLData:(NSData *)data
@@ -65,11 +65,12 @@
     BOOL success;
     
     // Set up the parser.
-    assert(self.xmldata != nil);
-    self.collectionParser = [[NSXMLParser alloc] initWithData:self.xmldata];
+    assert(self.xmlData != nil);
+    self.collectionParser = [[NSXMLParser alloc] initWithData:self.xmlData];
     assert(self.collectionParser != nil);
     
     self.collectionParser.delegate = self;  // we get all the NSXMLParser callbacks
+    [self.collectionParser setShouldProcessNamespaces:YES]; // report namespaces in callbacks
     
     // Start the parsing.
     [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:
@@ -175,6 +176,7 @@
     // root element - ensure we have an array to insert task Category objects
     if ([elementName isEqualToString:@"feed"]) {
         assert(self.mutableResults != nil);
+        return;
     }
     
     // Check for cancellation at the start of each element.
@@ -230,6 +232,7 @@
             } else {
                 [self.tasksProperties setObject:categoryImageUrl forKey:kTaskParserResultCategoryImageURL];
             }
+            return;
         }
     
        
@@ -265,6 +268,7 @@
         } else {
             [self.tasksProperties setObject:taskTypeImageUrl forKey:kTaskParserResultTaskTypeImageURL];
         }
+        return;
       
     }
     
@@ -290,7 +294,8 @@
              @"XML parse skipped, missing 'taskAttributeName'"];
         } else {
             [self.tasksProperties setObject:taskAttributeName forKey:kTaskParserResultTaskAttributeName];
-        }      
+        }
+        return;
                 
     }
 
@@ -314,9 +319,9 @@
             [self.tasksProperties setObject:attributeValues forKey:kTaskParserResultAttributeOptionName];
             [self.tasksProperties setObject:taskAttributeId forKey:kTaskParserResultAttributeOptionId];
         }
+        return;
     }
-    
-    return;    
+     
 }
 
 // Delegate methods for when parser encounters end of tag elements
@@ -356,7 +361,8 @@
             // Remove the taskAttribute keys for the next pass...
             NSArray *keyArray = [NSArray arrayWithObjects:kTaskParserResultTaskAttributeId, kTaskParserResultTaskAttributeName, kTaskParserResultAttributeOptionId, kTaskParserResultAttributeOptionName, nil];
             [self.tasksProperties removeObjectsForKeys:keyArray];
-        }               
+        }
+        return;
     }
         
     // </taskType> tag - remove the taskType(id, name, thumbnailURL) from dictionary
@@ -364,12 +370,14 @@
         NSArray *keyArray = [NSArray arrayWithObjects:kTaskParserResultTaskTypeId, 
                              kTaskParserResultTaskTypeName, kTaskParserResultTaskTypeImageURL, nil];
         [self.tasksProperties removeObjectsForKeys:keyArray];
+        return;
     }
     
     //</category> tag - remove all entries from the dictionary
     if ([elementName isEqualToString:@"category"]) {
         
-        [self.tasksProperties removeAllObjects];        
+        [self.tasksProperties removeAllObjects];
+        return;
     }
 }
 

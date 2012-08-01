@@ -25,7 +25,7 @@
 
 
 // properties specified at init time
-@property (copy, readonly) NSData *xmldata;
+@property (copy, readonly) NSData *xmlData;
 
 // properties that can be changed before starting the operation
 
