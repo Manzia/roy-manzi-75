@@ -66,6 +66,7 @@ typedef enum TaskCollectionSyncState TaskCollectionSyncState;
     NSTimer *timeToSave;
     RetryingHTTPOperation *getTasksOperation;
     MzTaskParserOperation *parserOperation;
+    UIBackgroundTaskIdentifier taskCollectionSync;
 }
 
 // Properties related to Data Management
@@ -79,11 +80,15 @@ typedef enum TaskCollectionSyncState TaskCollectionSyncState;
 @property (nonatomic, copy, readonly) NSString *statusOfSync;                 
 @property (nonatomic, copy, readonly) NSDate *dateLastSynced;               
 @property (nonatomic, copy, readonly) NSError *errorFromLastSync;              
-@property (nonatomic, copy, readonly) NSDateFormatter *dateFormatter; 
+@property (nonatomic, copy, readonly) NSDateFormatter *dateFormatter;
+@property (nonatomic, assign, readonly) UIBackgroundTaskIdentifier taskCollectionSync;
 
 
 // initialize
 -(id)initWithTasksURLString:(NSString *)tasksURLString;
+ 
+// Method that manages TaskCollection LifeCycle
+- (void)applicationHasLaunched; 
 
 // methods to manage the product collection startup, stop and save processes
 -(void)startCollection;

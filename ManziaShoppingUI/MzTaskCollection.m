@@ -33,6 +33,7 @@
 @property (nonatomic, copy, readwrite) NSError *errorFromLastSync;
 @property (nonatomic, retain, readwrite) RetryingHTTPOperation *getTasksOperation;
 @property (nonatomic, retain, readwrite) MzTaskParserOperation *parserOperation;
+@property (nonatomic, assign, readwrite) UIBackgroundTaskIdentifier taskCollectionSync;
 
 // This property will hold the value of the relativePath that was appended to
 // the collectionURLString to create the NSURLRequest for the HTTP GET
@@ -66,6 +67,7 @@
 @synthesize parserOperation;
 @synthesize synchronizing;
 @synthesize statusOfSync;
+@synthesize taskCollectionSync;
 
 // Other Getters
 -(id)managedObjectContext
@@ -160,17 +162,44 @@ static NSString * kTasksDataFileName    = @"Tasks.db";
 
 #pragma mark * TaskCollection lifecycle Management
 
+
 // Method that is called when application is transitioning to the ACTIVE state
 // which will lead to synchronization of the TaskCollection cache.
 - (void)appDidBecomeActive:(NSNotification *)notification
 {
 #pragma unused(notification)
-    
-    if ( [[NSUserDefaults standardUserDefaults] boolForKey:@"collectionSyncOnActivate"] ) {
+        
+    //if ( [[NSUserDefaults standardUserDefaults] boolForKey:@"collectionSyncOnActivate"] ) {
         if (self.taskCollectionContext != nil) {
-            [self startSynchronization];
+            
+            // Ensure we complete this task even if we are moved back to BACKGROUND for example the user
+            // immediately starts and closes the app
+            self.taskCollectionSync = [[UIApplication sharedApplication] beginBackgroundTaskWithExpirationHandler:^{
+                [self startSynchronization];
+            }];
         }
-    }
+        
+    //}
+}
+
+/*  Method that will be called by AppDelegate to start the TaskCollection lifecycle, this will
+    setup the caches, database etc as needed
+    TaskCollection LifeCycle
+    1- when the the App is launched for the first time there is no existing TaskCollection cache
+    so we create one
+    2- On subsequent launches of the App, we always first check to ensure we have an TaskCollection
+    cache, if we do, we update it (start synchronization) otherwise we create a new one and start it
+    (startCollection method) - both tasks happen on secondary threads and do not block the main Thread
+    3- Whenever we are moved from background state to active state (foreground) we update the 
+    TaskCollection cache, the reason being that that UI is likely to change alot and we'd like the
+    user/App to always have the latest UI setup..this all happens on secondary Threads so the main
+    Thread is not blocked during these network I/O events.
+*/
+- (void)applicationHasLaunched {
+    if (self.tasksURLString ) {
+            // we can now start the Task Collection
+        [self startCollection];
+    } 
 }
 
 #pragma mark * Core Data Management
@@ -429,7 +458,7 @@ static NSString * kTasksDataFileName    = @"Tasks.db";
     // and we crash.
     
     if (success) {
-        [self startSynchronization];                
+        [self startSynchronization:nil];                
     } else {
         [[QLog log] logWithFormat:@"Failed startup of Task Collection Cache with URL: %@", self.tasksURLString];
         abort();
@@ -612,7 +641,7 @@ static NSString * kTasksDataFileName    = @"Tasks.db";
     assert(self.getTasksOperation != nil);
     
     [self.getTasksOperation setQueuePriority:NSOperationQueuePriorityNormal];
-    self.getTasksOperation.acceptableContentTypes = [NSSet setWithObjects:@"application/xml", @"text/xml", nil];
+    self.getTasksOperation.acceptableContentTypes = [NSSet setWithObjects:@"application/atom+xml", @"application/xml", @"text/xml", nil];
     
     [[NetworkManager sharedManager] addNetworkManagementOperation:self.getTasksOperation finishedTarget:self action:@selector(getCollectionOperationComplete:)];
     
@@ -638,9 +667,10 @@ static NSString * kTasksDataFileName    = @"Tasks.db";
         self.errorFromLastSync = error;
         self.stateOfSync = TaskCollectionSyncStateStopped;
     } else {
+       /* Can dump XML contents if required by uncommenting the if block below!!! 
         if ([QLog log].isEnabled) {
             [[QLog log] logOption:kLogOptionNetworkData withFormat:@"Receive XML %@", self.getTasksOperation.responseContent];
-        }
+        } */
         [self startParserOperationWithData:self.getTasksOperation.responseContent];
     }
     
@@ -688,7 +718,7 @@ static NSString * kTasksDataFileName    = @"Tasks.db";
         self.dateLastSynced = [NSDate date];
         self.stateOfSync = TaskCollectionSyncStateStopped;
         [[QLog log] logWithFormat:
-         @"Successfully synced Task Collection Cache with URL: %@", self.tasksURLString];        
+         @"Start commit of Parse Results for Task Collection Cache with URL: %@", self.tasksURLString];        
     }
     
     // Prepare for the next run..
@@ -713,17 +743,19 @@ static NSString * kTasksDataFileName    = @"Tasks.db";
     
     if ([parserResults count] > 0) {
         
-        NSMutableSet *taskCategorySet;
-        NSArray *retrievedCategory;
-        NSError *fetchCategoryError;
-        NSMutableArray *categoryToRemove;
-        NSArray * taskCategory;
+        NSMutableSet *taskCategorySet;      // set of CategoryId's from parserResults
+        NSArray *retrievedCategory;         // array of MzTaskCategory objects from database
+        NSError *fetchCategoryError;        // error from fetching from the database
+        NSMutableArray *categoryToRemove;   // MzTaskCategory objects not reflected in the parserResults
+        NSArray * taskCategory;             // array of CategoryId's from parserResults
                        
         // Get the taskCategory objects from the database
         NSFetchRequest *fetchCategory = [self taskCategoryFetchRequest];
         assert(fetchCategory != nil);
         retrievedCategory = [self.taskCollectionContext executeFetchRequest:fetchCategory error:&fetchCategoryError];
         assert(retrievedCategory != nil);
+        [[QLog log] logOption:kLogOptionSyncDetails withFormat:
+         @"Number of Categories in DB is: %d for Task Collection Cache with URL: %@", [retrievedCategory count] ,self.tasksURLString];
         
         // Create the set of categoryIds we got from the parserResults
         taskCategorySet = [NSMutableSet set];
@@ -787,6 +819,9 @@ static NSString * kTasksDataFileName    = @"Tasks.db";
                 foundCategory = NO;         // reset
             }
             // delete
+            [[QLog log] logOption:kLogOptionSyncDetails withFormat:
+             @"Number of Categories deleted is: %d for Task Collection Cache with URL: %@", [categoryToRemove count] ,self.tasksURLString];
+            
             if ([categoryToRemove count] > 0) {
                 for (MzTaskCategory *deleteCategory in categoryToRemove) {
                     [self.taskCollectionContext deleteObject:deleteCategory];                     
@@ -796,18 +831,47 @@ static NSString * kTasksDataFileName    = @"Tasks.db";
         } else {
              // we have an empty database so we populate with all the parseResults, one taskCategory
             // at a time. Most likely we are populating the database for the first time
-                        
+            NSString *uniqueCategoryId;
+            NSString *previousCategoryId;
+            NSMutableArray *parseArray;
+            parseArray = [NSMutableArray array];
+            assert(parseArray != nil);
+            previousCategoryId = [NSString string];
+            assert(previousCategoryId != nil);
+            
             for (NSDictionary *task in parserResults) {
                 
-                // populate - note that the taskCategorySet populated earlier has all the unique
-                // categoryIds in the parserResults..NOTE that we are testing for identical NSString
-                // objects NOT identical NSString values. 
-                if ([taskCategorySet containsObject:[task objectForKey:kTaskParserResultCategoryId]]) {
-                    
-                    // a new category
-                    [MzTaskCategory insertNewMzTaskCategoryWithProperties:task inManagedObjectContext:self.taskCollectionContext];
-                }                
+                /*
+                 1- Add the first dictionary to the parseArray, store its categoryId
+                 2- If the next dictionary has the same categoryId, ignore it
+                 3- else, add the dictionary with different categoryId to the parseArray
+                 4- Repeat 1 to 3 for parserResults array
+                 This littl algorithm will give one dictionary for each unique categoryId
+                 which is what we use to create the initial MzTaskCategory objects
+                 */
+                uniqueCategoryId = [task objectForKey:kTaskParserResultCategoryId];
+                assert(uniqueCategoryId != nil);
+                if (![uniqueCategoryId isEqualToString:previousCategoryId]) {
+                    [parseArray addObject:task];
+                    previousCategoryId = uniqueCategoryId;
+                }
             }
+            // Insert the new TaskCategory's
+            if ([parseArray count] > 0) {
+                for (NSDictionary *categoryDict in parseArray) {
+                    [MzTaskCategory insertNewMzTaskCategoryWithProperties:categoryDict inManagedObjectContext:self.taskCollectionContext];
+                    [[QLog log] logOption:kLogOptionSyncDetails withFormat:
+                     @"New Category inserted in DB: %@ for Task Collection Cache with URL: %@", [categoryDict objectForKey:kTaskParserResultCategoryName] ,self.tasksURLString];
+                }
+                
+            } else {
+                
+                // weird scenario - we have no TaskCategory's in the database and none in the parseResults
+                [[QLog log] logOption:kLogOptionSyncDetails withFormat:
+                 @"No Category inserted for Task Collection Cache with URL: %@", self.tasksURLString];                
+            }           
+                                             
+            
             // Retrieve the MzTaskCategory objects inserted above and update them and then save all the changes
             // Note that we have to follow the insert operation with an update operation because each NSDictionary
             // in the NSArray of parserResults represents one branch of the taskCategory tree - refer to the 
@@ -817,13 +881,13 @@ static NSString * kTasksDataFileName    = @"Tasks.db";
             assert(insertedCategories != nil);
             if ([insertedCategories count] > 0) {
                 
-                [insertedCategories enumerateObjectsUsingBlock:^(MzTaskCategory * category, BOOL *stop) {
-                    for (NSDictionary *task in parserResults) {
-                        if ([category.categoryId isEqualToString:[task objectForKey:kTaskParserResultCategoryId]])
-                        {
-                            [category updateWithProperties:task];
-                        }
+                [insertedCategories enumerateObjectsUsingBlock:^(id category, BOOL *stop) {
+                    if ([category isKindOfClass:[MzTaskCategory class]]) {
+                        for (NSDictionary *task in parserResults) {
+                                [category updateWithProperties:task];                            
+                        }                            
                     }
+                    
                 }];
             } else {
                 [[QLog log] logOption:kLogOptionSyncDetails withFormat:
