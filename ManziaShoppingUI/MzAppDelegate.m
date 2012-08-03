@@ -25,11 +25,17 @@
 @synthesize taskCollection;
 @synthesize taskCollectionURLString;
 @synthesize window = _window;
+@synthesize tabBarController;
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
 #pragma unused(application)
 #pragma unused(launchOptions)
+    assert(self.window != nil);
+    
+    // add the tab bar controller's current view as a subview of the window
+	[self.window addSubview:tabBarController.view];
+    [self.window makeKeyAndVisible];
     
     // Our TaskCollectionURL is fixed
     self.taskCollectionURLString = @"http://localhost:8080/ManziaWebServices/service/interface";
@@ -37,11 +43,11 @@
     
     NSUserDefaults *userDefaults;
     
-    assert(self.window != nil);
+    
         
     [[QLog log] logWithFormat:@"Starting application"];
     
-    // Start our TaskCollection.
+    // Start our TaskCollection...this executes asynchrounously
     self.taskCollection = [[MzTaskCollection alloc] initWithTasksURLString:self.taskCollectionURLString];
     assert(self.taskCollection != nil);
     [self.taskCollection applicationHasLaunched];
