@@ -14,6 +14,7 @@
 @synthesize daysToSearch;
 @synthesize searchOptions;
 @synthesize searchTitle;
+@synthesize searchStatus;
 
 // Method to serialize the SearchItem - we allow for "empty" SearchItems
 -(BOOL) writeSearchItemToFile:(NSString *)filename
@@ -50,8 +51,11 @@
         [searchItem setObject:[NSNull null] forKey:kSearchItemTitle];
     }
     
+    // Add the SearchState - default is 0 = SearchItemStateInProgress
+    [searchItem setObject:[NSNumber numberWithInt:searchStatus] forKey:kSearchItemState];
+    
     // Can now write to file
-    assert([searchItem count] == 4);
+    assert([searchItem count] == 5);
     BOOL success;
     success = [searchItem writeToFile:filename atomically:YES];
     
@@ -63,5 +67,6 @@ NSString *kSearchItemTitle = @"searchItemTitle";
 NSString *kSearchItemPrice = @"searchItemPrice";
 NSString *kSearchItemDays = @"searchItemDays";
 NSString *kSearchItemOptions = @"searchItemOptions";
+NSString *kSearchItemState = @"searchItemState";
 
 @end

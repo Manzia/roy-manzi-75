@@ -13,11 +13,20 @@
 
 #import <Foundation/Foundation.h>
 
+// States of a MzSearchItem object
+enum SearchItemState {
+    
+    SearchItemStateInProgress, // search is in progress - default
+    SearchItemStateCompleted    // search has been completed
+};
+typedef enum SearchItemState SearchItemState;
+
 @interface MzSearchItem : NSObject {
     NSString *searchTitle;
     NSNumber *priceToSearch;        // price limit for search
     NSNumber *daysToSearch;        // duration of the search
     NSDictionary *searchOptions;
+    SearchItemState searchStatus;
 }
 
 // Public properties
@@ -25,6 +34,7 @@
 @property (nonatomic, strong, readwrite) NSNumber *priceToSearch;
 @property (nonatomic, strong, readwrite) NSNumber *daysToSearch;
 @property (nonatomic, strong, readwrite) NSDictionary *searchOptions;
+@property (nonatomic, assign, readwrite) SearchItemState searchStatus;
 
 // Method that serializes the MzSearchItem as a property list
 -(BOOL) writeSearchItemToFile:(NSString *)filename;
@@ -34,5 +44,6 @@ extern NSString *kSearchItemTitle;
 extern NSString *kSearchItemPrice;
 extern NSString *kSearchItemDays;
 extern NSString *kSearchItemOptions;
+extern NSString *kSearchItemState;
 
 @end
