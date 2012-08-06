@@ -126,13 +126,13 @@
     return self;
 }
 
-/*- (void)dealloc
+- (void)dealloc
 {
     // This object lives for the entire life of the application.  Getting it to support being deallocated 
     // would be quite tricky.
     assert(NO);
     [super dealloc];
-}*/
+}
 
 - (NSString *)pathToLogFile
     // Returns the path to the log file.  Because iOS doesn't support a Logs directory, 

@@ -238,7 +238,7 @@
 {
     UINavigationController *    navController;
     
-    navController = [[[UINavigationController alloc] initWithRootViewController:self]autorelease];
+    navController = [[[UINavigationController alloc] initWithRootViewController:self] autorelease];
     assert(navController != nil);
 
     self.navigationItem.title = @"Log";
@@ -506,7 +506,7 @@ enum {
                 } else {
                     MFMailComposeViewController *   vc;
                     
-                    vc = [[MFMailComposeViewController alloc] init]; // autorelease];
+                    vc = [[[MFMailComposeViewController alloc] init] autorelease];
                     assert(vc != nil);
                     
                     vc.mailComposeDelegate = self;

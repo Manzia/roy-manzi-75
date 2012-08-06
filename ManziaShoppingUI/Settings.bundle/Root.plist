@@ -18,7 +18,7 @@
 			<key>Key</key>
 			<string>qlogEnabled</string>
 			<key>DefaultValue</key>
-			<true/>
+			<false/>
 		</dict>
 		<dict>
 			<key>Type</key>

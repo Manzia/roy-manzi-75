@@ -26,7 +26,7 @@
 			<key>Title</key>
 			<string>Clear Cache</string>
 			<key>Key</key>
-			<string>collectionClearCache</string>
+			<string>galleryClearCache</string>
 			<key>DefaultValue</key>
 			<false/>
 		</dict>
@@ -36,7 +36,7 @@
 			<key>Title</key>
 			<string>Sync on Activate</string>
 			<key>Key</key>
-			<string>collectionSyncOnActivate</string>
+			<string>gallerySyncOnActivate</string>
 			<key>DefaultValue</key>
 			<false/>
 		</dict>
