@@ -21,6 +21,11 @@
 // Implements mutable accessor for Indexed collection
 - (void)addAttributeOptionsObject:(MzTaskAttributeOption *)value
 {
+    // first set the other side of the relationship
+    assert(value != nil);
+    value.taskAttribute = self;
+    
+    // now add the MzTaskAttributeOption    
     [self willChangeValueForKey:@"attributeOptions"];
     NSMutableOrderedSet *tempSet = [NSMutableOrderedSet orderedSetWithOrderedSet:self.attributeOptions];
     assert(tempSet != nil);
@@ -31,6 +36,14 @@
 
 - (void)addAttributeOptions:(NSOrderedSet *)values
 {
+    // set the other side of the relationship
+    assert(values != nil);
+    [values enumerateObjectsUsingBlock:
+     ^(MzTaskAttributeOption *option, NSUInteger idx, BOOL *stop) {
+         option.taskAttribute = self; 
+     }];
+    
+    // now add the MzTaskAttributeOption objects
     [self willChangeValueForKey:@"attributeOptions"];
     NSMutableOrderedSet *tempSet = [NSMutableOrderedSet orderedSetWithOrderedSet:self.attributeOptions];
     assert(tempSet != nil);

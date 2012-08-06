@@ -11,6 +11,7 @@
 #import "MzTaskAttribute.h"
 #import "MzTaskAttributeOption.h"
 #import "Logging.h"
+#import "MzQueryItem.h"
 
 @interface MzTaskCategory ()
 
@@ -68,8 +69,7 @@
 {
     MzTaskCategory *insertCategory;
     MzTaskType *insertTaskType;
-    MzTaskAttribute *insertTaskAttribute;
-    MzTaskAttributeOption *insertAttributeOption;
+    MzTaskAttribute *insertTaskAttribute;    
     
     assert(properties != nil);
     assert( [[properties objectForKey:@"categoryId"] isKindOfClass:[NSString class]] );
@@ -133,13 +133,14 @@
             NSOrderedSet *attributeSet;
             
             for (NSString *options in attributeOptions ) {
-                insertAttributeOption = (MzTaskAttributeOption *) [NSEntityDescription insertNewObjectForEntityForName:@"MzTaskAttributeOption" inManagedObjectContext:managedObjectContext];
+                MzTaskAttributeOption *insertAttributeOption = (MzTaskAttributeOption *) [NSEntityDescription insertNewObjectForEntityForName:@"MzTaskAttributeOption" inManagedObjectContext:managedObjectContext];
                 assert(insertAttributeOption != nil);
                 assert([insertAttributeOption isKindOfClass:[MzTaskAttributeOption class]]);
                 
                 // attributeOptionId value is same as taskAttributeId value
                 insertAttributeOption.attributeOptionId = [[properties objectForKey:@"taskAttributeId"] copy];
                 insertAttributeOption.attributeOptionName = options;
+                insertAttributeOption.taskAttribute = insertTaskAttribute;
                 
                 // Link to the MzTaskAttribute
                 [attributeArray addObject:insertAttributeOption];
@@ -156,6 +157,9 @@
         // Link to the MzTaskType
         [insertTaskType addTaskAttributesObject:insertTaskAttribute];
         
+        // Update MzQueryItem table
+        [MzQueryItem updateMzQueryItemsForTaskType:insertTaskType inManagedObjectContext:managedObjectContext];
+        
         // Link to the MzTaskCategory
         [insertCategory addTaskTypesObject:insertTaskType];        
         
@@ -165,7 +169,7 @@
 
 // Updates the taskCategory with the specified properties.  This will update the various 
 // readonly properties listed below, triggering KVO notifications along the way
-- (void)updateWithProperties:(NSDictionary *)properties
+- (void)updateWithProperties:(NSDictionary *)properties inManagedObjectContext:(NSManagedObjectContext *)context
 {
     BOOL   categoryThumbnailNeedsUpdate;
     
@@ -206,7 +210,7 @@
         }
         
         // check the TaskType properties and update accordingly
-        [self updateTaskTypeWithProperties:properties];
+        [self updateTaskTypeWithProperties:properties inManagedObjectContext:context];
         assert(self.taskTypes != nil);
         
         // check the TaskAttribute properties and update accordingly by enumerating over
@@ -214,7 +218,7 @@
         if ([self.taskTypes count] > 0) {
             
             [self.taskTypes enumerateObjectsUsingBlock:^(MzTaskType *obj, NSUInteger idx, BOOL *stop) {
-                [self updateTaskAttributeWithProperties:properties forTaskType:obj];
+                [self updateTaskAttributeWithProperties:properties forTaskType:obj inManagedObjectContext:context];
                 
                 // check the taskAttributeOption properties and update accordingly by
                 // enumerating over the taskAttributes
@@ -224,13 +228,16 @@
                     
                     [obj.taskAttributes enumerateObjectsUsingBlock:
                      ^(MzTaskAttribute *attribute, NSUInteger idx, BOOL *stop) {
-                         [self updateAttributeOptionWithProperties:properties forTaskAttribute:attribute];
+                         [self updateAttributeOptionWithProperties:properties forTaskAttribute:attribute inManagedObjectContext:context];
                      }];
                 } else {
                     
                     // taskType has no valid taskAttribute values
                     [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"TaskType with taskTypeId: %@ has no taskAttributes",[properties objectForKey:@"taskTypeId"]]; 
                 }
+                
+                // Update the MzQueryItems
+                [MzQueryItem updateMzQueryItemsForTaskType:obj inManagedObjectContext:context];
             }];
         } else {
             
@@ -242,14 +249,15 @@
     // Do the thmbnail updates.
     if (categoryThumbnailNeedsUpdate) {
         [self updateTaskCategoryThumbnail];
-    }
-    }
+    }    
+       
+}
 
 }
 
 // Method updates or inserts the MzTaskType objects for a given MzTaskCategory object based on the
 // passed properties dictionary
-- (void) updateTaskTypeWithProperties:(NSDictionary *)properties
+- (void) updateTaskTypeWithProperties:(NSDictionary *)properties inManagedObjectContext:(NSManagedObjectContext *)context
 {
     assert(properties != nil);
     assert( [[properties objectForKey:@"taskTypeId"] isKindOfClass:[NSString class]] );
@@ -291,7 +299,7 @@
             
             // no match, so we need to insert a new MzTaskType object
             // add the MzTaskType object relationship
-            insertTaskType = (MzTaskType *) [NSEntityDescription insertNewObjectForEntityForName:@"MzTaskType" inManagedObjectContext:self.managedObjectContext];
+            insertTaskType = (MzTaskType *) [NSEntityDescription insertNewObjectForEntityForName:@"MzTaskType" inManagedObjectContext:context];
             assert(insertTaskType != nil);
             assert([insertTaskType isKindOfClass:[MzTaskType class]]);
             
@@ -306,7 +314,7 @@
     } else {
         
         // we have no taskType objects linked to us so we add the new one
-        insertTaskType = (MzTaskType *) [NSEntityDescription insertNewObjectForEntityForName:@"MzTaskType" inManagedObjectContext:self.managedObjectContext];
+        insertTaskType = (MzTaskType *) [NSEntityDescription insertNewObjectForEntityForName:@"MzTaskType" inManagedObjectContext:context];
         assert(insertTaskType != nil);
         assert([insertTaskType isKindOfClass:[MzTaskType class]]);
         
@@ -326,7 +334,7 @@
 
 // Method updates or inserts MzTaskAttribute objects for a given MzTaskType object based on the
 // passed properties dictionary
-- (void) updateTaskAttributeWithProperties:(NSDictionary *)properties forTaskType:(MzTaskType *)taskType
+- (void) updateTaskAttributeWithProperties:(NSDictionary *)properties forTaskType:(MzTaskType *)taskType inManagedObjectContext:(NSManagedObjectContext *)context
 {
     assert(properties != nil);
     assert(taskType != nil);
@@ -360,7 +368,7 @@
             
             // no match, so we need to insert a new MzTaskAttribute object
             // add the MzTaskAttribute object relationship
-            insertTaskAttribute = (MzTaskAttribute *) [NSEntityDescription insertNewObjectForEntityForName:@"MzTaskAttribute" inManagedObjectContext:self.managedObjectContext];
+            insertTaskAttribute = (MzTaskAttribute *) [NSEntityDescription insertNewObjectForEntityForName:@"MzTaskAttribute" inManagedObjectContext:context];
             assert(insertTaskAttribute != nil);
             assert([insertTaskAttribute isKindOfClass:[MzTaskAttribute class]]);
             
@@ -374,7 +382,7 @@
     } else {
         
         // we have no taskAttribute objects linked to us so we add the new one
-        insertTaskAttribute = (MzTaskAttribute *) [NSEntityDescription insertNewObjectForEntityForName:@"MzTaskAttribute" inManagedObjectContext:self.managedObjectContext];
+        insertTaskAttribute = (MzTaskAttribute *) [NSEntityDescription insertNewObjectForEntityForName:@"MzTaskAttribute" inManagedObjectContext:context];
         assert(insertTaskAttribute != nil);
         assert([insertTaskAttribute isKindOfClass:[MzTaskAttribute class]]);
         
@@ -390,7 +398,7 @@
 // Method updates, inserts and deletes MzTaskAttributeOption objects for a given MzTaskAttribute object
 // based on passed properties dictionary
 - (void) updateAttributeOptionWithProperties:(NSDictionary *)properties 
-                            forTaskAttribute:(MzTaskAttribute *)taskAttribute
+forTaskAttribute:(MzTaskAttribute *)taskAttribute inManagedObjectContext:(NSManagedObjectContext *)context
 {
     assert(properties != nil);
     assert(taskAttribute != nil);
@@ -399,7 +407,6 @@
     assert( [[properties objectForKey:@"attributeOptionName"] isKindOfClass:[NSArray class]] );
     
     // check TaskType properties
-    MzTaskAttributeOption *insertAttributeOption;
     NSIndexSet *result;
     NSMutableSet *existingOption;
     NSArray *optionSet;
@@ -477,12 +484,13 @@
                 if (![existingOption containsObject:option]) {
                     
                     // add the MzTaskAttributeOption object relationship
-                    insertAttributeOption = (MzTaskAttributeOption *) [NSEntityDescription insertNewObjectForEntityForName:@"MzTaskAttributeOption" inManagedObjectContext:self.managedObjectContext];
+                    MzTaskAttributeOption *insertAttributeOption = (MzTaskAttributeOption *) [NSEntityDescription insertNewObjectForEntityForName:@"MzTaskAttributeOption" inManagedObjectContext:context];
                     assert(insertAttributeOption != nil);
                     assert([insertAttributeOption isKindOfClass:[MzTaskAttributeOption class]]);
                     
                     insertAttributeOption.attributeOptionId = [[properties objectForKey:@"taskAttributeId"] copy];
                     insertAttributeOption.attributeOptionName = option;
+                    insertAttributeOption.taskAttribute = taskAttribute;
                     
                     // Link to the passed MzTaskAttribute object
                     [attributeArray addObject:insertAttributeOption];
@@ -504,15 +512,16 @@
             for (NSString *option in optionSet) {
                                     
                     // add the MzTaskAttributeOption object relationship
-                    insertAttributeOption = (MzTaskAttributeOption *) [NSEntityDescription insertNewObjectForEntityForName:@"MzTaskAttributeOption" inManagedObjectContext:self.managedObjectContext];
-                    assert(insertAttributeOption != nil);
-                    assert([insertAttributeOption isKindOfClass:[MzTaskAttributeOption class]]);
+                    MzTaskAttributeOption *insertAttribute = (MzTaskAttributeOption *) [NSEntityDescription insertNewObjectForEntityForName:@"MzTaskAttributeOption" inManagedObjectContext:context];
+                    assert(insertAttribute != nil);
+                    assert([insertAttribute isKindOfClass:[MzTaskAttributeOption class]]);
                     
-                    insertAttributeOption.attributeOptionId = [[properties objectForKey:@"taskAttributeId"] copy];
-                    insertAttributeOption.attributeOptionName = option;
+                    insertAttribute.attributeOptionId = [[properties objectForKey:@"taskAttributeId"] copy];
+                    insertAttribute.attributeOptionName = option;
+                    insertAttribute.taskAttribute = taskAttribute;
                     
                     // Link to the passed MzTaskAttribute object
-                [attributeArray addObject:insertAttributeOption];                
+                [attributeArray addObject:insertAttribute];                
             }
             // Link to the passed MzTaskAttribute object
             attributeSet = [NSOrderedSet orderedSetWithArray:attributeArray];
@@ -532,14 +541,15 @@
         for (NSString *option in optionSet) {
             
             // add the MzTaskAttributeOption object relationship
-            insertAttributeOption = (MzTaskAttributeOption *) [NSEntityDescription insertNewObjectForEntityForName:@"MzTaskAttributeOption" inManagedObjectContext:self.managedObjectContext];
-            assert(insertAttributeOption != nil);
-            assert([insertAttributeOption isKindOfClass:[MzTaskAttributeOption class]]);
+            MzTaskAttributeOption *insertOption = (MzTaskAttributeOption *) [NSEntityDescription insertNewObjectForEntityForName:@"MzTaskAttributeOption" inManagedObjectContext:context];
+            assert(insertOption != nil);
+            assert([insertOption isKindOfClass:[MzTaskAttributeOption class]]);
             
-            insertAttributeOption.attributeOptionId = [[properties objectForKey:@"taskAttributeId"] copy];
-            insertAttributeOption.attributeOptionName = option;            
+            insertOption.attributeOptionId = [[properties objectForKey:@"taskAttributeId"] copy];
+            insertOption.attributeOptionName = option;
+            insertOption.taskAttribute = taskAttribute;
                        
-            [attributeArray addObject:insertAttributeOption];                
+            [attributeArray addObject:insertOption];                
         }
         
          // Link to the passed MzTaskAttribute object

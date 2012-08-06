@@ -37,7 +37,7 @@
 + (MzTaskCategory *)insertNewMzTaskCategoryWithProperties:(NSDictionary *)properties inManagedObjectContext:(NSManagedObjectContext *)managedObjectContext;
 
 // Updates the MzTaskCategory object with the specified properties. 
-- (void)updateWithProperties:(NSDictionary *)properties;
+- (void)updateWithProperties:(NSDictionary *)properties inManagedObjectContext:(NSManagedObjectContext *)context;
 
 // Helper method for Inserts
 -(NSUInteger)indexToInsert;
