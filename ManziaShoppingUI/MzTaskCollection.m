@@ -17,6 +17,7 @@
 #import "MzTaskType.h"
 #import "MzTaskAttribute.h"
 #import "MzTaskAttributeOption.h"
+#import "MzQueryItem.h"
 
 #define kAutoSaveContextChangesTimeInterval 5.0     // 5 secs to auto-save
 
@@ -369,10 +370,14 @@ static NSString * kTasksDataFileName    = @"Tasks.db";
         success = (persistentCoordinator != nil);
     }
     if (success) {
+        NSDictionary *options = [NSDictionary dictionaryWithObjectsAndKeys:
+                                 [NSNumber numberWithBool:YES], NSMigratePersistentStoresAutomaticallyOption,
+                                 [NSNumber numberWithBool:YES], NSInferMappingModelAutomaticallyOption, nil];
+        
         success = [persistentCoordinator addPersistentStoreWithType:NSSQLiteStoreType 
                                                       configuration:nil 
                                                                 URL:collectionDbURL
-                                                            options:nil 
+                                                            options:options 
                                                               error:&error] != nil;
         if (success) {
             error = nil;
@@ -752,7 +757,7 @@ static NSString * kTasksDataFileName    = @"Tasks.db";
         // Get the taskCategory objects from the database
         NSFetchRequest *fetchCategory = [self taskCategoryFetchRequest];
         assert(fetchCategory != nil);
-        retrievedCategory = [self.taskCollectionContext executeFetchRequest:fetchCategory error:&fetchCategoryError];
+        retrievedCategory = [self.managedObjectContext executeFetchRequest:fetchCategory error:&fetchCategoryError];
         assert(retrievedCategory != nil);
         [[QLog log] logOption:kLogOptionSyncDetails withFormat:
          @"Number of Categories in DB is: %d for Task Collection Cache with URL: %@", [retrievedCategory count] ,self.tasksURLString];
@@ -800,7 +805,7 @@ static NSString * kTasksDataFileName    = @"Tasks.db";
                         /* This looks untidy but the its warranted by the nature of the task i.e, we need to be able to automatically update existing taskCategory's but I'm not seeing a really efficient way of determining when to update !!!! */
                         for (NSDictionary *task in parserResults) {
                             if ([existingCategory.categoryId isEqualToString:[task objectForKey:kTaskParserResultCategoryId]]) {
-                                [existingCategory updateWithProperties:task];
+                                [existingCategory updateWithProperties:task inManagedObjectContext:self.managedObjectContext];
                             }
                         }                        
                         foundCategory = YES;
@@ -824,51 +829,26 @@ static NSString * kTasksDataFileName    = @"Tasks.db";
             
             if ([categoryToRemove count] > 0) {
                 for (MzTaskCategory *deleteCategory in categoryToRemove) {
-                    [self.taskCollectionContext deleteObject:deleteCategory];                     
+                    [self.managedObjectContext deleteObject:deleteCategory];                     
                 }
             
             }
         } else {
              // we have an empty database so we populate with all the parseResults, one taskCategory
             // at a time. Most likely we are populating the database for the first time
-            NSString *uniqueCategoryId;
-            NSString *previousCategoryId;
-            NSMutableArray *parseArray;
-            parseArray = [NSMutableArray array];
-            assert(parseArray != nil);
-            previousCategoryId = [NSString string];
-            assert(previousCategoryId != nil);
-            
-            for (NSDictionary *task in parserResults) {
-                
-                /*
-                 1- Add the first dictionary to the parseArray, store its categoryId
-                 2- If the next dictionary has the same categoryId, ignore it
-                 3- else, add the dictionary with different categoryId to the parseArray
-                 4- Repeat 1 to 3 for parserResults array
-                 This littl algorithm will give one dictionary for each unique categoryId
-                 which is what we use to create the initial MzTaskCategory objects
-                 */
-                uniqueCategoryId = [task objectForKey:kTaskParserResultCategoryId];
-                assert(uniqueCategoryId != nil);
-                if (![uniqueCategoryId isEqualToString:previousCategoryId]) {
-                    [parseArray addObject:task];
-                    previousCategoryId = uniqueCategoryId;
+                        // Insert the new TaskCategory's
+            if ([taskCategory count] > 0) {
+                for (NSDictionary *categoryDict in parserResults) {
+                    [MzTaskCategory insertNewMzTaskCategoryWithProperties:categoryDict inManagedObjectContext:self.managedObjectContext];                    
                 }
-            }
-            // Insert the new TaskCategory's
-            if ([parseArray count] > 0) {
-                for (NSDictionary *categoryDict in parseArray) {
-                    [MzTaskCategory insertNewMzTaskCategoryWithProperties:categoryDict inManagedObjectContext:self.taskCollectionContext];
-                    [[QLog log] logOption:kLogOptionSyncDetails withFormat:
-                     @"New Category inserted in DB: %@ for Task Collection Cache with URL: %@", [categoryDict objectForKey:kTaskParserResultCategoryName] ,self.tasksURLString];
-                }
+                [[QLog log] logOption:kLogOptionSyncDetails withFormat:
+                 @" %d New Categories inserted in DB: %@ for Task Collection Cache with URL: %@", [taskCategory count] ,self.tasksURLString];
                 
             } else {
                 
                 // weird scenario - we have no TaskCategory's in the database and none in the parseResults
                 [[QLog log] logOption:kLogOptionSyncDetails withFormat:
-                 @"No Category inserted for Task Collection Cache with URL: %@", self.tasksURLString];                
+                 @"Weird Case - No Category in Database or Parse Results for Task Collection Cache with URL: %@", self.tasksURLString];                
             }           
                                              
             
@@ -877,14 +857,14 @@ static NSString * kTasksDataFileName    = @"Tasks.db";
             // in the NSArray of parserResults represents one branch of the taskCategory tree - refer to the 
             // relevant XML schema...so we update to add all branches to complete the taskCategory tree
             NSSet *insertedCategories;
-            insertedCategories = [self.taskCollectionContext insertedObjects];
+            insertedCategories = [self.managedObjectContext insertedObjects];
             assert(insertedCategories != nil);
             if ([insertedCategories count] > 0) {
                 
                 [insertedCategories enumerateObjectsUsingBlock:^(id category, BOOL *stop) {
                     if ([category isKindOfClass:[MzTaskCategory class]]) {
                         for (NSDictionary *task in parserResults) {
-                                [category updateWithProperties:task];                            
+                                [category updateWithProperties:task inManagedObjectContext:self.managedObjectContext];                            
                         }                            
                     }
                     
@@ -1020,6 +1000,9 @@ static NSString * kTasksDataFileName    = @"Tasks.db";
                               [taskTypeToKeep addObject:obj];
                               return NO;   // keep looking
                           } else {
+                              
+                              //Update the MzQueryItems
+                              [MzQueryItem deleteAllQueryItemsForTaskType:obj inManagedObjectContext:self.managedObjectContext];
                               return  YES;   // found non-match
                           }    
                       }];
