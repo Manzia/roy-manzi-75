@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <model name="" userDefinedModelVersionIdentifier="tasksModelv1.0" type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="1171" systemVersion="11E53" minimumToolsVersion="Xcode 4.1" macOSVersion="Automatic" iOSVersion="Automatic">
+    <entity name="MzQueryItem" syncable="YES">
+        <attribute name="queryId" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="queryString" optional="YES" attributeType="String" syncable="YES"/>
+    </entity>
     <entity name="MzTaskAttribute" representedClassName="MzTaskAttribute" syncable="YES">
         <attribute name="taskAttributeId" attributeType="String" indexed="YES" syncable="YES"/>
         <attribute name="taskAttributeName" attributeType="String" syncable="YES"/>
@@ -37,5 +41,6 @@
         <element name="MzTaskCategory" positionX="-1388" positionY="-1620" width="128" height="105"/>
         <element name="MzTaskType" positionX="-1368" positionY="-1458" width="128" height="135"/>
         <element name="MzTaskTypeImage" positionX="-1602" positionY="-1494" width="128" height="90"/>
+        <element name="MzQueryItem" positionX="-1647" positionY="-1584" width="128" height="75"/>
     </elements>
 </model>
