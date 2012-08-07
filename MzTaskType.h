@@ -23,6 +23,7 @@
 // Updates the TaskType thumbnail
 -(void) updateTaskTypeThumbnail;
 
+
 @end
 
 @interface MzTaskType (CoreDataGeneratedAccessors)

@@ -52,6 +52,7 @@
     [self didChangeValueForKey:@"taskAttributes"];
 }
 
+
 // Helper method that works around Apple's Bug when you use the add<Key>Object: method on an NSOrderedSet
 // to-many relationship property generated automatically by CoreData....that method crashes with a [NSSet intersectsSet:]: error
 -(NSUInteger)indexToInsert

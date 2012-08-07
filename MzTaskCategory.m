@@ -141,6 +141,7 @@
                 insertAttributeOption.attributeOptionId = [[properties objectForKey:@"taskAttributeId"] copy];
                 insertAttributeOption.attributeOptionName = options;
                 insertAttributeOption.taskAttribute = insertTaskAttribute;
+                assert(insertAttributeOption.taskAttribute != nil);
                 
                 // Link to the MzTaskAttribute
                 [attributeArray addObject:insertAttributeOption];
@@ -213,38 +214,10 @@
         [self updateTaskTypeWithProperties:properties inManagedObjectContext:context];
         assert(self.taskTypes != nil);
         
-        // check the TaskAttribute properties and update accordingly by enumerating over
-        // the taskTypes
-        if ([self.taskTypes count] > 0) {
-            
-            [self.taskTypes enumerateObjectsUsingBlock:^(MzTaskType *obj, NSUInteger idx, BOOL *stop) {
-                [self updateTaskAttributeWithProperties:properties forTaskType:obj inManagedObjectContext:context];
-                
-                // check the taskAttributeOption properties and update accordingly by
-                // enumerating over the taskAttributes
-                assert(obj.taskAttributes != nil);
-                
-                if ([obj.taskAttributes count] > 0) {
                     
-                    [obj.taskAttributes enumerateObjectsUsingBlock:
-                     ^(MzTaskAttribute *attribute, NSUInteger idx, BOOL *stop) {
-                         [self updateAttributeOptionWithProperties:properties forTaskAttribute:attribute inManagedObjectContext:context];
-                     }];
-                } else {
-                    
-                    // taskType has no valid taskAttribute values
-                    [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"TaskType with taskTypeId: %@ has no taskAttributes",[properties objectForKey:@"taskTypeId"]]; 
-                }
-                
-                // Update the MzQueryItems
-                [MzQueryItem updateMzQueryItemsForTaskType:obj inManagedObjectContext:context];
-            }];
-        } else {
-            
-            // categoryId has no valid taskType values
-            [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"TaskCategory with categoryId: %@ has no taskTypes",[properties objectForKey:@"categoryId"]]; 
-        }
-        
+        // categoryId has no valid taskType values
+        [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Update existing TaskCategory with categoryId: %@",[properties objectForKey:@"categoryId"]]; 
+        }        
             
     // Do the thmbnail updates.
     if (categoryThumbnailNeedsUpdate) {
@@ -253,7 +226,6 @@
        
 }
 
-}
 
 // Method updates or inserts the MzTaskType objects for a given MzTaskCategory object based on the
 // passed properties dictionary
@@ -284,6 +256,10 @@
                       }    
                   }];
         if ([result firstIndex] != NSNotFound) {
+            
+            //Note that we may repeatedly keep on doing the same updates, we can come with
+            // some logic to keep track of which taskTypeId's we've seen before but the
+            // time & memory savings are negligible so we just crunch away...
             updateTaskType = [self.taskTypes objectAtIndex:[result firstIndex]];
             
             if (![updateTaskType.taskTypeName isEqualToString:[properties objectForKey:@"taskTypeName"]]) {
@@ -294,6 +270,12 @@
                 updateTaskType.taskTypeImageURL = [[properties objectForKey:@"taskTypeImageURL"] copy];
                 taskTypeThumbnailNeedsUpdate = YES;
             }
+            
+            // Update the taskAttributes relationship
+            [self updateTaskAttributeWithProperties:properties forTaskType:updateTaskType inManagedObjectContext:context];
+            
+            // Update the MzQueryItem entity
+            [MzQueryItem updateMzQueryItemsForTaskType:updateTaskType inManagedObjectContext:context];
             
         } else {
             
@@ -307,8 +289,14 @@
             insertTaskType.taskTypeName =[[properties objectForKey:@"taskTypeName"] copy];
             insertTaskType.taskTypeImageURL = [[properties objectForKey:@"taskTypeImageURL"] copy];
             
+            // update the taskAttributes relationship
+            [self updateTaskAttributeWithProperties:properties forTaskType:insertTaskType inManagedObjectContext:context];
+            
             // Add to the To-Many relationship
             [self addTaskTypesObject:insertTaskType];
+            
+            // Update the MzQueryItem entity
+            [MzQueryItem updateMzQueryItemsForTaskType:insertTaskType inManagedObjectContext:context];
         }
         
     } else {
@@ -322,8 +310,15 @@
         insertTaskType.taskTypeName =[[properties objectForKey:@"taskTypeName"] copy];
         insertTaskType.taskTypeImageURL = [[properties objectForKey:@"taskTypeImageURL"] copy];
         
+        // update the taskAttributes relationship
+        [self updateTaskAttributeWithProperties:properties forTaskType:insertTaskType 
+                         inManagedObjectContext:context];
+        
         // Add to the To-Many relationship
         [self addTaskTypesObject:insertTaskType];
+        
+        // Update the MzQueryItem entity
+        [MzQueryItem updateMzQueryItemsForTaskType:insertTaskType inManagedObjectContext:context];
     }
     
     // Update thumbnail
@@ -345,7 +340,7 @@
     MzTaskAttribute *updateTaskAttribute;
     MzTaskAttribute *insertTaskAttribute;
     NSIndexSet *result;
-        
+    
     // Iterate over all the taskAttributes objects we are "related" to
     if ([taskType.taskAttributes count] > 0) {
         result = [taskType.taskAttributes indexesOfObjectsPassingTest:
@@ -362,8 +357,11 @@
             
             if (![updateTaskAttribute.taskAttributeName isEqualToString:[properties objectForKey:@"taskAttributeName"]]) {
                 updateTaskAttribute.taskAttributeName = [[properties objectForKey:@"taskAttributeName"] copy];
-            }            
-                        
+            }
+            
+            // update the attributeOptions relationship
+            [self updateAttributeOptionWithProperties:properties forTaskAttribute:updateTaskAttribute inManagedObjectContext:context];
+            
         } else {
             
             // no match, so we need to insert a new MzTaskAttribute object
@@ -374,6 +372,9 @@
             
             insertTaskAttribute.taskAttributeId = [[properties objectForKey:@"taskAttributeId"] copy];
             insertTaskAttribute.taskAttributeName =[[properties objectForKey:@"taskAttributeName"] copy];
+            
+            // update the attributeOptions relationship
+            [self updateAttributeOptionWithProperties:properties forTaskAttribute:insertTaskAttribute inManagedObjectContext:context];
             
             // Link to the new MzTaskAttribute object
             [taskType addTaskAttributesObject:insertTaskAttribute];
@@ -389,11 +390,15 @@
         insertTaskAttribute.taskAttributeId = [[properties objectForKey:@"taskAttributeId"] copy];
         insertTaskAttribute.taskAttributeName =[[properties objectForKey:@"taskAttributeName"] copy];
         
+        // update the attributeOptions relationship
+        [self updateAttributeOptionWithProperties:properties forTaskAttribute:insertTaskAttribute inManagedObjectContext:context];
+        
         // Link to the new MzTaskAttribute object
         [taskType addTaskAttributesObject:insertTaskAttribute];
     }                                               
-                                                
+    
 }
+
 
 // Method updates, inserts and deletes MzTaskAttributeOption objects for a given MzTaskAttribute object
 // based on passed properties dictionary
@@ -413,13 +418,14 @@ forTaskAttribute:(MzTaskAttribute *)taskAttribute inManagedObjectContext:(NSMana
     NSIndexSet *optionToRemove;
     
     
-    // Iterate over all the taskAttributes objects we are "related" to
+    // Iterate over all the taskAttributes objects we are "related" to...again note that the
+    // value for the key: attributeOptionName is an array of strings
     optionSet = [NSArray arrayWithArray:[properties objectForKey:@"attributeOptionName"]];
     if ([taskAttribute.attributeOptions count] > 0) {
         
-        existingOption = [NSMutableSet set];
+        existingOption = [NSMutableSet set]; // attributeOptions we already own
         
-        for (NSString *option in optionSet) { //performance??? ... this is quadratic!!!
+        for (NSString *option in optionSet) { 
             
             result = [taskAttribute.attributeOptions indexesOfObjectsPassingTest:
                       ^(MzTaskAttributeOption *obj, NSUInteger idx, BOOL *stop) {
@@ -481,7 +487,7 @@ forTaskAttribute:(MzTaskAttribute *)taskAttribute inManagedObjectContext:(NSMana
             
             for (NSString *option in optionSet) {
                 
-                if (![existingOption containsObject:option]) {
+                if ([existingOption member:option] == nil) {
                     
                     // add the MzTaskAttributeOption object relationship
                     MzTaskAttributeOption *insertAttributeOption = (MzTaskAttributeOption *) [NSEntityDescription insertNewObjectForEntityForName:@"MzTaskAttributeOption" inManagedObjectContext:context];
@@ -491,6 +497,7 @@ forTaskAttribute:(MzTaskAttribute *)taskAttribute inManagedObjectContext:(NSMana
                     insertAttributeOption.attributeOptionId = [[properties objectForKey:@"taskAttributeId"] copy];
                     insertAttributeOption.attributeOptionName = option;
                     insertAttributeOption.taskAttribute = taskAttribute;
+                    assert(insertAttributeOption.taskAttribute != nil);
                     
                     // Link to the passed MzTaskAttribute object
                     [attributeArray addObject:insertAttributeOption];
@@ -519,6 +526,7 @@ forTaskAttribute:(MzTaskAttribute *)taskAttribute inManagedObjectContext:(NSMana
                     insertAttribute.attributeOptionId = [[properties objectForKey:@"taskAttributeId"] copy];
                     insertAttribute.attributeOptionName = option;
                     insertAttribute.taskAttribute = taskAttribute;
+                    assert(insertAttribute.taskAttribute != nil);
                     
                     // Link to the passed MzTaskAttribute object
                 [attributeArray addObject:insertAttribute];                
@@ -548,6 +556,7 @@ forTaskAttribute:(MzTaskAttribute *)taskAttribute inManagedObjectContext:(NSMana
             insertOption.attributeOptionId = [[properties objectForKey:@"taskAttributeId"] copy];
             insertOption.attributeOptionName = option;
             insertOption.taskAttribute = taskAttribute;
+            assert(insertOption.taskAttribute != nil);
                        
             [attributeArray addObject:insertOption];                
         }
