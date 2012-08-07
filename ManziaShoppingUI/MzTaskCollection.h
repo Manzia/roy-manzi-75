@@ -58,7 +58,6 @@ typedef enum TaskCollectionSyncState TaskCollectionSyncState;
 
 @interface MzTaskCollection : NSObject {
     NSString *tasksURLString;
-    MzTaskCollectionContext *taskCollectionContext;
     NSEntityDescription *tasksEntity;       // MzTaskCategory entity
     NSDate *dateLastSynced;
     TaskCollectionSyncState stateOfSync;
@@ -84,8 +83,9 @@ typedef enum TaskCollectionSyncState TaskCollectionSyncState;
 @property (nonatomic, assign, readonly) UIBackgroundTaskIdentifier taskCollectionSync;
 
 
-// initialize
--(id)initWithTasksURLString:(NSString *)tasksURLString;
+
+// Initialize a MzTaskCollection model object
+- (id)initWithTasksURLString:(NSString *)taskURLString;
  
 // Method that manages TaskCollection LifeCycle
 - (void)applicationHasLaunched; 

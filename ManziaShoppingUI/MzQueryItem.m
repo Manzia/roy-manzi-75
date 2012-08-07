@@ -26,14 +26,14 @@
     assert(context != nil);
                    
         // Use "brand" + "taskType" to create query String
-        if ([taskAttribute.taskAttributeName isEqualToString:@"brand"]) {
+        if ([taskAttribute.taskAttributeName isEqualToString:@"Brand"]) {
             [taskAttribute.attributeOptions enumerateObjectsUsingBlock:^(MzTaskAttributeOption *obj, NSUInteger idx, BOOL *stop) {
                 
                 // Create a new MzQueryItem object in database
                 MzQueryItem *queryItem = (MzQueryItem *) [NSEntityDescription insertNewObjectForEntityForName:@"MzQueryItem" inManagedObjectContext:context];
                 
                 if (queryItem != nil) {
-                    assert([queryItem isKindOfClass:[MzQueryItem class]]);
+                    //assert([[[queryItem entity] managedObjectClassName ] isEqualToString:@"MzQueryItem"] );
                     
                     // Note we assign the taskTypeId for easy delete/update operations
                     queryItem.queryId = taskAttribute.taskType.taskTypeId;
@@ -62,7 +62,7 @@
     NSIndexSet *result;
     result = [taskType.taskAttributes indexesOfObjectsPassingTest:^(MzTaskAttribute *obj, NSUInteger idx, BOOL *stop) {
         
-        if ([obj.taskAttributeName isEqualToString:@"brand"]) {
+        if ([obj.taskAttributeName isEqualToString:@"Brand"]) {
            *stop = YES;
             return YES;
         } else {
@@ -109,7 +109,7 @@
         assert(taskType.taskAttributes != nil);
         [taskType.taskAttributes enumerateObjectsUsingBlock:^(MzTaskAttribute *obj, NSUInteger idx, BOOL *stop) {
             
-            if ([obj.taskAttributeName isEqualToString:@"brand"]) {
+            if ([obj.taskAttributeName isEqualToString:@"Brand"]) {
                 
                 // Iterate over the MzTaskAttributeOptions i.e brand values
                 [obj.attributeOptions enumerateObjectsUsingBlock:
@@ -128,7 +128,7 @@
                              MzQueryItem *queryItem = (MzQueryItem *) [NSEntityDescription insertNewObjectForEntityForName:@"MzQueryItem" inManagedObjectContext:context];
                                                           
                              if (queryItem != nil) {
-                                 assert([queryItem isKindOfClass:[MzQueryItem class]]);
+                                 //assert([[[queryItem entity] managedObjectClassName ] isEqualToString:@"MzQueryItem"] );
                                  
                                  // Note we assign the taskTypeId for easy delete/update operations
                                  queryItem.queryId = taskType.taskTypeId;
@@ -183,7 +183,7 @@
         MzQueryItem *queryItem = (MzQueryItem *) [NSEntityDescription insertNewObjectForEntityForName:@"MzQueryItem" inManagedObjectContext:context];
         
         if (queryItem != nil) {
-            assert([queryItem isKindOfClass:[MzQueryItem class]]);
+            //assert([[[queryItem entity] managedObjectClassName ] isEqualToString:@"MzQueryItem"] );
             
             // Note we assign the taskTypeId for easy delete/update operations
             queryItem.queryId = taskType.taskTypeId;
