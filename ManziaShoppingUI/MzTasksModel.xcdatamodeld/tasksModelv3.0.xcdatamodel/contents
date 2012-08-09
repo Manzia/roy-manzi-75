@@ -7,7 +7,7 @@
     <entity name="MzTaskAttribute" representedClassName="MzTaskAttribute" syncable="YES">
         <attribute name="taskAttributeId" attributeType="String" indexed="YES" syncable="YES"/>
         <attribute name="taskAttributeName" attributeType="String" syncable="YES"/>
-        <relationship name="attributeOptions" toMany="YES" minCount="1" deletionRule="Cascade" destinationEntity="MzTaskAttributeOption" inverseName="taskAttribute" inverseEntity="MzTaskAttributeOption" syncable="YES"/>
+        <relationship name="attributeOptions" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="MzTaskAttributeOption" inverseName="taskAttribute" inverseEntity="MzTaskAttributeOption" syncable="YES"/>
         <relationship name="taskType" minCount="1" maxCount="1" deletionRule="Nullify" destinationEntity="MzTaskType" inverseName="taskAttributes" inverseEntity="MzTaskType" syncable="YES"/>
     </entity>
     <entity name="MzTaskAttributeOption" representedClassName="MzTaskAttributeOption" syncable="YES">
