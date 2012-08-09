@@ -99,5 +99,12 @@ typedef enum TaskCollectionSyncState TaskCollectionSyncState;
 -(void)startSynchronization;
 -(void)stopSynchronization;
 
-
 @end
+
+
+
+
+
+
+
+                                                                                    
