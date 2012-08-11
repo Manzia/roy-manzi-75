@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <model name="" userDefinedModelVersionIdentifier="tasksModelv1.0" type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="1171" systemVersion="11E53" minimumToolsVersion="Xcode 4.1" macOSVersion="Automatic" iOSVersion="Automatic">
     <entity name="MzQueryItem" representedClassName="MzQueryItem" syncable="YES">
-        <attribute name="queryId" optional="YES" attributeType="String" syncable="YES"/>
-        <attribute name="queryString" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="queryId" attributeType="String" indexed="YES" syncable="YES"/>
+        <attribute name="queryString" attributeType="String" syncable="YES"/>
     </entity>
     <entity name="MzTaskAttribute" representedClassName="MzTaskAttribute" syncable="YES">
         <attribute name="taskAttributeId" attributeType="String" indexed="YES" syncable="YES"/>
         <attribute name="taskAttributeName" attributeType="String" syncable="YES"/>
-        <relationship name="attributeOptions" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="MzTaskAttributeOption" inverseName="taskAttribute" inverseEntity="MzTaskAttributeOption" syncable="YES"/>
+        <relationship name="attributeOptions" toMany="YES" minCount="1" deletionRule="Cascade" destinationEntity="MzTaskAttributeOption" inverseName="taskAttribute" inverseEntity="MzTaskAttributeOption" syncable="YES"/>
         <relationship name="taskType" minCount="1" maxCount="1" deletionRule="Nullify" destinationEntity="MzTaskType" inverseName="taskAttributes" inverseEntity="MzTaskType" syncable="YES"/>
     </entity>
     <entity name="MzTaskAttributeOption" representedClassName="MzTaskAttributeOption" syncable="YES">
@@ -19,13 +19,13 @@
         <attribute name="categoryId" attributeType="String" indexed="YES" syncable="YES"/>
         <attribute name="categoryImageURL" optional="YES" attributeType="String" syncable="YES"/>
         <attribute name="categoryName" optional="YES" attributeType="String" syncable="YES"/>
-        <relationship name="taskTypes" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="MzTaskType" inverseName="taskCategory" inverseEntity="MzTaskType" syncable="YES"/>
+        <relationship name="taskTypes" toMany="YES" minCount="1" deletionRule="Cascade" destinationEntity="MzTaskType" inverseName="taskCategory" inverseEntity="MzTaskType" syncable="YES"/>
     </entity>
     <entity name="MzTaskType" representedClassName="MzTaskType" syncable="YES">
         <attribute name="taskTypeId" attributeType="String" indexed="YES" syncable="YES"/>
         <attribute name="taskTypeImageURL" optional="YES" attributeType="String" syncable="YES"/>
         <attribute name="taskTypeName" optional="YES" attributeType="String" syncable="YES"/>
-        <relationship name="taskAttributes" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="MzTaskAttribute" inverseName="taskType" inverseEntity="MzTaskAttribute" syncable="YES"/>
+        <relationship name="taskAttributes" toMany="YES" minCount="1" deletionRule="Cascade" destinationEntity="MzTaskAttribute" inverseName="taskType" inverseEntity="MzTaskAttribute" syncable="YES"/>
         <relationship name="taskCategory" minCount="1" maxCount="1" deletionRule="Nullify" destinationEntity="MzTaskCategory" inverseName="taskTypes" inverseEntity="MzTaskCategory" syncable="YES"/>
         <relationship name="taskTypeImage" optional="YES" minCount="1" maxCount="1" deletionRule="Cascade" destinationEntity="MzTaskTypeImage" inverseName="taskType" inverseEntity="MzTaskTypeImage" syncable="YES"/>
     </entity>
