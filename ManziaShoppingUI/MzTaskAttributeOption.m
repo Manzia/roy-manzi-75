@@ -8,6 +8,7 @@
 
 #import "MzTaskAttributeOption.h"
 #import "MzTaskAttribute.h"
+#import "Logging.h"
 
 
 @implementation MzTaskAttributeOption
@@ -15,5 +16,12 @@
 @dynamic attributeOptionId;
 @dynamic attributeOptionName;
 @dynamic taskAttribute;
+
+// Override for debugging purposes
+-(void)prepareForDeletion
+{
+    [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Will delete TaskAttributeOption with name: %@", self.attributeOptionName]; 
+}
+
 
 @end

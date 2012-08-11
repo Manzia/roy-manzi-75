@@ -17,26 +17,31 @@
 @dynamic queryId;
 @dynamic queryString;
 
+// Key for attributeOptionName value
+static NSString *kAttributeNameKey = @"attributeName";
+
 // Insert a new MzQueryItem object into the database - this class method would
 // apply only if we are inserting a new MzTaskType with a "brand" MzTaskAttribute
 +(void)insertNewMzQueryItemsForTaskAttribute:(MzTaskAttribute *)taskAttribute inManagedObjectContext:(NSManagedObjectContext *)context
 {
     assert(taskAttribute != nil);
     assert(context != nil);
+    __block MzQueryItem *queryItem;
     
     // Use "brand" + "taskType" to create query String
-    if ([taskAttribute.taskAttributeName isEqualToString:@"Brand"]) {
+    if ([[taskAttribute valueForKey:@"taskAttributeName"] isEqualToString:@"Brand"]) {
         [taskAttribute.attributeOptions enumerateObjectsUsingBlock:^(MzTaskAttributeOption *obj, BOOL *stop) {
             
             // Create a new MzQueryItem object in database
-            MzQueryItem *queryItem = (MzQueryItem *) [NSEntityDescription insertNewObjectForEntityForName:@"MzQueryItem" inManagedObjectContext:context];
+            queryItem = (MzQueryItem *) [NSEntityDescription insertNewObjectForEntityForName:@"MzQueryItem" inManagedObjectContext:context];
             assert(queryItem != nil);
                            
             // Note we assign the taskTypeId for easy delete/update operations
-            queryItem.queryId = taskAttribute.taskType.taskTypeId;
-                
+            queryItem.queryId = [taskAttribute valueForKeyPath:@"taskType.taskTypeId"];
+            assert(queryItem.queryId != nil);
+                          
             // append with a whitespace in between
-            queryItem.queryString = [obj.attributeOptionName stringByAppendingFormat:@" %@", taskAttribute.taskType.taskTypeName];           
+            queryItem.queryString = [obj.attributeOptionName stringByAppendingFormat:@" %@", [taskAttribute valueForKeyPath:@"taskType.taskTypeName"]];                    
             
         }];
         
@@ -45,33 +50,58 @@
 }
 
 // Update and or delete existing MzQueryItem objects
-+(void)updateMzQueryItemsForTaskType:(MzTaskType *)taskType inManagedObjectContext:(NSManagedObjectContext *)context
++(void)updateMzQueryItemsInManagedObjectContext:(NSManagedObjectContext *)context
 {
-    assert(taskType != nil);
     assert(context != nil);
     
-    // Before we start doing any work, let's ensure the passed in taskType has a taskAttribute
-    // whose value (taskAttributeName) is "brand"
-    NSSet *result;
-    result = [taskType.taskAttributes objectsPassingTest:
-              ^(MzTaskAttribute *obj, BOOL *stop) {
-        
-        if ([obj.taskAttributeName isEqualToString:@"Brand"]) {
-            *stop = YES;
-            return YES;
-        } else {
-            return  NO;
+    // Get all the attributeOptionName values in the MzTaskAttributeOption entity whose
+    // taskAttribute.taskAttributeName value = "Brand"
+    NSArray *retrievedOptions;
+    NSError *fetchOptionError = NULL;
+    NSArray *optionNames;
+    NSMutableDictionary *optionsDict;
+    
+    
+    NSFetchRequest *fetchOptions = [[NSFetchRequest alloc] initWithEntityName:@"MzTaskAttributeOption"];
+    assert(fetchOptions != nil);
+    [fetchOptions setFetchBatchSize:30];
+    NSPredicate *predicateOption = [NSPredicate predicateWithFormat:@"ANY taskAttribute.taskAttributeName like 'Brand'"];
+    [fetchOptions setPredicate:predicateOption];
+    [fetchOptions setRelationshipKeyPathsForPrefetching:[NSArray arrayWithObject:@"taskAttribute.taskType"]];
+    retrievedOptions = [context executeFetchRequest:fetchOptions error:&fetchOptionError];
+    assert(retrievedOptions != nil);
+    
+    [[QLog log] logOption:kLogOptionSyncDetails withFormat:
+     @"Number of AttributeOptions for Brand Attribute in DB is: %d", [retrievedOptions count]];
+    
+    // Log error
+    if (fetchOptionError) {
+        [[QLog log] logOption:kLogOptionSyncDetails withFormat:
+         @"Error fetching from MzTaskAttributeOption entity with error: %@", fetchOptionError.localizedDescription]; 
+    }
+
+    
+    // Create the array and dictionary of attributeOptionNames
+    if ([retrievedOptions count] > 0) {
+        optionsDict = [NSMutableDictionary dictionary];
+        assert(optionsDict != nil);
+                
+        for (MzTaskAttributeOption *option in retrievedOptions) {
+            
+            [optionsDict setObject:option forKey:option.attributeOptionName];            
         }
-    }];
+        optionNames = [optionsDict allKeys];
+        
+    } else {
+        
+        // Log unexpected result
+        [[QLog log] logOption:kLogOptionSyncDetails withFormat:
+         @"No taskAttributeOption with a Brand TaskAttribute found"];
+        
+        return;     // nothing to do, take off!
+    }
     
-    /* exit if no "brand" taskAttribute to save time and resources
-     NOTE: even though we return/exit now, we will eventually be able to create the MzQueryItems
-     for the "brand" taskAttribute for this taskType because we will be called again eventually
-     with the same taskType when it has been associated with a "brand" taskAttribute
-     since ALL taskTypes after a complete MzTaskCollection sync will have a "brand" taskAttribute */
-    
-    if ([result count] == 0) return;     
-    
+            
     /* Start the update, delete, insert logic...
      1- Create a dictionary whose keys are all the attributeOptionNames associated with this "brand"
      taskAttribute and whose values are the corresponding MzQueryItem objects in the database
@@ -87,50 +117,27 @@
     NSArray *existingQueryItems;
     NSError *fetchError = NULL;
     NSMutableDictionary *queryDictionary;
-    NSMutableArray *optionNames;
     NSMutableSet *queryToRemove;
-    MzTaskAttribute *tempTaskAttribute;
-    
-    // Create the array of attributeOptionNames associated with incoming MzTaskType object
-    if ([result count] == 1) {
-        tempTaskAttribute = [result anyObject];
-        assert(tempTaskAttribute != nil);
-        optionNames = [NSMutableArray array];
-        assert(optionNames != nil);
-        
-        // Iterate
-        [tempTaskAttribute.attributeOptions enumerateObjectsUsingBlock:
-         ^(MzTaskAttributeOption *option, BOOL *stop) {
-             
-             [optionNames addObject:option.attributeOptionName];
-         }];
-    } else {
-        
-        // Log unexpected result
-        [[QLog log] logOption:kLogOptionSyncDetails withFormat:
-         @"Unexpected result - TaskType: %@ has more than one Brand TaskAttribute", taskType.taskTypeName];
-        return;
-    } 
-    
+    NSUInteger updateItems = 0;
+    NSString *keyString;        // keys are of format "brand" + space + "taskTypeName"
     
     // Get the existing MzQueryItems
     NSFetchRequest *fetchRequest;    
     fetchRequest = [[NSFetchRequest alloc] initWithEntityName:@"MzQueryItem"];
     assert(fetchRequest != nil);
-    NSPredicate *queryPredicate = [NSPredicate predicateWithFormat:@"queryId == %@", taskType.taskTypeId];
-    assert(queryPredicate != nil);
-    [fetchRequest setPredicate:queryPredicate];
+    [fetchRequest setFetchBatchSize:30];
     existingQueryItems = [context executeFetchRequest:fetchRequest error:&fetchError];
     
     // Log error
     if (fetchError) {
         [[QLog log] logOption:kLogOptionSyncDetails withFormat:
-         @"Error fetching from MzQueryItem entity for TaskType: %@ with error: %@", taskType.taskTypeName, fetchError.localizedDescription]; 
+         @"Error fetching from MzQueryItem entity with error: %@", fetchError.localizedDescription]; 
     }
     
     // We can do the updates since we have existing MzQueryItem objects
     if (existingQueryItems != nil && [existingQueryItems count] > 0) {
         queryDictionary = [NSMutableDictionary dictionary];
+        MzQueryItem *queryItem;
         
         //Iterate to create the queryItem dictionary
         for (MzQueryItem *itemQuery in existingQueryItems) {
@@ -140,14 +147,13 @@
         // create the array of keys
         queryToRemove = [NSMutableSet setWithArray:[queryDictionary allKeys]];
         assert(queryToRemove != nil);
-        NSUInteger updateItems = 0;
-        NSString *keyString;        // keys are of format "brand" + space + "taskTypeName"
+        
         
         // Do the update, insert...
         for (NSString *name in optionNames) {
             
             // check if we already have this attributeOptionName
-            keyString = [name stringByAppendingFormat:@" %@", taskType.taskTypeName];            
+            keyString = [name stringByAppendingFormat:[[optionsDict objectForKey:name] valueForKeyPath:@"taskAttribute.taskType.taskTypeName"]];             
             
             if( [queryDictionary objectForKey:keyString] != nil ) {
                 
@@ -156,14 +162,16 @@
                 
                 // we need to insert a new MzQueryItem for this attributeOptionName
                 updateItems++;
-                MzQueryItem *queryItem = (MzQueryItem *) [NSEntityDescription insertNewObjectForEntityForName:@"MzQueryItem" inManagedObjectContext:context];
+                queryItem = (MzQueryItem *) [NSEntityDescription insertNewObjectForEntityForName:@"MzQueryItem" inManagedObjectContext:context];
                 
                 if (queryItem != nil) {
                     //assert([[[queryItem entity] managedObjectClassName ] isEqualToString:@"MzQueryItem"] );
                     
                     // Note we assign the taskTypeId for easy delete/update operations
-                    queryItem.queryId = taskType.taskTypeId;
-                    queryItem.queryString = [name stringByAppendingFormat:@" %@", taskType.taskTypeName]; 
+                    queryItem.queryId = [[optionsDict objectForKey:name] valueForKeyPath:@"taskAttribute.taskType.taskTypeId"];
+                    
+                    queryItem.queryString = [name stringByAppendingFormat:[[optionsDict objectForKey:name] valueForKeyPath:@"taskAttribute.taskType.taskTypeName"]]; 
+                    
                 }
                 
             }
@@ -171,7 +179,7 @@
         
         // Log
         [[QLog log] logOption:kLogOptionSyncDetails withFormat:
-         @"Inserted %d MzQueryItems for TaskType: %@", updateItems, taskType.taskTypeName];
+         @"Inserted %d MzQueryItems in database: ", updateItems];
         
         // Now we do the delete....
         if ([queryToRemove count] > 0) {
@@ -183,34 +191,49 @@
             
             // Log
             [[QLog log] logOption:kLogOptionSyncDetails withFormat:
-             @"Deleted %d MzQueryItems for TaskType: %@", [queryToRemove count] ,taskType.taskTypeName];
+             @"Deleted %d MzQueryItems from database: ", [queryToRemove count]];
         }
         
     } else if (existingQueryItems != nil) {
         
         // we need to insert new MzQueryItems for all the attributeOptionNames
         // we insert only for the "brand" MzTaskAttribute
-        NSUInteger insertItems = [tempTaskAttribute.attributeOptions count];
-        [MzQueryItem insertNewMzQueryItemsForTaskAttribute:tempTaskAttribute inManagedObjectContext:context];
-        
-        // We also insert a MzQueryItem where we do not append the brand
-        MzQueryItem *queryItem = (MzQueryItem *) [NSEntityDescription insertNewObjectForEntityForName:@"MzQueryItem" inManagedObjectContext:context];
-        
-        if (queryItem != nil) {
-            //assert([[[queryItem entity] managedObjectClassName ] isEqualToString:@"MzQueryItem"] );
+        // Do the update, insert...
+        MzQueryItem *itemQuery;
+        NSUInteger insertItems = [optionNames count];
+        for (NSString *name in optionNames) {
             
-            // Note we assign the taskTypeId for easy delete/update operations
-            queryItem.queryId = taskType.taskTypeId;
-            queryItem.queryString = taskType.taskTypeName;
+            // check if we already have this attributeOptionName
+             keyString = [name stringByAppendingFormat:[[optionsDict objectForKey:name] valueForKeyPath:@"taskAttribute.taskType.taskTypeName"]];             
             
-            // Log
-            [[QLog log] logOption:kLogOptionSyncDetails withFormat:
-             @"Inserted %d MzQueryItems for TaskType: %@", insertItems + 1, taskType.taskTypeName];
-        }        
+            if( [queryDictionary objectForKey:keyString] != nil ) {
+                
+                [queryToRemove removeObject:name];  // remaining items will be deleted
+            } else {
+                
+                // we need to insert a new MzQueryItem for this attributeOptionName
+                updateItems++;
+                itemQuery = (MzQueryItem *) [NSEntityDescription insertNewObjectForEntityForName:@"MzQueryItem" inManagedObjectContext:context];
+                
+                if (itemQuery != nil) {
+                    //assert([[[queryItem entity] managedObjectClassName ] isEqualToString:@"MzQueryItem"] );
+                    
+                    // Note we assign the taskTypeId for easy delete/update operations
+                    itemQuery.queryId = [[optionsDict objectForKey:name] valueForKeyPath:@"taskAttribute.taskType.taskTypeId"];
+                    
+                    itemQuery.queryString = [name stringByAppendingFormat:[[optionsDict objectForKey:name] valueForKeyPath:@"taskAttribute.taskType.taskTypeId"]];                     
+                }
+                
+            }
+        }    
+         // Log
+         [[QLog log] logOption:kLogOptionSyncDetails withFormat:
+          @"Initial insert of %d MzQueryItems in database", insertItems + 1];
+    }        
         
-    }
-    
 }
+    
+
 
 // Delete all the MzQueryItems associated with a TaskType
 +(void)deleteAllQueryItemsForTaskType:(MzTaskType *)taskType inManagedObjectContext:(NSManagedObjectContext *)context
@@ -225,7 +248,7 @@
     NSFetchRequest *fetchRequest;    
     fetchRequest = [[NSFetchRequest alloc] initWithEntityName:@"MzQueryItem"];
     assert(fetchRequest != nil);
-    NSPredicate *queryPredicate = [NSPredicate predicateWithFormat:@"queryId == %@", taskType.taskTypeId];
+    NSPredicate *queryPredicate = [NSPredicate predicateWithFormat:@"queryId like %@", taskType.taskTypeId];
     assert(queryPredicate != nil);
     [fetchRequest setPredicate:queryPredicate];
     existingQueryItems = [context executeFetchRequest:fetchRequest error:&fetchError];
@@ -244,7 +267,7 @@
         
         // Log
         [[QLog log] logOption:kLogOptionSyncDetails withFormat:
-         @"Deleted %d MzQueryItems for TaskType: %@", deleteCount, taskType.taskTypeName];
+         @"Finished deleting all %d MzQueryItems for TaskType: %@", deleteCount, taskType.taskTypeName];
     }
     
 }

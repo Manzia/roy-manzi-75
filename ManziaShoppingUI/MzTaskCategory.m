@@ -27,6 +27,13 @@
 @dynamic taskTypes;
 
 #pragma mark * Insert & Update Task Category
+
+// Override for debugging purposes
+-(void)prepareForDeletion
+{
+    [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Will delete TaskCategory with name: %@", self.categoryName]; 
+}
+
 // Creates a MzProductItem object with the specified properties in the specified context. 
 // The properties dictionary is keyed by property names, in a KVC fashion.
 
@@ -71,6 +78,7 @@
         insertTaskType.taskTypeId = [[properties objectForKey:@"taskTypeId"] copy];
         insertTaskType.taskTypeName =[[properties objectForKey:@"taskTypeName"] copy];
         insertTaskType.taskTypeImageURL = [[properties objectForKey:@"taskTypeImageURL"] copy];
+        //insertTaskType.taskCategory = insertCategory;
         
         // add the MzTaskAttribute object relationship
         insertTaskAttribute = (MzTaskAttribute *) [NSEntityDescription insertNewObjectForEntityForName:@"MzTaskAttribute" inManagedObjectContext:managedObjectContext];
@@ -79,6 +87,7 @@
         
         insertTaskAttribute.taskAttributeId = [[properties objectForKey:@"taskAttributeId"] copy];
         insertTaskAttribute.taskAttributeName = [[properties objectForKey:@"taskAttributeName"] copy];
+        //insertTaskAttribute.taskType = insertTaskType;
         
         // add the MzTaskAttributeOption object relationship
         /* NOTE THAT ITS IMPORTANT TO KEEP THE FOLLOWING DISTINCTION
@@ -88,8 +97,12 @@
          MzTaskAttributeOption managed object created.         
          */
         NSArray *attributeOptions;
+        NSMutableSet *optionsSet;
         attributeOptions = [NSArray arrayWithArray:[properties objectForKey:@"attributeOptionName"]];
         assert(attributeOptions != nil);
+        optionsSet = [NSMutableSet set];
+        assert(optionsSet != nil);
+        
         if ([attributeOptions count] > 0) {
             
                        
@@ -101,22 +114,28 @@
                 // attributeOptionId value is same as taskAttributeId value
                 insertAttributeOption.attributeOptionId = [[properties objectForKey:@"taskAttributeId"] copy];
                 insertAttributeOption.attributeOptionName = options;
+                //insertAttributeOption.taskAttribute = insertTaskAttribute;
                                 
                 // Link to the MzTaskAttribute
-                [insertTaskAttribute addAttributeOptionsObject:insertAttributeOption];
+                [optionsSet addObject:insertAttributeOption];                
                
-            }                       
+            } 
+            // Link to the MzTaskAttribute
+            insertTaskAttribute.attributeOptions = [NSSet setWithSet:optionsSet];
+            //[insertTaskAttribute addAttributeOptions:optionsSet];
             
         } else {
             [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Task Attribute: %@ for Task Category: %@ with Task Type: %@ has no attributeOptions", [properties objectForKey:@"taskAttributeName"], [properties objectForKey:@"categoryName"], [properties objectForKey:@"taskTypeName"]];
         }
         
         // Link to the MzTaskType
-        [insertTaskType addTaskAttributesObject:insertTaskAttribute];
-        
+        insertTaskType.taskAttributes = [NSSet setWithObject:insertTaskAttribute];
+        //[insertTaskType addTaskAttributes:[NSSet setWithObject:insertTaskAttribute]];
+                
         
         // Link to the MzTaskCategory
-        [insertCategory addTaskTypesObject:insertTaskType];        
+        insertCategory.taskTypes = [NSSet setWithObject:insertTaskType];
+        //[insertCategory addTaskTypes:[NSSet setWithObject:insertTaskType]];              
         
     }
     return insertCategory;
@@ -166,9 +185,7 @@
         
         // check the TaskType properties and update accordingly
         [self updateTaskTypeWithProperties:properties inManagedObjectContext:context];
-        assert(self.taskTypes != nil);
-        
-        
+                
         // categoryId has no valid taskType values
         [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Update existing TaskCategory with categoryId: %@",[properties objectForKey:@"categoryId"]]; 
     }        
@@ -180,6 +197,35 @@
     
 }
 
+// Define all the NSFetchRequest methods
+-(NSFetchRequest *)taskTypesFetchWithTaskCategoryId:(NSString *)taskId
+{
+    NSFetchRequest *request = [[NSFetchRequest alloc] initWithEntityName:@"MzTaskType"];
+    assert(request != nil);
+    NSPredicate *predicate = [NSPredicate predicateWithFormat:@"ANY taskCategory.categoryId like[c] %@", taskId];
+    [request setPredicate:predicate];
+    [request setRelationshipKeyPathsForPrefetching:[NSArray arrayWithObject:@"taskAttributes"]];
+    
+    return request;
+}
+
+-(NSFetchRequest *)taskAttributesFetch
+{
+    NSFetchRequest *request = [[NSFetchRequest alloc] initWithEntityName:@"MzTaskAttribute"];
+    assert(request != nil);
+    [request setRelationshipKeyPathsForPrefetching:[NSArray arrayWithObject:@"attributeOptions"]];
+    return request;
+}
+
+-(NSFetchRequest *)taskAttributeOptionsFetchforTaskAttributeId:(NSString *)attributeId
+{
+    NSFetchRequest *request = [[NSFetchRequest alloc] initWithEntityName:@"MzTaskAttributeOption"];
+    NSPredicate *predicate = [NSPredicate predicateWithFormat:@"attributeOptionId like %@", attributeId];
+    assert(predicate != nil);
+    [request setPredicate:predicate];    
+    assert(request != nil);
+    return request;
+}
 
 // Method updates or inserts the MzTaskType objects for a given MzTaskCategory object based on the
 // passed properties dictionary
@@ -197,6 +243,14 @@
     BOOL taskTypeThumbnailNeedsUpdate;
     
     taskTypeThumbnailNeedsUpdate = NO;
+    
+    /* Testing code
+    NSArray *retrievedTasks;
+    NSError *tasksError;
+    
+    retrievedTasks = [context executeFetchRequest:[self taskTypesFetchWithTaskCategoryId:self.categoryId] error:&tasksError];
+    assert(retrievedTasks != nil);
+    NSUInteger taskCount = [retrievedTasks count]; */
     
     // Iterate over all the taskType objects we are "related" to
     if ([self.taskTypes count] > 0) {
@@ -244,13 +298,15 @@
             insertTaskType.taskTypeId = [[properties objectForKey:@"taskTypeId"] copy];
             insertTaskType.taskTypeName =[[properties objectForKey:@"taskTypeName"] copy];
             insertTaskType.taskTypeImageURL = [[properties objectForKey:@"taskTypeImageURL"] copy];
+            //insertTaskType.taskCategory = self;
             
             // update the taskAttributes relationship
             [self updateTaskAttributeWithProperties:properties forTaskType:insertTaskType inManagedObjectContext:context];
             
             // Add to the To-Many relationship
             [self addTaskTypesObject:insertTaskType];
-            
+            //[self addTaskTypes:[NSSet setWithObject:insertTaskType]];
+                        
             // Update the MzQueryItem entity
             //[MzQueryItem updateMzQueryItemsForTaskType:insertTaskType inManagedObjectContext:context];
         }
@@ -265,14 +321,16 @@
         insertTaskType.taskTypeId = [[properties objectForKey:@"taskTypeId"] copy];
         insertTaskType.taskTypeName =[[properties objectForKey:@"taskTypeName"] copy];
         insertTaskType.taskTypeImageURL = [[properties objectForKey:@"taskTypeImageURL"] copy];
+        //insertTaskType.taskCategory = self;
                 
         // update the taskAttributes relationship
         [self updateTaskAttributeWithProperties:properties forTaskType:insertTaskType 
                          inManagedObjectContext:context];
         
         // Add to the To-Many relationship
-        [self addTaskTypesObject:insertTaskType];
-        
+        self.taskTypes = [NSSet setWithObject:insertTaskType];
+        //[self addTaskTypes:[NSSet setWithObject:insertTaskType]];
+                
         // Update the MzQueryItem entity
         //[MzQueryItem updateMzQueryItemsForTaskType:insertTaskType inManagedObjectContext:context];
     }
@@ -296,10 +354,34 @@
     MzTaskAttribute *updateTaskAttribute;
     MzTaskAttribute *insertTaskAttribute;
     NSSet *result;
+    NSSet *tasks;
+    NSArray *fetchArray;
+    NSError *error = NULL;
     
     // Iterate over all the taskAttributes objects we are "related" to
-    if ([taskType.taskAttributes count] > 0) {
-        result = [taskType.taskAttributes objectsPassingTest:
+    // Get all the taskAttribute objects - this looks like overkill since we are calling this
+    // fetchRequest for every NSDictionary in the parserResults but its more efficient to do this
+    // fetch from the database once and have all the objects cached by Core Data rather than try
+    // to repeatedly retrieve only those taskAttribute objects we need each time this method is
+    // called potentially requiring a database trip with every method call
+    fetchArray = [context executeFetchRequest:[self taskAttributesFetch] error:&error];
+    assert(fetchArray != nil);
+    
+    if (error) {
+        [[QLog log] logOption:kLogOptionSyncDetails withFormat:
+         @"Error retrieving MzTaskAttribute objects with error: %@", error.localizedDescription];
+        return;
+    }
+        
+    tasks = [NSSet setWithArray:fetchArray];    // ensure no duplicates
+    assert(tasks != nil);
+    
+    /* Test
+    NSString *test = [[[tasks anyObject] entity] name];
+    NSLog(@"Class type for taskAttributes set: %@", test); */
+    
+    if ([tasks count] > 0) {        
+        result = [tasks objectsPassingTest:
                   ^(MzTaskAttribute *obj, BOOL *stop) {
                       if ([obj.taskAttributeId isEqualToString:[properties objectForKey:@"taskAttributeId"]]) {
                           *stop =YES;
@@ -330,12 +412,14 @@
             
             insertTaskAttribute.taskAttributeId = [[properties objectForKey:@"taskAttributeId"] copy];
             insertTaskAttribute.taskAttributeName =[[properties objectForKey:@"taskAttributeName"] copy];
+            //insertTaskAttribute.taskType = taskType;
             
             // update the attributeOptions relationship
             [self updateAttributeOptionWithProperties:properties forTaskAttribute:insertTaskAttribute inManagedObjectContext:context];
             
             // Link to the new MzTaskAttribute object
             [taskType addTaskAttributesObject:insertTaskAttribute];
+            //[taskType addTaskAttributes:[NSSet setWithObject:insertTaskAttribute]];            
         }
         
     } else {
@@ -347,12 +431,14 @@
         
         insertTaskAttribute.taskAttributeId = [[properties objectForKey:@"taskAttributeId"] copy];
         insertTaskAttribute.taskAttributeName =[[properties objectForKey:@"taskAttributeName"] copy];
+        insertTaskAttribute.taskType = taskType;
         
         // update the attributeOptions relationship
         [self updateAttributeOptionWithProperties:properties forTaskAttribute:insertTaskAttribute inManagedObjectContext:context];
         
         // Link to the new MzTaskAttribute object
-        [taskType addTaskAttributesObject:insertTaskAttribute];
+        taskType.taskAttributes = [NSSet setWithObject:insertTaskAttribute];
+        //[taskType addTaskAttributes:[NSSet setWithObject:insertTaskAttribute]];        
     }                                               
     
 }
@@ -376,11 +462,31 @@
     MzTaskAttributeOption *insertAttributeOption;
     NSMutableDictionary *optionDict;
     NSMutableSet *dictKeys;
+    NSSet *attributes;
+    NSArray *fetchOptions;
+    NSError *error = NULL;
     
     // Iterate over all the taskAttributes objects we are "related" to...again note that the
     // value for the key: attributeOptionName is an array of strings
     optionSet = [NSArray arrayWithArray:[properties objectForKey:@"attributeOptionName"]];
     assert(optionSet != nil);
+    
+    // Get all the attributeOptions objects - this looks like overkill since we are calling this
+    // fetchRequest for every NSDictionary in the parserResults but its more efficient to do this
+    // fetch from the database once and have all the objects cached by Core Data rather than try
+    // to repeatedly retrieve only those attributeOptions objects we need each time this method is
+    // called potentially requiring a database trip with every method call
+    fetchOptions = [context executeFetchRequest:[self taskAttributeOptionsFetchforTaskAttributeId:taskAttribute.taskAttributeId] error:&error];
+    assert(fetchOptions != nil);
+    
+    if (error) {
+        [[QLog log] logOption:kLogOptionSyncDetails withFormat:
+         @"Error retrieving MzTaskAttributeOption objects with error: %@", error.localizedDescription];
+        return;
+    }
+
+    attributes = [NSSet setWithArray:fetchOptions];     //ensure no duplicates
+    assert(attributes != nil);
     
     // Note that we either delete or insert attributeOptions, it doesn't make sense to do an update
     // We create a dictionary with keys are attributeOptionName and the values are
@@ -388,10 +494,10 @@
     optionDict = [NSMutableDictionary dictionary];
     assert(optionDict != nil);
     
-    if ([taskAttribute.attributeOptions count] > 0) {
+    if ([attributes count] > 0) {
         
         // we have existing attributeOptions so create the dictionary
-        [taskAttribute.attributeOptions enumerateObjectsUsingBlock:^
+        [attributes enumerateObjectsUsingBlock:^
          (MzTaskAttributeOption *options, BOOL *stop) {
              [optionDict setObject:options forKey:options.attributeOptionName];
          }];
@@ -411,6 +517,7 @@
                 
                 insertAttributeOption.attributeOptionId = [[properties objectForKey:@"taskAttributeId"] copy];
                 insertAttributeOption.attributeOptionName = optionName;
+                //insertAttributeOption.taskAttribute = taskAttribute;
                 
                  // add the MzTaskAttributeOption object relationship
                 [taskAttribute addAttributeOptionsObject:insertAttributeOption];
@@ -422,11 +529,18 @@
         }
         
         // we can now do all the deletes
-        [taskAttribute removeAttributeOptions:dictKeys];        
+        if ([dictKeys count] > 0) {
+            [taskAttribute removeAttributeOptions:dictKeys];
+        }
+                
         
     } else {
         
         // we do not have any attributeOptions so we create a new one
+        NSMutableSet *setOptions;
+        setOptions = [NSMutableSet set];
+        assert(setOptions != nil);
+        
         for (NSString *options in optionSet) {
             
             insertAttributeOption = (MzTaskAttributeOption *) [NSEntityDescription insertNewObjectForEntityForName:@"MzTaskAttributeOption" inManagedObjectContext:context];
@@ -435,11 +549,14 @@
             
             insertAttributeOption.attributeOptionId = [[properties objectForKey:@"taskAttributeId"] copy];
             insertAttributeOption.attributeOptionName = [options copy];
+            insertAttributeOption.taskAttribute = taskAttribute;
             
             // add the MzTaskAttributeOption object relationship
-            [taskAttribute addAttributeOptionsObject:insertAttributeOption];
-
+            [setOptions addObject:insertAttributeOption];            
         }
+        // add the MzTaskAttributeOption object relationship
+        taskAttribute.attributeOptions = [NSSet setWithSet:setOptions];
+        //[taskAttribute addAttributeOptions:setOptions];
     }    
     
 }                                    

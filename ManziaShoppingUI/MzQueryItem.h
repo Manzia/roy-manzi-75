@@ -9,6 +9,7 @@
 #import <Foundation/Foundation.h>
 #import <CoreData/CoreData.h>
 
+@class MzTaskType;
 
 @interface MzQueryItem : NSManagedObject
 
@@ -16,8 +17,7 @@
 @property (nonatomic, retain) NSString * queryString;
 
 // Insert, Update and Delete MzQueryItem objects
-+(void)updateMzQueryItemsForTaskType:(MzTaskType *)taskType 
-              inManagedObjectContext:(NSManagedObjectContext *)context;
++(void)updateMzQueryItemsInManagedObjectContext:(NSManagedObjectContext *)context;
 
 +(void)deleteAllQueryItemsForTaskType:(MzTaskType *)taskType 
                inManagedObjectContext:(NSManagedObjectContext *) context;

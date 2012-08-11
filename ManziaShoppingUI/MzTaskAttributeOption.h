@@ -17,4 +17,6 @@
 @property (nonatomic, retain) NSString * attributeOptionName;
 @property (nonatomic, retain) MzTaskAttribute *taskAttribute;
 
+-(void)prepareForDeletion;
+
 @end

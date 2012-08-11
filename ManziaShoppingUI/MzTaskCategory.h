@@ -25,6 +25,8 @@
 // Updates the MzTaskCategory object with the specified properties. 
 - (void)updateWithProperties:(NSDictionary *)properties inManagedObjectContext:(NSManagedObjectContext *)context;
 
+-(void)prepareForDeletion;
+
 @end
 
 @interface MzTaskCategory (CoreDataGeneratedAccessors)

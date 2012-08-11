@@ -17,6 +17,9 @@
 @property (nonatomic, retain) NSString * taskAttributeName;
 @property (nonatomic, retain) NSSet *attributeOptions;
 @property (nonatomic, retain) MzTaskType *taskType;
+
+-(void)prepareForDeletion;  
+
 @end
 
 @interface MzTaskAttribute (CoreDataGeneratedAccessors)

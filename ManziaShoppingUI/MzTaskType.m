@@ -10,6 +10,7 @@
 #import "MzTaskAttribute.h"
 #import "MzTaskCategory.h"
 #import "MzTaskTypeImage.h"
+#import "Logging.h"
 
 
 @implementation MzTaskType
@@ -20,5 +21,11 @@
 @dynamic taskAttributes;
 @dynamic taskCategory;
 @dynamic taskTypeImage;
+
+// Override for debugging purposes
+-(void)prepareForDeletion
+{
+    [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Will delete TaskType with name: %@", self.taskTypeName]; 
+}
 
 @end

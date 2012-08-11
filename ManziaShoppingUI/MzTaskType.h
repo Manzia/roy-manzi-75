@@ -22,6 +22,7 @@
 
 // Thumbnail Update
 -(void)updateTaskTypeThumbnail;
+-(void)prepareForDeletion;
 
 @end
 
