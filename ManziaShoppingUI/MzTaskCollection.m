@@ -389,6 +389,9 @@ static NSString *kTasksDataFileName    = @"Tasks.db";
         
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(collectionContextChanged:) name:NSManagedObjectContextObjectsDidChangeNotification object:self.managedObjectContext];
         
+        // Subscribe so we can update the MzQueryItem entity after saving the MzTaskCollection
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(updateMzQueryItemEntity:) name:NSManagedObjectContextDidSaveNotification object:self.managedObjectContext];
+                        
         [[QLog log] logWithFormat:@"Task Collection started successfully at Path: '%@' for URL: %@", [self.tasksCachePath lastPathComponent], self.tasksURLString];
     } else {
         
@@ -519,6 +522,7 @@ static NSString *kTasksDataFileName    = @"Tasks.db";
         // Stop the auto save mechanism and then force a save.
         
         [[NSNotificationCenter defaultCenter] removeObserver:self name:NSManagedObjectContextObjectsDidChangeNotification object:self.managedObjectContext];
+        [[NSNotificationCenter defaultCenter] removeObserver:self name:NSManagedObjectContextDidSaveNotification object:self.managedObjectContext];
         
         [self saveCollection];
         
@@ -782,7 +786,7 @@ static NSString *kTasksDataFileName    = @"Tasks.db";
      MzTaskCategory object (delete operations are cascade in the managedobject model)
              
      */
-    
+        
     if ([parserResults count] > 0) {
         
         NSMutableSet *taskCategorySet;      // set of CategoryId's from parserResults
@@ -804,6 +808,8 @@ static NSString *kTasksDataFileName    = @"Tasks.db";
         assert(uniqueTasks != nil);
         taskCategorySet = [NSMutableSet set];
         assert(taskCategorySet != nil);
+        insertArray = [NSMutableArray array];
+        assert(insertArray != nil);        
         
         for (NSDictionary *task in parserResults) {
             
@@ -834,6 +840,7 @@ static NSString *kTasksDataFileName    = @"Tasks.db";
         
         NSFetchRequest *fetchCategory = [self taskCategoryFetchRequest];
         assert(fetchCategory != nil);
+        [fetchCategory setRelationshipKeyPathsForPrefetching:[NSArray arrayWithObject:@"taskTypes"]];
         retrievedCategory = [self.managedObjectContext executeFetchRequest:fetchCategory error:&fetchCategoryError];
         assert(retrievedCategory != nil);
         [[QLog log] logOption:kLogOptionSyncDetails withFormat:
@@ -860,7 +867,6 @@ static NSString *kTasksDataFileName    = @"Tasks.db";
             
             // check for inserts, updates, deletes
             NSUInteger count = 0;
-            insertArray = [NSMutableArray array];
             for (NSString *strCategory in taskCategory) {
                 
                 if ([categoryDict objectForKey:strCategory] != nil) {
@@ -868,7 +874,7 @@ static NSString *kTasksDataFileName    = @"Tasks.db";
                     // update the exiting TaskCategory objects
                     for (NSDictionary *task in parserResults) {
                         
-                        [[categoryDict objectForKey:strCategory] updateWithProperties:task inManagedObjectContext:self.managedObjectContext]; 
+                        [[categoryDict objectForKey:strCategory] updateWithProperties:task inManagedObjectContext:self.managedObjectContext];
                     } 
                     
                     // check if we need to delete some TaskTypes or TaskAttributes of this
@@ -880,7 +886,7 @@ static NSString *kTasksDataFileName    = @"Tasks.db";
                     // do the insert the non-existent TaskCategory
                     insertCategory = [MzTaskCategory insertNewMzTaskCategoryWithProperties:[uniqueTasks objectForKey:strCategory] inManagedObjectContext:self.managedObjectContext];
                     assert(insertCategory != nil);
-                    [insertArray addObject:insertCategory];
+                    [insertArray addObject:[insertCategory objectID]];
                     count++;
                 }
             }
@@ -890,17 +896,22 @@ static NSString *kTasksDataFileName    = @"Tasks.db";
         } else {
             
             // we have an empty database
-            NSArray *tasks;
+            NSArray *tasks;            
+                        
+            // create an intial MzTaskCategory object with 1 MzTaskType child that also has 1
+            // MzTaskAttribute child that has a set of MzAttributeOptions for unique CategoryId
+            // identified in the parserResults
             if ([uniqueTasks count] > 0) {
                 tasks = [uniqueTasks allValues];
                 for (NSDictionary * task in tasks) {
                     
                     insertCategory = [MzTaskCategory insertNewMzTaskCategoryWithProperties:task inManagedObjectContext:self.managedObjectContext];
                     assert(insertCategory != nil);
-                    [insertArray addObject:insertCategory];
+                    [insertArray addObject:[insertCategory objectID]];     //use ObjectIDs
                 }
                 [[QLog log] logOption:kLogOptionSyncDetails withFormat:
                  @" %d New initial categories inserted in DB: for Task Collection Cache with URL: %@", [uniqueTasks count] ,self.tasksURLString];
+                
             }
         }
         
@@ -908,14 +919,28 @@ static NSString *kTasksDataFileName    = @"Tasks.db";
         // Note that we have to follow the insert operation with an update operation because each NSDictionary
         // in the NSArray of parserResults represents one branch of the taskCategory tree - refer to the 
         // relevant XML schema...so we update to add all branches to complete the taskCategory tree
+        NSError *error = NULL;
+        MzTaskCategory *categoryResult;
+        
         if ([insertArray count] > 0) {
-            for (MzTaskCategory *insertCat in insertArray) {
+             for (NSManagedObjectID *insertId in insertArray) {
+                 
+                 categoryResult = (MzTaskCategory *)[self.managedObjectContext existingObjectWithID:insertId error:&error];
+                 assert(categoryResult != nil);
+                 
+                 // update the MzTaskCategory object to build out object graph
+                 if (!error) {
+                     for (NSDictionary *parse in parserResults) {
+                         
+                         [categoryResult updateWithProperties:parse inManagedObjectContext:self.managedObjectContext];
+                     }
+
+                 } else {
+                     [[QLog log] logOption:kLogOptionSyncDetails withFormat:
+                      @"Error retrieving TaskCategory with ObjectID with error: %@", error.localizedDescription];
+                 }
                 
-                for (NSDictionary *parse in parserResults) {
-                    
-                    [insertCat updateWithProperties:parse inManagedObjectContext:self.managedObjectContext];
-                }
-            }
+            }            
 
         }     
        
@@ -923,6 +948,7 @@ static NSString *kTasksDataFileName    = @"Tasks.db";
         [[QLog log] logOption:kLogOptionSyncDetails withFormat:
          @"Empty Parse Results array for Task Collection Cache with URL: %@", self.tasksURLString];
     }
+    
 }
 
 // Method checks the MzTaskType and MzTaskAttribute objects associated with
@@ -1066,6 +1092,7 @@ static NSString *kTasksDataFileName    = @"Tasks.db";
         for (MzTaskType *task in taskTypeToKeep) {
             
             for (NSString *attributeString in taskAttributeArray) {
+                              
                 resultAttribute = [task.taskAttributes objectsPassingTest:
                                    ^(MzTaskAttribute *attribute, BOOL *stop) {
                                        if ([attribute.taskAttributeId isEqualToString:attributeString]) {
@@ -1088,36 +1115,51 @@ static NSString *kTasksDataFileName    = @"Tasks.db";
 
 }
 
-// Updates, inserts, deletes MzQueryItem objects in the MzQueryItem entity
--(void)updateMzQueryItemEntity {
-    
+// Updates, inserts, deletes MzQueryItem objects in the MzQueryItem entity, this method is
+// called when our managedObjectContext sends a ...NSManagedObjectContextDidSaveNotification
+-(void)updateMzQueryItemEntity:(NSNotification *)notification
+{    
+#pragma unused (notification)
     assert(self.managedObjectContext != nil);
-    NSError *fetchTaskError;
-    NSArray *retrievedCategory;
     
-    // Get all the MzTaskType objects we have in the database
-    NSFetchRequest *fetchTask = [[NSFetchRequest alloc] initWithEntityName:@"MzTaskType"];
-    assert(fetchTask != nil);
-    retrievedCategory = [self.managedObjectContext executeFetchRequest:fetchTask error:&fetchTaskError];
-    assert(retrievedCategory != nil);
+    // Update the MzQueryItems
+    [MzQueryItem updateMzQueryItemsInManagedObjectContext:self.managedObjectContext];
+            
+    // Log
     [[QLog log] logOption:kLogOptionSyncDetails withFormat:
-     @"Number of TaskTypes in DB is: %d for Task Collection Cache with URL: %@", [retrievedCategory count] ,self.tasksURLString];
+     @"Finished update of QueryItems in database for Task Collection Cache with URL: %@" ,self.tasksURLString];
     
-    // Iterate and update
-    if ([retrievedCategory count] > 0) {
-        
-        for (MzTaskType *type in retrievedCategory) {
-            [MzQueryItem updateMzQueryItemsForTaskType:type 
-                                inManagedObjectContext:self.managedObjectContext];
-        }
-        
-        // Log
-        [[QLog log] logOption:kLogOptionSyncDetails withFormat:
-         @"Finished update of: %d TaskTypes in DB is: %d for Task Collection Cache with URL: %@", [retrievedCategory count] ,self.tasksURLString];
-        
-    }   
-
+    // Test Database State
+    [self checkDatabase];
 }
+
+-(void)checkDatabase
+{
+    // Testing code
+    NSArray *retrievedTasks;
+    NSError *tasksError;
+    NSFetchRequest *request;
+    NSFetchRequest *requestAttribute;
+    NSArray *retrievedAttributes;
+    NSError *attributeError;
+    
+    // Check number of TaskTypes
+    request = [[NSFetchRequest alloc] initWithEntityName:@"MzTaskType"];
+    assert(request != nil);
+    [request setRelationshipKeyPathsForPrefetching:[NSArray arrayWithObject:@"taskAttributes"]];
+    
+    retrievedTasks = [self.managedObjectContext executeFetchRequest:request error:&tasksError];
+    assert(retrievedTasks != nil);
+    [[QLog log] logWithFormat:@"No of TaskTypes: %d saved in Task Collection Cache with URL: %@", [retrievedTasks count], self.tasksURLString];
+
+   // chech number of TaskAttributes
+    requestAttribute =[[NSFetchRequest alloc] initWithEntityName:@"MzTaskAttribute"];
+    assert(requestAttribute != nil);
+    retrievedAttributes = [self.managedObjectContext executeFetchRequest:requestAttribute error:&attributeError];
+    assert(retrievedAttributes != nil);
+    [[QLog log] logWithFormat:@"No of TaskAttributes: %d saved in Task Collection Cache with URL: %@", [retrievedAttributes count], self.tasksURLString];   
+}
+
 
 // Register the isSyncing as a dependent key for KVO notifications
 + (NSSet *)keyPathsForValuesAffectingSynchronizing
