@@ -195,7 +195,7 @@ static NSString * kSearchExtension    = @"search";
 -(BOOL)removeCompletedSearchItems
 {
     BOOL success;
-    NSUInteger count;
+    NSUInteger count = 0;
     NSError *error = NULL;
     
     // check that we can execute operation
