@@ -88,7 +88,10 @@ typedef enum TaskCollectionSyncState TaskCollectionSyncState;
 - (id)initWithTasksURLString:(NSString *)taskURLString;
  
 // Method that manages TaskCollection LifeCycle
-- (void)applicationHasLaunched; 
+- (void)applicationHasLaunched;
+
+// Returns our PersistentStoreCoordinator or nil if not initialized
++(NSPersistentStoreCoordinator *)taskCollectionCoordinator;
 
 // methods to manage the product collection startup, stop and save processes
 -(void)startCollection;

@@ -100,6 +100,8 @@ static NSString * kTasksKeyTasksURLString = @"tasksURLString";
 // , MzTaskAttributeOption and MzTaskTypeImage model objects
 static NSString *kTasksDataFileName    = @"Tasks.db";
 
+// Make our PersistentStoreCoordinator available to the outside world
+static NSPersistentStoreCoordinator *storeCoordinator;
 
 #pragma mark * Initialization
 
@@ -385,6 +387,9 @@ static NSString *kTasksDataFileName    = @"Tasks.db";
         [collectionContext setPersistentStoreCoordinator:persistentCoordinator];
         self.managedObjectContext = collectionContext;
         
+        // Assign to our static variable
+        storeCoordinator = persistentCoordinator;
+        
         // Subscribe to the context changed notification so that we can auto-save.
         
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(collectionContextChanged:) name:NSManagedObjectContextObjectsDidChangeNotification object:self.managedObjectContext];
@@ -433,6 +438,12 @@ static NSString *kTasksDataFileName    = @"Tasks.db";
         
     }
     return success;
+}
+
+// Return our PersistentStoreCoordinator
++(NSPersistentStoreCoordinator *)taskCollectionCoordinator
+{
+    return storeCoordinator;
 }
 
 // Start the Collection Cache, create any needed files/directories if necessary
@@ -950,8 +961,8 @@ static NSString *kTasksDataFileName    = @"Tasks.db";
         // Test Database State
         if (databaseIsPopulated) {
             
-            [self checkDatabase];   // testing purposes only
             [self updateMzQueryItemEntity];
+            [self checkDatabase];   // testing purposes only            
             [self deleteTaskTypesAndAttributesForResults:parserResults inManagedObjectContext:self.managedObjectContext];
         }       
        
@@ -1178,7 +1189,17 @@ static NSString *kTasksDataFileName    = @"Tasks.db";
     assert(requestAttribute != nil);
     retrievedAttributes = [self.managedObjectContext executeFetchRequest:requestAttribute error:&attributeError];
     assert(retrievedAttributes != nil);
-    [[QLog log] logWithFormat:@"No of TaskAttributes: %d saved in Task Collection Cache with URL: %@", [retrievedAttributes count], self.tasksURLString];   
+    [[QLog log] logWithFormat:@"No of TaskAttributes: %d saved in Task Collection Cache with URL: %@", [retrievedAttributes count], self.tasksURLString];
+    
+    // check number of MzQueryItems
+    NSArray *retrievedQuery;
+    NSError *queryError;
+    
+    NSFetchRequest *requestQuery = [NSFetchRequest fetchRequestWithEntityName:@"MzQueryItem"];
+    assert(requestQuery != nil);
+    retrievedQuery = [self.managedObjectContext executeFetchRequest:requestQuery error:&queryError];
+    assert(retrievedQuery != nil);
+    [[QLog log] logWithFormat:@"No of QueryItems: %d saved in Task Collection Cache with URL: %@", [retrievedQuery count], self.tasksURLString];
 }
 
 
