@@ -8,12 +8,13 @@
 
 #import <UIKit/UIKit.h>
 #import "MzSearchListHeaderView.h"
+#import "MzAddSearchViewController.h"
 
 @class MzSearchListCell;
 @class MzSearchCollection;
 
 @interface MzSearchListViewController : UITableViewController 
-<MzSearchListHeaderViewDelegate> {
+<MzSearchListHeaderViewDelegate, MzAddSearchViewControllerDelegate> {
     
 }
 

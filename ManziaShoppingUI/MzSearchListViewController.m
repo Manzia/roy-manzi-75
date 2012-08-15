@@ -9,13 +9,17 @@
 #import "MzSearchListViewController.h"
 #import "MzSearchListCell.h"
 #import "MzSearchCollection.h"
+#import "MzAddSearchViewController.h"
 
 #define NUMBER_SECTIONS 1
+#define kAddSearchButtonTag 1
 
 @interface MzSearchListViewController ()
 
 @property (nonatomic, strong) NSArray *searchItems;
 
+// Selector that is called when AddSearchButton is tapped
+-(void)addSearchSelected;
 
 @end
 
@@ -31,6 +35,8 @@ static NSString *kSearchDetailsSegue = @"searchDetailsSegue";   // to Search Det
 
 // Override the setter
 
+#pragma mark - Initialization
+
 - (id)initWithStyle:(UITableViewStyle)style
 {
     self = [super initWithStyle:style];
@@ -44,6 +50,26 @@ static NSString *kSearchDetailsSegue = @"searchDetailsSegue";   // to Search Det
     return self;
 }
 
+#pragma mark - UIStoryboardSegue Interaction methods
+
+/* Selector that is called when AddSearchButton is tapped
+-(void)addSearchSelected
+{
+    // We fire the Segue
+    [self performSegueWithIdentifier:kAddSearchSegue sender:self];
+} */
+
+// Add self as a delegate to the MzAddSearchViewController
+- (void) prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender
+{
+    if ([[segue identifier] isEqualToString:kAddSearchSegue]) {
+        MzAddSearchViewController *addSearchController = [segue destinationViewController];
+        addSearchController.delegate = self;        
+    }
+}
+
+
+#pragma mark - View LifeCycle methods
 - (void)viewDidLoad
 {
     [super viewDidLoad];
@@ -66,9 +92,15 @@ static NSString *kSearchDetailsSegue = @"searchDetailsSegue";   // to Search Det
     CGRect headerFrame = CGRectMake(0, 0, 320, 60);
     MzSearchListHeaderView *headerView = [[MzSearchListHeaderView alloc] initWithFrame:headerFrame delegate:self];
     assert(headerView != nil);
-    self.tableView.tableHeaderView = headerView;
     
+    // set self as target for the AddSearch button
+    headerView.addSearchButton.tag = kAddSearchButtonTag;
+    //[headerView.addSearchButton addTarget:self action:@selector(addSearchSelected) forControlEvents:UIControlEventTouchUpInside];
+    
+    self.tableView.tableHeaderView = headerView;    
+        
 }
+
 
 - (void)viewDidUnload
 {
