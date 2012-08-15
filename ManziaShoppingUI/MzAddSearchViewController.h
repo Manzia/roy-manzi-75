@@ -7,6 +7,10 @@
 //
 
 #import <UIKit/UIKit.h>
+#import "MzSearchItem.h"
+
+// Protocol to be implement by delegates
+@protocol MzAddSearchViewControllerDelegate;
 
 // Tags for the Search Option UIButton views
 enum SearchOptionButton {
@@ -20,16 +24,23 @@ typedef enum SearchOptionButton SearchOptionButton;
 @interface MzAddSearchViewController : UITableViewController
 
 
+// Our delegate
+@property (nonatomic, weak) id <MzAddSearchViewControllerDelegate> delegate;
+
 // Property that can be used to access the ManagedObject context
-@property (nonatomic, strong, readonly) NSManagedObjectContext *managedObjectContext;
+@property (nonatomic, strong, readonly) NSManagedObjectContext *managedContext;
 
-// Method called when the left searchOption button is tapped
--(IBAction)leftSearchOptionTapped:(id)sender;
-
-//Method called when the middle searchOption button is tapped
--(IBAction)middleSearchOptionTapped:(id)sender;
-
-//Method called when the right searchOption button is tapped
--(IBAction)rightSearchOptionTapped:(id)sender;
 
 @end
+
+// Protocol used to communicate back the newly created MzSearchItem to the viewController
+// that instantiated us
+@protocol MzAddSearchViewControllerDelegate <NSObject>
+
+@optional
+
+-(void)controller:(MzAddSearchViewController *)searchController newSearchItem:(MzSearchItem *)searchItem;
+
+@end
+
+
