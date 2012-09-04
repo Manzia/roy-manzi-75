@@ -12,6 +12,7 @@
 #import "MzTaskCollection.h"
 #import "MzTaskAttribute.h"
 #import "MzAddSearchCell.h"
+#import "MzAttributeOptionViewController.h"
 
 // Constants
 #define kSearchButtonsPerCell 3
@@ -22,6 +23,7 @@
 @property (nonatomic, strong) NSManagedObjectContext *managedContext;
 @property (nonatomic, strong) NSFetchedResultsController *fetchController;
 @property (nonatomic, assign) BOOL fetchSucceeded;
+@property(nonatomic, strong) id <NSFetchedResultsSectionInfo> currentSection;
 
 // TableView, TableViewCell properties
 //@property (nonatomic, weak) IBOutlet UIButton *leftSearchButton;
@@ -38,8 +40,6 @@
 // search options are displayed on the buttons in the tableView
 @property (nonatomic, strong) NSString *currentSectionName;
 
-// Method called when any of the searchOption button is tapped
--(void)searchOptionTapped:(id)sender;
 
 @end
 
@@ -52,12 +52,16 @@
 @synthesize currentSectionName;
 @synthesize delegate;
 @synthesize addSearchCell;
+@synthesize currentSection;
 //@synthesize leftSearchButton;
 //@synthesize middleSearchButton;
 //@synthesize rightSearchButton;
 
 // Database entity that we fetch from
 static NSString *kTaskAttributeEntity = @"MzTaskAttribute";
+
+// Modal segue to the attributeOptions
+static NSString *kAttributeOptionSegue = @"kAttributeOptionSegue";
 
 /*
  When the "Add Search" button in the tableHeaderView of the
@@ -102,7 +106,7 @@ static NSString *kTaskAttributeEntity = @"MzTaskAttribute";
     NSFetchRequest *mrequest = [NSFetchRequest fetchRequestWithEntityName:kTaskAttributeEntity];
     assert(mrequest != nil);
     [mrequest setRelationshipKeyPathsForPrefetching:[NSArray arrayWithObject:@"taskType"]];
-    NSSortDescriptor * sortDescriptor = [[NSSortDescriptor alloc] initWithKey:@"taskAttributeName" ascending:YES];
+    NSSortDescriptor * sortDescriptor = [[NSSortDescriptor alloc] initWithKey:@"taskAttributeId" ascending:YES];
     NSArray *sortDescriptors = [NSArray arrayWithObject:sortDescriptor];
     [mrequest setSortDescriptors:sortDescriptors];
     
@@ -140,12 +144,35 @@ static NSString *kTaskAttributeEntity = @"MzTaskAttribute";
 {
     // Testing only - set the currentSectionName
     self.currentSectionName = @"Phones";
+    
+    // For now hard-code the currentSection here...
+    // Get the textlabel data
+    NSArray *tempSections = [NSArray arrayWithArray:[self.fetchController sections]];
+    assert(tempSections != nil);
+    
+    if ([tempSections count] > 0) {
+        for (id <NSFetchedResultsSectionInfo> sectionItem in tempSections) {
+            NSLog(@"Section name: %@", [sectionItem name]);
+            if ([[sectionItem name] isEqualToString:self.currentSectionName]) {
+                self.currentSection = sectionItem;
+            }
+        }
+    }
+    assert(self.currentSection != nil);
+    
+    // Test Array
+    NSArray *testArray = [NSArray arrayWithArray:[self.currentSection objects]];
+    for (MzTaskAttribute *attribute in testArray) {
+        NSLog(@"Task attribute name: %@", attribute.taskAttributeName);
+    }
+ 
 }
 
 -(void)viewWillDisappear:(BOOL)animated
 {
     //Testing
     self.currentSectionName = nil;
+    self.currentSection = nil;
 }
 
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
@@ -212,64 +239,57 @@ static NSString *kTaskAttributeEntity = @"MzTaskAttribute";
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
     static NSString *CellIdentifier = @"kAddSearchCellId";
-    UIButton *leftButton;
-    UIButton *middleButton;
-    UIButton *rightButton;
-    id <NSFetchedResultsSectionInfo> currentSection;
-    
+        
     // Use the dynamic prototype in Interface Builder which will automatically create the
     // cells for us
     MzAddSearchCell *cell = (MzAddSearchCell *)[tableView dequeueReusableCellWithIdentifier:CellIdentifier];
     assert(cell != nil);
     
-    // Configure the cell...
-        // configure the UIButton subviews
-        //leftButton = (UIButton *)[cell.contentView viewWithTag:SearchOptionButtonLeft];
-        leftButton = cell.leftOptionButton;
-        assert(leftButton != nil);
-        //middleButton = (UIButton *)[cell.contentView viewWithTag:SearchOptionButtonMiddle];
-        middleButton = cell.middleOptionButton;
-        assert(middleButton != nil);
-        //rightButton = (UIButton *)[cell.contentView viewWithTag:SearchOptionButtonRight];
-        rightButton = cell.rightOptionButton;
-        assert(rightButton != nil);
-        
-                
-        // Get the textlabel data
-        NSArray *tempSections = [self.fetchController sections];
-        assert(tempSections != nil);
-        
-        if ([tempSections count] > 0) {
-            for (id <NSFetchedResultsSectionInfo> sectionItem in tempSections) {
-                if ([[sectionItem name] isEqualToString:self.currentSectionName]) {
-                    currentSection = sectionItem;
-                }
-            }
-        }
-        assert(currentSection != nil);
-        
+    // Configure the cell.
+            
         // Set the Indexes
         NSUInteger leftIndex = (indexPath.row * kSearchButtonsPerCell) + SearchOptionButtonLeft;
         NSUInteger middleIndex = (indexPath.row * kSearchButtonsPerCell) + SearchOptionButtonMiddle;
         NSUInteger rightIndex = (indexPath.row *kSearchButtonsPerCell) + SearchOptionButtonRight;
         
         // We can now set the textLabels
-        if (leftIndex < [currentSection numberOfObjects]) {
-            leftButton.titleLabel.text = [(MzTaskAttribute *)[[currentSection objects] objectAtIndex:leftIndex] taskAttributeName];
+        if (leftIndex < [self.currentSection numberOfObjects]) {
+            cell.leftOptionButton.titleLabel.numberOfLines = 2;
+            cell.leftOptionButton.titleLabel.textAlignment = UITextAlignmentCenter;
+            //cell.leftOptionButton.titleLabel.text = @"Test";
+            cell.leftOptionButton.titleLabel.text = [(MzTaskAttribute *)[[self.currentSection objects] objectAtIndex:leftIndex] taskAttributeName];
+            // Test
+            //NSLog(@"Left Button text for Index row: %d is %@", indexPath.row, cell.leftOptionButton.titleLabel.text );
+            
         } else {
-            leftButton.titleLabel.text = @"...";
+            cell.leftOptionButton.titleLabel.text = @"...";
+            cell.leftOptionButton.titleLabel.textAlignment = UITextAlignmentCenter;
         }
         
-        if (middleIndex < [currentSection numberOfObjects]) {
-            middleButton.titleLabel.text = [(MzTaskAttribute *)[[currentSection objects] objectAtIndex:middleIndex] taskAttributeName];
+        if (middleIndex < [self.currentSection numberOfObjects]) {
+            cell.middleOptionButton.titleLabel.numberOfLines = 2;
+            cell.middleOptionButton.titleLabel.textAlignment = UITextAlignmentCenter;
+            cell.middleOptionButton.titleLabel.text = [(MzTaskAttribute *)[[self.currentSection objects] objectAtIndex:middleIndex] taskAttributeName];
+            
+            // Test
+            //NSLog(@"Middle Button text for Index row: %d is %@", indexPath.row, cell.middleOptionButton.titleLabel.text );
+            
         } else {
-            middleButton.titleLabel.text = @"...";
+            cell.middleOptionButton.titleLabel.text = @"...";
+            cell.middleOptionButton.titleLabel.textAlignment = UITextAlignmentCenter;
         }
         
-        if (rightIndex < [currentSection numberOfObjects]) {
-            rightButton.titleLabel.text = [(MzTaskAttribute *)[[currentSection objects] objectAtIndex:rightIndex] taskAttributeName];
+        if (rightIndex < [self.currentSection numberOfObjects]) {
+            cell.rightOptionButton.titleLabel.numberOfLines = 2;
+            cell.rightOptionButton.titleLabel.textAlignment = UITextAlignmentCenter;
+            cell.rightOptionButton.titleLabel.text = [(MzTaskAttribute *)[[self.currentSection objects] objectAtIndex:rightIndex] taskAttributeName];
+            
+            // Test
+            //NSLog(@"Right Button text for Index row: %d is %@", indexPath.row, cell.rightOptionButton.titleLabel.text );
+            
         } else {
-            rightButton.titleLabel.text = @"...";
+            cell.rightOptionButton.titleLabel.text = @"...";
+            cell.rightOptionButton.titleLabel.textAlignment = UITextAlignmentCenter;
         }    
     
     return cell;
@@ -326,5 +346,29 @@ static NSString *kTaskAttributeEntity = @"MzTaskAttribute";
      [self.navigationController pushViewController:detailViewController animated:YES];
      */
 }
+
+#pragma mark - Update Table view modally
+
+// Method called when any of the searchOption button is tapped
+-(IBAction)searchOptionTapped:(id)sender
+{
+    // verify the sender is a UIButton
+    assert([sender isKindOfClass:[UIButton class]]);
+    
+    // Perform the Segue and pass on the UIButton
+    [self performSegueWithIdentifier:kAttributeOptionSegue sender:sender];
+}
+
+// Add self as a delegate to the MzAttributeOptionViewController
+- (void) prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender
+{
+    if ([[segue identifier] isEqualToString:kAttributeOptionSegue] && [sender isKindOfClass:[UIButton class]]) {
+        MzAttributeOptionViewController *optionsController = [segue destinationViewController];
+        optionsController.delegate = self;
+        optionsController.modalButton = (UIButton *)sender;
+    }
+}
+
+
 
 @end

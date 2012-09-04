@@ -8,6 +8,7 @@
 
 #import <UIKit/UIKit.h>
 #import "MzSearchItem.h"
+#import "MzAttributeOptionViewController.h"
 
 // Protocol to be implement by delegates
 @protocol MzAddSearchViewControllerDelegate;
@@ -21,7 +22,7 @@ enum SearchOptionButton {
 };
 typedef enum SearchOptionButton SearchOptionButton;
 
-@interface MzAddSearchViewController : UITableViewController
+@interface MzAddSearchViewController : UITableViewController <MzAttributeOptionViewControllerDelegate>
 
 
 // Our delegate
@@ -29,6 +30,11 @@ typedef enum SearchOptionButton SearchOptionButton;
 
 // Property that can be used to access the ManagedObject context
 @property (nonatomic, strong, readonly) NSManagedObjectContext *managedContext;
+
+// Method called when any of the option Buttons in a row is tapped. A seque if fired that
+// modally presents a tableView with all the search options associated with the tapped
+// atribute.
+-(IBAction)searchOptionTapped:(id)sender;
 
 
 @end
