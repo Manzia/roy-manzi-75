@@ -10,6 +10,7 @@
 #import "MzTaskCollection.h"
 #import "Logging.h"
 #import "MzTaskAttribute.h"
+#import "MzTaskAttributeOption.h"
 
 @interface MzAttributeOptionViewController ()
 
@@ -71,6 +72,7 @@ static NSString *kTaskAttributeOptionEntity = @"MzTaskAttributeOption";
     if (self.modalButton != nil) {
         NSString *attributeName = self.modalButton.titleLabel.text;
         assert(attributeName != nil);
+        NSLog(@"Modal button name: %@", attributeName );
         
         //Now retrieve the corresponding taskAttributeId from the database
         NSFetchRequest *taskRequest = [NSFetchRequest fetchRequestWithEntityName:kTaskAttributeEntity];
@@ -93,6 +95,7 @@ static NSString *kTaskAttributeOptionEntity = @"MzTaskAttributeOption";
                 MzTaskAttribute *attribute = [retrievedAttribute objectAtIndex:0];
                 self.taskAttributeString = attribute.taskAttributeId;
                 assert(self.taskAttributeString != nil);
+                NSLog(@"Retrieved taskAttributeId: %@", self.taskAttributeString);
             }
             
         }
@@ -135,6 +138,10 @@ static NSString *kTaskAttributeOptionEntity = @"MzTaskAttributeOption";
     [super viewDidUnload];
     // Release any retained subviews of the main view.
     // e.g. self.myOutlet = nil;
+    self.managedContext = nil;
+    self.fetchController = nil;
+    self.taskAttributeString = nil;
+    self.modalButton = nil;
 }
 
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
@@ -146,24 +153,28 @@ static NSString *kTaskAttributeOptionEntity = @"MzTaskAttributeOption";
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView
 {
-#warning Potentially incomplete method implementation.
+    
     // Return the number of sections.
-    return 0;
+    return 1;
 }
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
-#warning Incomplete method implementation.
+
     // Return the number of rows in the section.
-    return 0;
+    return [[self.fetchController fetchedObjects] count];
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    static NSString *CellIdentifier = @"Cell";
+    static NSString *CellIdentifier = @"kAttributeOptionCellId";
     UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellIdentifier];
     
     // Configure the cell...
+    MzTaskAttributeOption *attributeOption = [[self.fetchController fetchedObjects] objectAtIndex:indexPath.row];
+    assert(attributeOption != nil);
+    cell.textLabel.text = attributeOption.attributeOptionName;
+    cell.textLabel.font = [UIFont boldSystemFontOfSize:12.0];
     
     return cell;
 }
@@ -211,13 +222,14 @@ static NSString *kTaskAttributeOptionEntity = @"MzTaskAttributeOption";
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    // Navigation logic may go here. Create and push another view controller.
-    /*
-     <#DetailViewController#> *detailViewController = [[<#DetailViewController#> alloc] initWithNibName:@"<#Nib name#>" bundle:nil];
-     // ...
-     // Pass the selected object to the new view controller.
-     [self.navigationController pushViewController:detailViewController animated:YES];
-     */
+    // Get the user's selection
+    MzTaskAttributeOption *attributeOption = [[self.fetchController fetchedObjects] objectAtIndex:indexPath.row];
+    assert(attributeOption != nil);
+    NSString *selectedString = attributeOption.attributeOptionName;
+    assert(selectedString != nil);
+    
+    //Pass user's selection to our delegate - this method also causes our delegate to dismiss us
+    [self.delegate controller:self selection:selectedString];
 }
 
 @end
