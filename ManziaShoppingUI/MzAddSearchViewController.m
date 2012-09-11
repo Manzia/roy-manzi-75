@@ -26,14 +26,16 @@
 @property(nonatomic, strong) id <NSFetchedResultsSectionInfo> currentSection;
 
 // TableView, TableViewCell properties
-//@property (nonatomic, weak) IBOutlet UIButton *leftSearchButton;
-//@property (nonatomic, weak) IBOutlet UIButton *middleSearchButton;
-//@property (nonatomic, weak) IBOutlet UIButton *rightSearchButton;
 @property (nonatomic, strong) IBOutlet MzAddSearchCell *addSearchCell;
 
-// Property below represents the text of the currently selected button
+// Property below represents the currently selected button
 // in one of the tableViewCells
-@property (nonatomic, strong) NSString *currentButtonText;
+@property (nonatomic, strong) UIButton *currentButton;
+
+//Property below represents the attributeOption string value that the user
+// selects from the View Controller (tableView) that we present modally, we use
+// delegation to set this value
+@property (nonatomic, copy) NSString *attributeOption;
 
 // Property below represents the sub-category that is presently selected
 // in the tableViewHeader. The value of this property determines which
@@ -47,21 +49,22 @@
 
 @synthesize managedContext;
 @synthesize fetchController;
-@synthesize currentButtonText;
+@synthesize currentButton;
 @synthesize fetchSucceeded;
 @synthesize currentSectionName;
 @synthesize delegate;
 @synthesize addSearchCell;
 @synthesize currentSection;
-//@synthesize leftSearchButton;
-//@synthesize middleSearchButton;
-//@synthesize rightSearchButton;
+@synthesize attributeOption;
 
 // Database entity that we fetch from
 static NSString *kTaskAttributeEntity = @"MzTaskAttribute";
 
 // Modal segue to the attributeOptions
 static NSString *kAttributeOptionSegue = @"kAttributeOptionSegue";
+
+// No option symbol
+static NSString *kAttributeFillerString = @"...";
 
 /*
  When the "Add Search" button in the tableHeaderView of the
@@ -127,6 +130,10 @@ static NSString *kAttributeOptionSegue = @"kAttributeOptionSegue";
     if (error) {
         [[QLog log] logWithFormat:@"Error fetching from TaskAttribute Entity with error: %@", error.localizedDescription];
     }
+    
+    // initialize the currentButton property
+    //self.currentButton = [UIButton buttonWithType:UIButtonTypeRoundedRect];
+    //assert(self.currentButton != nil);
 }
 
 - (void)viewDidUnload
@@ -159,13 +166,6 @@ static NSString *kAttributeOptionSegue = @"kAttributeOptionSegue";
         }
     }
     assert(self.currentSection != nil);
-    
-    // Test Array
-    NSArray *testArray = [NSArray arrayWithArray:[self.currentSection objects]];
-    for (MzTaskAttribute *attribute in testArray) {
-        NSLog(@"Task attribute name: %@", attribute.taskAttributeName);
-    }
- 
 }
 
 -(void)viewWillDisappear:(BOOL)animated
@@ -173,6 +173,7 @@ static NSString *kAttributeOptionSegue = @"kAttributeOptionSegue";
     //Testing
     self.currentSectionName = nil;
     self.currentSection = nil;
+    self.currentButton = nil;
 }
 
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
@@ -246,6 +247,8 @@ static NSString *kAttributeOptionSegue = @"kAttributeOptionSegue";
     assert(cell != nil);
     
     // Configure the cell.
+    NSString *currentTitle = self.currentButton.titleLabel.text;
+    NSLog(@"Current title value: %@", self.currentButton.titleLabel.text); 
             
         // Set the Indexes
         NSUInteger leftIndex = (indexPath.row * kSearchButtonsPerCell) + SearchOptionButtonLeft;
@@ -256,39 +259,78 @@ static NSString *kAttributeOptionSegue = @"kAttributeOptionSegue";
         if (leftIndex < [self.currentSection numberOfObjects]) {
             cell.leftOptionButton.titleLabel.numberOfLines = 2;
             cell.leftOptionButton.titleLabel.textAlignment = UITextAlignmentCenter;
-            //cell.leftOptionButton.titleLabel.text = @"Test";
-            cell.leftOptionButton.titleLabel.text = [(MzTaskAttribute *)[[self.currentSection objects] objectAtIndex:leftIndex] taskAttributeName];
-            // Test
-            //NSLog(@"Left Button text for Index row: %d is %@", indexPath.row, cell.leftOptionButton.titleLabel.text );
+            NSString *leftTitle = [(MzTaskAttribute *)[[self.currentSection objects] objectAtIndex:leftIndex] taskAttributeName];
+            [cell.leftOptionButton setTitle:leftTitle forState:UIControlStateNormal];
+            [cell.leftOptionButton setTitle:leftTitle forState:UIControlStateHighlighted];
+            
+            // Reset the button's titleLabel from its attribute value to the attributeOption value
+            // if the button was tapped (i.e touchUpInside event occurred and caused us to modally
+            // present a table viewcontroller with attribute options)
+            if (currentTitle != nil && self.attributeOption != nil) {
+                if ([currentTitle isEqualToString:leftTitle]) {
+                    
+                    //change the value to that selected by the user
+                    //cell.leftOptionButton.titleLabel.text = self.attributeOption;
+                    [cell.leftOptionButton setTitle:self.attributeOption forState:UIControlStateNormal];
+                    //[cell.leftOptionButton setTitle:self.attributeOption forState:UIControlStateHighlighted];
+                } 
+            }
             
         } else {
-            cell.leftOptionButton.titleLabel.text = @"...";
+            [cell.leftOptionButton setTitle:kAttributeFillerString forState:UIControlStateNormal];
+            [cell.leftOptionButton setTitle:kAttributeFillerString forState:UIControlStateHighlighted];
             cell.leftOptionButton.titleLabel.textAlignment = UITextAlignmentCenter;
         }
         
         if (middleIndex < [self.currentSection numberOfObjects]) {
             cell.middleOptionButton.titleLabel.numberOfLines = 2;
             cell.middleOptionButton.titleLabel.textAlignment = UITextAlignmentCenter;
-            cell.middleOptionButton.titleLabel.text = [(MzTaskAttribute *)[[self.currentSection objects] objectAtIndex:middleIndex] taskAttributeName];
+            NSString *middleTitle = [(MzTaskAttribute *)[[self.currentSection objects] objectAtIndex:middleIndex] taskAttributeName];
+            [cell.middleOptionButton setTitle:middleTitle forState:UIControlStateNormal];
+            [cell.middleOptionButton setTitle:middleTitle forState:UIControlStateHighlighted];
             
-            // Test
-            //NSLog(@"Middle Button text for Index row: %d is %@", indexPath.row, cell.middleOptionButton.titleLabel.text );
+            // Reset the button's titleLabel from its attribute value to the attributeOption value
+            // if the button was tapped (i.e touchUpInside event occurred and caused us to modally
+            // present a table viewcontroller with attribute options)
+            if (currentTitle != nil && self.attributeOption != nil) {
+                if ([currentTitle isEqualToString:middleTitle]) {
+                    
+                    //change the value to that selected by the user
+                    [cell.middleOptionButton setTitle:self.attributeOption forState:UIControlStateNormal];
+                    [cell.middleOptionButton setTitle:self.attributeOption forState:UIControlStateHighlighted];
+                }
+            }
+
             
         } else {
-            cell.middleOptionButton.titleLabel.text = @"...";
+            [cell.middleOptionButton setTitle:kAttributeFillerString forState:UIControlStateNormal];
+            [cell.middleOptionButton setTitle:kAttributeFillerString forState:UIControlStateHighlighted];
             cell.middleOptionButton.titleLabel.textAlignment = UITextAlignmentCenter;
         }
         
         if (rightIndex < [self.currentSection numberOfObjects]) {
             cell.rightOptionButton.titleLabel.numberOfLines = 2;
             cell.rightOptionButton.titleLabel.textAlignment = UITextAlignmentCenter;
-            cell.rightOptionButton.titleLabel.text = [(MzTaskAttribute *)[[self.currentSection objects] objectAtIndex:rightIndex] taskAttributeName];
+            NSString *rightTitle = [(MzTaskAttribute *)[[self.currentSection objects] objectAtIndex:rightIndex] taskAttributeName];
+            [cell.rightOptionButton setTitle:rightTitle forState:UIControlStateNormal];
+            [cell.rightOptionButton setTitle:rightTitle forState:UIControlStateHighlighted];
             
-            // Test
-            //NSLog(@"Right Button text for Index row: %d is %@", indexPath.row, cell.rightOptionButton.titleLabel.text );
+            // Reset the button's titleLabel from its attribute value to the attributeOption value
+            // if the button was tapped (i.e touchUpInside event occurred and caused us to modally
+            // present a table viewcontroller with attribute options)
+            if (currentTitle != nil && self.attributeOption != nil) {
+                if ([currentTitle isEqualToString:rightTitle]) {
+                    
+                    //change the value to that selected by the user
+                    [cell.rightOptionButton setTitle:self.attributeOption forState:UIControlStateNormal];
+                    [cell.rightOptionButton setTitle:self.attributeOption forState:UIControlStateHighlighted];
+                }
+            }
+
             
         } else {
-            cell.rightOptionButton.titleLabel.text = @"...";
+            [cell.rightOptionButton setTitle:kAttributeFillerString forState:UIControlStateNormal];
+            [cell.rightOptionButton setTitle:kAttributeFillerString forState:UIControlStateHighlighted];
             cell.rightOptionButton.titleLabel.textAlignment = UITextAlignmentCenter;
         }    
     
@@ -355,8 +397,24 @@ static NSString *kAttributeOptionSegue = @"kAttributeOptionSegue";
     // verify the sender is a UIButton
     assert([sender isKindOfClass:[UIButton class]]);
     
-    // Perform the Segue and pass on the UIButton
-    [self performSegueWithIdentifier:kAttributeOptionSegue sender:sender];
+    // set our currentButton property
+    UIButton *tempButton = (UIButton *)sender;
+    self.currentButton = [UIButton buttonWithType:UIButtonTypeRoundedRect];
+    self.currentButton.titleLabel.text = [NSString stringWithString:tempButton.titleLabel.text];
+    NSLog(@"Button with title :%@ was tapped", self.currentButton.titleLabel.text);
+    
+    // ignore the buttons with the "..." filler string
+    if (![self.currentButton.titleLabel.text isEqualToString:kAttributeFillerString]) {
+        
+        // Perform the Segue and pass on the UIButton
+        [self performSegueWithIdentifier:kAttributeOptionSegue sender:self.currentButton];
+    } else {
+        
+        // Set the currentButton to nil since we shall not be modally presenting a view
+        //controller in this case
+        //self.currentButton = nil;
+    }
+    
 }
 
 // Add self as a delegate to the MzAttributeOptionViewController
@@ -369,6 +427,37 @@ static NSString *kAttributeOptionSegue = @"kAttributeOptionSegue";
     }
 }
 
+// Method that updates our button labels and dismisses the viewController we modally presented
+-(void)controller:(MzAttributeOptionViewController *)optionController selection:(NSString *)selectedString
+{
+    // set the new value our attributeOption property
+    self.attributeOption = selectedString;
+    NSLog(@"User selected : %@ from options", self.attributeOption);
+    
+    // Get the title value from the UIButton whose titleLabel value will change
+    NSString *oldTitle = [NSString stringWithString:optionController.modalButton.titleLabel.text];
+    assert(oldTitle != nil);
+    
+    // set currentButton's title property if null
+    if (self.currentButton == nil) {
+        self.currentButton = [UIButton buttonWithType:UIButtonTypeRoundedRect];
+        assert(self.currentButton != nil);
+    }
+    
+    if (self.currentButton.titleLabel.text == nil || [self.currentButton.titleLabel.text length] < 1) {
+        self.currentButton.titleLabel.text = [NSString stringWithString:oldTitle];
+        //self.currentButton.titleLabel.text = self.attributeOption;
+        NSLog(@"New value for selected button: %@", self.currentButton.titleLabel.text);
+    }
+    
+    //[self.tableView reloadRowsAtIndexPaths:[self.tableView indexPathsForVisibleRows] withRowAnimation:UITableViewRowAnimationNone];
+    
+    // dimiss the modally presented controller
+    [self dismissModalViewControllerAnimated:YES];
+    
+    // reload our visible tableView data so we update tapped buttons
+    [self.tableView reloadData];
+}
 
 
 @end
