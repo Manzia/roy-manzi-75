@@ -15,17 +15,15 @@
 
 // private properties
 
-@property (nonatomic, copy,   readwrite) NSString *taskCollectionURLString;
-@property (nonatomic, retain, readwrite) MzTaskCollection *taskCollection;
+@property (nonatomic, retain) MzTaskCollection *taskCollection;
 
 @end
 
 @implementation MzAppDelegate
 
-@synthesize taskCollection;
-@synthesize taskCollectionURLString;
+
 @synthesize window = _window;
-@synthesize tabBarController;
+@synthesize taskCollection;
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
@@ -33,31 +31,32 @@
 #pragma unused(launchOptions)
     assert(self.window != nil);
     
+    // URL String for the TaskCollection pointing to the Manzia Servers
+    static NSString *kTaskURLString = @"http://localhost:8080/ManziaWebServices/service/interface";
+    
     // add the tab bar controller's current view as a subview of the window
-	[self.window addSubview:tabBarController.view];
+	//[self.window addSubview:tabBarController.view];
     [self.window makeKeyAndVisible];
     
-    // Our TaskCollectionURL is fixed
-    self.taskCollectionURLString = @"http://localhost:8080/ManziaWebServices/service/interface";
-    assert([NSURL URLWithString:self.taskCollectionURLString] != nil); //check its a valid URL
-    
     NSUserDefaults *userDefaults;
-    
-    
-        
+            
     [[QLog log] logWithFormat:@"Starting application"];
     
-    // Start our TaskCollection...this executes asynchrounously
-    self.taskCollection = [[MzTaskCollection alloc] initWithTasksURLString:self.taskCollectionURLString];
-    assert(self.taskCollection != nil);
-    [self.taskCollection applicationHasLaunched];
-    
-    
+       
     // Add an observer to the network manager's networkInUse property so that we can  
     // update the application's networkActivityIndicatorVisible property.  This has 
     // the side effect of starting up the NetworkManager singleton.
     
     [[NetworkManager sharedManager] addObserver:self forKeyPath:@"networkInUse" options:NSKeyValueObservingOptionInitial context:NULL];
+    
+    // Start our TaskCollection...this executes asynchrounously and hits the network
+    assert([NSURL URLWithString:kTaskURLString] != nil); //check we have a valid URL
+    self.taskCollection = [[MzTaskCollection alloc] initWithTasksURLString:kTaskURLString];
+    assert(self.taskCollection != nil);
+    
+    
+    [self.taskCollection applicationHasLaunched];
+
     
     // If the "applicationClearSetup" user default is set, clear our preferences. 
     // This provides an easy way to get back to the initial state while debugging.
@@ -107,8 +106,7 @@
     
     // In case, we have updates after a TaskCollection synchronization that are still unsaved
     // we save..this will also invalidate saveTimer on the TaskCollection
-    if (self.taskCollection != nil 
-        && self.taskCollection.stateOfSync == TaskCollectionSyncStateStopped) {
+    if (self.taskCollection != nil && self.taskCollection.stateOfSync == TaskCollectionSyncStateStopped) {
         
         [self.taskCollection saveCollection];
     }
