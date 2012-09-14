@@ -13,6 +13,7 @@
 #import "MzTaskAttribute.h"
 #import "MzAddSearchCell.h"
 #import "MzAttributeOptionViewController.h"
+#import "MzSearchItem.h"
 
 // Constants
 #define kSearchButtonsPerCell 3
@@ -24,6 +25,7 @@
 @property (nonatomic, strong) NSFetchedResultsController *fetchController;
 @property (nonatomic, assign) BOOL fetchSucceeded;
 @property(nonatomic, strong) id <NSFetchedResultsSectionInfo> currentSection;
+//@property (nonatomic, strong) MzAddSearchHeaderView *searchHeaderView;
 
 // TableView, TableViewCell properties
 @property (nonatomic, strong) IBOutlet MzAddSearchCell *addSearchCell;
@@ -42,6 +44,9 @@
 // search options are displayed on the buttons in the tableView
 @property (nonatomic, strong) NSString *currentSectionName;
 
+//Property below represents the search criteria selected by the user
+@property (nonatomic, strong) MzSearchItem *searchItem;
+
 
 @end
 
@@ -56,6 +61,8 @@
 @synthesize addSearchCell;
 @synthesize currentSection;
 @synthesize attributeOption;
+@synthesize searchItem;
+//@synthesize searchHeaderView;
 
 // Database entity that we fetch from
 static NSString *kTaskAttributeEntity = @"MzTaskAttribute";
@@ -131,9 +138,20 @@ static NSString *kAttributeFillerString = @"...";
         [[QLog log] logWithFormat:@"Error fetching from TaskAttribute Entity with error: %@", error.localizedDescription];
     }
     
-    // initialize the currentButton property
-    //self.currentButton = [UIButton buttonWithType:UIButtonTypeRoundedRect];
-    //assert(self.currentButton != nil);
+    // initialize our tableView HeaderView
+    CGRect headerViewRect = CGRectMake(0, 0, 320, 110);
+    MzAddSearchHeaderView *searchHeaderView = [[MzAddSearchHeaderView alloc] initWithFrame:headerViewRect delegate:self];
+    assert(searchHeaderView != nil);
+    searchHeaderView.backgroundColor = [UIColor lightGrayColor];
+    
+    // Set self as delegate for the Preferred Price UITextField
+    searchHeaderView.priceField.delegate = self;
+    self.tableView.tableHeaderView = searchHeaderView;
+    
+    // Initialize the MzSearchItem we shall send back to our MzSearchListViewController delegate
+    MzSearchItem *tempSearchItem = [[MzSearchItem alloc] init];
+    assert(tempSearchItem != nil);
+    self.searchItem = tempSearchItem;
 }
 
 - (void)viewDidUnload
@@ -145,10 +163,18 @@ static NSString *kAttributeFillerString = @"...";
     // Release the Model Objects
     self.managedContext = nil;
     self.fetchController = nil;
+    
+    // Release the views
+    self.tableView.tableHeaderView = nil;
+    
+    // Release the MzSearchItem
+    self.searchItem = nil;
 }
 
 - (void)viewWillAppear:(BOOL)animated
 {
+    [super viewWillAppear:animated];
+    
     // Testing only - set the currentSectionName
     self.currentSectionName = @"Phones";
     
@@ -166,14 +192,18 @@ static NSString *kAttributeFillerString = @"...";
         }
     }
     assert(self.currentSection != nil);
+    
 }
 
 -(void)viewWillDisappear:(BOOL)animated
 {
+    
     //Testing
     self.currentSectionName = nil;
     self.currentSection = nil;
     self.currentButton = nil;
+    
+    [super viewWillDisappear:animated];
 }
 
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
@@ -459,5 +489,43 @@ static NSString *kAttributeFillerString = @"...";
     [self.tableView reloadData];
 }
 
+#pragma mark - Price TextField Delegate Methods
+
+// Retrieve the Price value the user has entered
+-(void)textFieldDidEndEditing:(UITextField *)textField
+{
+    
+    //check if the user has input a price value
+    NSNumber *preferredPrice;
+    if ([textField.text length] > 0) {
+        double priceText = [textField.text doubleValue];
+        
+        if (priceText !=0.0 && priceText != HUGE_VAL && priceText != -HUGE_VAL) {
+            preferredPrice = [NSNumber numberWithDouble:priceText];
+            assert(preferredPrice != nil);
+        } else {
+            
+            // Log
+            [[QLog log] logWithFormat:@"Invalid value for Price TextField entered"];
+        }
+        
+    } else if (textField.text == nil) {
+        preferredPrice = nil;
+        [[QLog log] logWithFormat:@"No value for Price TextField entered"];
+    }
+    
+    // Update the searchItem
+    self.searchItem.priceToSearch = preferredPrice;
+    [[QLog log] logWithFormat:@"Preferred Price value: %@", textField.text];
+    
+}
+
+// If user taps "Done", remove the keyboard but keep the text in the TextField
+-(BOOL)textFieldShouldReturn:(UITextField *)textField
+{
+    // we just clear the keyboard regardless of whether the user entered a price
+    [textField resignFirstResponder];
+    return YES;
+}
 
 @end

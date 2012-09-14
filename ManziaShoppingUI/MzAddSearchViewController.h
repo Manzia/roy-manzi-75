@@ -9,6 +9,7 @@
 #import <UIKit/UIKit.h>
 #import "MzSearchItem.h"
 #import "MzAttributeOptionViewController.h"
+#import "MzAddSearchHeaderView.h"
 
 // Protocol to be implement by delegates
 @protocol MzAddSearchViewControllerDelegate;
@@ -22,7 +23,7 @@ enum SearchOptionButton {
 };
 typedef enum SearchOptionButton SearchOptionButton;
 
-@interface MzAddSearchViewController : UITableViewController <MzAttributeOptionViewControllerDelegate>
+@interface MzAddSearchViewController : UITableViewController <MzAttributeOptionViewControllerDelegate, MzAddSearchHeaderViewDelegate, UITextFieldDelegate>
 
 
 // Our delegate
