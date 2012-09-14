@@ -14,15 +14,15 @@
 @synthesize middleOptionButton;
 @synthesize rightOptionButton;
 
-- (id)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier
+/*- (id)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier
 {
     self = [super initWithStyle:style reuseIdentifier:reuseIdentifier];
     if (self) {
         // Initialization code - add the buttons as subviews
-             
+       self.contentView.      
     }
     return self;
-}
+} */
 
 - (void)setSelected:(BOOL)selected animated:(BOOL)animated
 {
