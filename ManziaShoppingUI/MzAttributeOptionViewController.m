@@ -69,6 +69,9 @@ static NSString *kTaskAttributeOptionEntity = @"MzTaskAttributeOption";
     //From the UIButton that modally presented we retrieve the attributeOptions values from the database
     NSError *taskError = NULL;
     NSArray *retrievedAttribute;
+    NSArray *retrievedOption;
+    NSError *optionError = NULL;
+    
     if (self.modalButton != nil) {
         NSString *attributeName = self.modalButton.titleLabel.text;
         assert(attributeName != nil);
@@ -96,6 +99,38 @@ static NSString *kTaskAttributeOptionEntity = @"MzTaskAttributeOption";
                 self.taskAttributeString = attribute.taskAttributeId;
                 assert(self.taskAttributeString != nil);
                 NSLog(@"Retrieved taskAttributeId: %@", self.taskAttributeString);
+                
+            } else {
+                
+                /*
+                 if the retrievedAttribute array is empty then we check to see if the titleLabel
+                 of the UIButton passed to us is a taskAttributeOption value as opposed to a 
+                 taskAttribute value. In the former case, we make a call to the database to retrieve
+                 the corresponding attributeOptionId
+                 */
+                NSFetchRequest *optionRequest = [NSFetchRequest fetchRequestWithEntityName:kTaskAttributeOptionEntity];
+                assert(optionRequest != nil);
+                NSPredicate *optionPredicate = [NSPredicate predicateWithFormat:@"attributeOptionName like[c] %@", attributeName];
+                assert(optionPredicate != nil);
+                [optionRequest setPredicate:optionPredicate];
+                
+                retrievedOption = [self.managedContext executeFetchRequest:optionRequest error:&optionError];
+                assert(retrievedOption != nil);
+                
+                // Log errors
+                if (optionError) {
+                    [[QLog log] logOption:kLogOptionSyncDetails withFormat:
+                     @"Encountered error: %@ during attributeOptionName fetch from Task Collection",[optionError localizedDescription]];
+                } else {
+                    
+                    // get the attributeOptionId corresponding to the fetched attributeOptionName
+                    if ([retrievedOption count] > 0) {
+                        MzTaskAttributeOption *optionAttribute = [retrievedOption objectAtIndex:0];
+                        self.taskAttributeString = optionAttribute.attributeOptionId;
+                        assert(self.taskAttributeString != nil);
+                        NSLog(@"Retrieved attributeOptionId: %@", self.taskAttributeString);
+                    }
+                }
             }
             
         }
