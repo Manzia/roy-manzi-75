@@ -37,6 +37,9 @@ typedef enum SearchOptionButton SearchOptionButton;
 // atribute.
 -(IBAction)searchOptionTapped:(id)sender;
 
+// Method called when the user has finished entering or selecting the search criteria
+-(IBAction)searchOptionsComplete:(id)sender;
+
 
 @end
 

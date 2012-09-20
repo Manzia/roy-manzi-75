@@ -51,6 +51,11 @@
 //Property below represents the search criteria selected by the user
 @property (nonatomic, strong) MzSearchItem *searchItem;
 
+// Property below keeps track of all the selections of the user, i.e the
+// attributeOptions selected from the modally presented viewController
+// for each taskAttribute
+@property (nonatomic, strong) NSMutableOrderedSet *selectedOptions;
+
 
 @end
 
@@ -67,7 +72,7 @@
 @synthesize attributeOption;
 @synthesize searchItem;
 @synthesize buttonIndex;
-//@synthesize searchHeaderView;
+@synthesize selectedOptions;
 
 // Database entity that we fetch from
 static NSString *kTaskAttributeEntity = @"MzTaskAttribute";
@@ -102,9 +107,6 @@ static NSString *kAttributeFillerString = @"...";
     // Uncomment the following line to preserve selection between presentations.
     // self.clearsSelectionOnViewWillAppear = NO;
  
-    // display an Edit button in the navigation bar for this view controller.
-    self.navigationItem.rightBarButtonItem = self.editButtonItem;
-    
     // we initialize our NSManagedObjectContext
     NSManagedObjectContext *mcontext = [[NSManagedObjectContext alloc] initWithConcurrencyType:NSMainQueueConcurrencyType];
     assert(mcontext != nil);
@@ -156,7 +158,9 @@ static NSString *kAttributeFillerString = @"...";
     // Initialize the MzSearchItem we shall send back to our MzSearchListViewController delegate
     MzSearchItem *tempSearchItem = [[MzSearchItem alloc] init];
     assert(tempSearchItem != nil);
-    self.searchItem = tempSearchItem;
+    self.searchItem = tempSearchItem;    
+    
+    
 }
 
 - (void)viewDidUnload
@@ -174,12 +178,16 @@ static NSString *kAttributeFillerString = @"...";
     
     // Release the MzSearchItem
     self.searchItem = nil;
+    
+    // Release the section info
+    self.selectedOptions = nil;
 }
 
 - (void)viewWillAppear:(BOOL)animated
 {
     [super viewWillAppear:animated];
     
+    // Set the default values for the initial view
     // Testing only - set the currentSectionName
     self.currentSectionName = @"Phones";
     
@@ -198,15 +206,29 @@ static NSString *kAttributeFillerString = @"...";
     }
     assert(self.currentSection != nil);
     
+    // Initialize the NSMutableOrderedSet that keeps track of all the user's choices
+    if (self.selectedOptions == nil) {
+        NSMutableArray *taskAttributes;
+        taskAttributes = [NSMutableArray array];
+        assert(taskAttributes != nil);
+        [[self.currentSection objects] enumerateObjectsUsingBlock:^(MzTaskAttribute *attribute, NSUInteger idx, BOOL *stop) {
+            [taskAttributes addObject:attribute.taskAttributeName];
+        }];
+        
+        if ([taskAttributes count] > 0) {
+            self.selectedOptions = [NSMutableOrderedSet orderedSetWithArray:taskAttributes];
+            assert(self.selectedOptions != nil);
+        }
+    }        
 }
 
 -(void)viewWillDisappear:(BOOL)animated
 {
     
     //Testing
+    self.currentButton = nil;
     self.currentSectionName = nil;
     self.currentSection = nil;
-    self.currentButton = nil;
     
     [super viewWillDisappear:animated];
 }
@@ -489,6 +511,10 @@ static NSString *kAttributeFillerString = @"...";
     self.attributeOption = selectedString;
     NSLog(@"User selected : %@ from options", self.attributeOption);
     
+    // Update the OrderedSet that tracks the user's selection
+    assert(self.selectedOptions != nil);
+    [self.selectedOptions replaceObjectAtIndex:self.buttonIndex withObject:self.attributeOption];
+    
     // dimiss the modally presented controller
     [self dismissModalViewControllerAnimated:YES];
     
@@ -496,7 +522,7 @@ static NSString *kAttributeFillerString = @"...";
     [self.tableView reloadData];
 }
 
-#pragma mark - Price TextField Delegate Methods
+#pragma mark - tableView HeaderView Delegate Methods
 
 // Retrieve the Price value the user has entered
 -(void)textFieldDidEndEditing:(UITextField *)textField
@@ -533,6 +559,59 @@ static NSString *kAttributeFillerString = @"...";
     // we just clear the keyboard regardless of whether the user entered a price
     [textField resignFirstResponder];
     return YES;
+}
+
+#pragma mark - Search Item creation
+
+// Method called when user taps Done button to indicate completion of the search
+// criteria selection
+-(IBAction)searchOptionsComplete:(id)sender
+{
+    // check our delegate
+    assert(self.delegate != nil);
+    
+    // complete our instance variable MzSearchItem's dictionary property
+    NSMutableDictionary *searchDictionary;
+    assert(self.selectedOptions != nil);
+    assert(self.currentSection != nil);
+    searchDictionary = [NSMutableDictionary dictionary];
+    assert(searchDictionary != nil);
+    
+    [[self.currentSection objects] enumerateObjectsUsingBlock:
+    ^(MzTaskAttribute *attribute, NSUInteger idx, BOOL *stop) {
+        
+        // Populate the dictionary - note that its possible for the key and value to have
+        // the same string value
+        [searchDictionary setObject:[self.selectedOptions objectAtIndex:idx] forKey:attribute.taskAttributeName];
+    }];
+    
+    if ([searchDictionary count] > 0) {
+        self.searchItem.searchOptions = searchDictionary;
+    }
+    
+    
+    
+}
+
+// Delegate method from the tableView HeaderView
+-(void)tableHeaderView:(MzAddSearchHeaderView *)headerView selectedDuration:(NSUInteger)duration
+{
+    // Update the header view's label to show the user the current value
+    // selected from the UIStepper
+    assert(self.tableView.tableHeaderView == headerView);
+    NSNumber *currentDuration = [NSNumber numberWithInt:duration];
+    assert(currentDuration != nil);
+    headerView.durationLabel.text = currentDuration.stringValue; 
+    
+    // Get the current value from the UIStepper control and add to the
+    // MzSearchItem
+    self.searchItem.daysToSearch = currentDuration;
+}
+
+// Delegate method from the tableView HeaderView
+-(void)tableHeaderView:(MzAddSearchHeaderView *)headerView categoryButtonState:(BOOL)isTapped
+{
+    // Modally present a viewController so user can select the product Category
 }
 
 @end
