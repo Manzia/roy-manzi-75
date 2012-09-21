@@ -36,8 +36,6 @@
 
 @optional
 
-// method called when the Preferred Price is set
--(void)tableHeaderView:(MzAddSearchHeaderView *)headerView selectedPrice:(NSNumber *)priceValue;
 
 // method called when the Search Duration is set
 -(void)tableHeaderView:(MzAddSearchHeaderView *)headerView selectedDuration:(NSUInteger)duration;

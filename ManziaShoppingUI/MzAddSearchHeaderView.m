@@ -70,7 +70,7 @@
         CGRect durationValueRect = CGRectMake(281, 48, 30, 27);
         UILabel *durationValueLabel = [[UILabel alloc] initWithFrame:durationValueRect];
         assert(durationValueLabel != nil);
-        durationValueLabel.text = @"2";
+        durationValueLabel.text = @"0";
         durationValueLabel.font = [UIFont systemFontOfSize:17.0];
         durationValueLabel.textColor = [UIColor redColor];
         durationValueLabel.tag = 3;
@@ -105,6 +105,9 @@
         durationSearchStepper.tag = 5;
         self.durationStepper = durationSearchStepper;
         
+        // add Target
+        [self.durationStepper addTarget:self action:@selector(durationStepperDidChange) forControlEvents:UIControlEventValueChanged];
+        
         // instantiate the UIButton view for the productCategory
         CGRect categoryRect = CGRectMake(180, 80, 94, 27);
         UIButton *categoryButton = [UIButton buttonWithType:UIButtonTypeRoundedRect];
@@ -114,6 +117,9 @@
         categoryButton.userInteractionEnabled = YES;
         categoryButton.tag = 6;
         self.productCategory = categoryButton;
+        
+        // add Target
+        [self.productCategory addTarget:self action:@selector(categoryButtonWasTapped) forControlEvents:UIControlEventTouchUpInside];
         
         // Add all the subviews
         [self insertSubview:priceLabel atIndex:priceLabel.tag];
@@ -125,6 +131,22 @@
         [self insertSubview:categoryButton atIndex:categoryButton.tag];
     }
     return self;
+}
+
+// Method called when the durationStepper changes value
+-(void)durationStepperDidChange
+{
+    // we call our delegate
+    assert(self.delegate != nil);
+    [self.delegate tableHeaderView:self selectedDuration:self.durationStepper.value];             
+}
+
+// Method called when categoryButton is tapped
+-(void)categoryButtonWasTapped
+{
+    // we call our delegate
+    assert(self.delegate != nil);
+    [self.delegate tableHeaderView:self categoryButtonState:YES];
 }
 
 /*
