@@ -11,6 +11,8 @@
 #import "MzSearchCollection.h"
 #import "MzAddSearchViewController.h"
 #import "Logging.h"
+#import "MzSearchItem.h"
+#import "MzSearchDetailViewController.h"
 
 #define NUMBER_SECTIONS 1
 #define kAddSearchButtonTag 1
@@ -18,6 +20,7 @@
 @interface MzSearchListViewController ()
 
 @property (nonatomic, strong) NSMutableArray *searchItems;
+@property (nonatomic, strong) MzSearchItem *displaySearchItem;
 
 @end
 
@@ -26,6 +29,7 @@
 @synthesize searchCell;
 @synthesize searchCollection;
 @synthesize searchItems;
+@synthesize displaySearchItem;
 
 // Segue Identifiers
 static NSString *kAddSearchSegue = @"addSearchSegue";   // to Add Search VC 
@@ -66,6 +70,23 @@ static NSString *kSearchTitleTemplate = @"Search %d: %@";
     if ([[segue identifier] isEqualToString:kAddSearchSegue]) {
         MzAddSearchViewController *addSearchController = [segue destinationViewController];
         addSearchController.delegate = self;        
+    }
+    
+    // Set the MzSearchItem property of the destinationViewController
+   if ([[segue identifier] isEqualToString:kSearchDetailsSegue]) {
+        MzSearchDetailViewController *searchDetailController = [segue destinationViewController];
+       
+       // Assign the MzSearchItem to be displayed by the MzSearchDetailViewController
+       MzSearchListCell *searchListCell = (MzSearchListCell *)[self.tableView cellForRowAtIndexPath:[self.tableView indexPathForSelectedRow]];
+       assert(searchListCell != nil);
+       self.displaySearchItem = searchListCell.searchItem;
+       assert(self.displaySearchItem != nil);
+       
+       //Log
+       [[QLog log] logWithFormat:@"Row with searchTitle: %@ was selected ", self.displaySearchItem.searchTitle];
+
+       searchDetailController.searchItem = self.displaySearchItem;
+       assert(searchDetailController.searchItem != nil);
     }
 }
 
@@ -162,7 +183,7 @@ static NSString *kSearchTitleTemplate = @"Search %d: %@";
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
     static NSString *CellIdentifier = @"searchItemCell";
-    MzSearchListCell *cell = (MzSearchListCell *)[tableView dequeueReusableCellWithIdentifier:CellIdentifier];
+    MzSearchListCell *cell = (MzSearchListCell *)[self.tableView dequeueReusableCellWithIdentifier:CellIdentifier];
     
     // Configure the cell...
     if (cell) {
@@ -250,13 +271,14 @@ static NSString *kSearchTitleTemplate = @"Search %d: %@";
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    // Navigation logic may go here. Create and push another view controller.
-    /*
-     <#DetailViewController#> *detailViewController = [[<#DetailViewController#> alloc] initWithNibName:@"<#Nib name#>" bundle:nil];
-     // ...
-     // Pass the selected object to the new view controller.
-     [self.navigationController pushViewController:detailViewController animated:YES];
-     */
+    // Assign the MzSearchItem to be displayed by the MzSearchDetailViewController
+    /*MzSearchListCell *searchListCell = (MzSearchListCell *)[self.tableView cellForRowAtIndexPath:indexPath];
+    assert(searchListCell != nil);
+    self.displaySearchItem = searchListCell.searchItem;
+    assert(self.displaySearchItem != nil);
+    
+    //Log
+    [[QLog log] logWithFormat:@"Row with searchTitle: %@ was selected ", self.displaySearchItem.searchTitle]; */
 }
 
 #pragma mark - Table View Header Delegate
