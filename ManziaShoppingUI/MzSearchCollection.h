@@ -23,7 +23,7 @@
  
 
 #import <Foundation/Foundation.h>
-@class MzSearchItem;
+#import "MzSearchItem.h"
 
 @interface MzSearchCollection : NSObject {
     NSString *searchDirectory;      // directory with serialized MzSearchItems
@@ -43,10 +43,13 @@
 
 // Remove a MzSearchItem from the Search Directory
 -(BOOL)removeSearchItem:(MzSearchItem *)searchItem;
--(BOOL)removeSearchItemWithTitle:(NSString *)searchTitle;
+
+// Remove a MzSearchItem using the searchTitle and Timestamp to eliminate the
+// possibility of a removing MzSearchItems with the same searchTitles
+-(BOOL)removeSearchItemWithTitle:(NSString *)searchTitle andTimestamp:(NSDate *)timestamp;
 
 // Remove all completed MzSearchItems from the Search Directory
--(BOOL)removeCompletedSearchItems;
+-(BOOL)removeSearchItemsWithStatus:(SearchItemState)searchStatus;
 
 // Get all the "deserialized" MzSearchItems from the Search Directory
 -(NSArray *)allSearchItems;

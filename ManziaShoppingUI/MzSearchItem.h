@@ -22,11 +22,11 @@ enum SearchItemState {
 typedef enum SearchItemState SearchItemState;
 
 @interface MzSearchItem : NSObject {
-    NSString *searchTitle;
+    /*NSString *searchTitle;
     NSNumber *priceToSearch;        // price limit for search
     NSNumber *daysToSearch;        // duration of the search
     NSDictionary *searchOptions;
-    SearchItemState searchStatus;
+    SearchItemState searchStatus; */
 }
 
 // Public properties
@@ -35,6 +35,7 @@ typedef enum SearchItemState SearchItemState;
 @property (nonatomic, strong, readwrite) NSNumber *daysToSearch;
 @property (nonatomic, strong, readwrite) NSDictionary *searchOptions;
 @property (nonatomic, assign, readwrite) SearchItemState searchStatus;
+@property (nonatomic, strong, readwrite) NSDate *searchTimestamp;
 
 // Method that serializes the MzSearchItem as a property list
 -(BOOL) writeSearchItemToFile:(NSString *)filename;
@@ -45,5 +46,6 @@ extern NSString *kSearchItemPrice;
 extern NSString *kSearchItemDays;
 extern NSString *kSearchItemOptions;
 extern NSString *kSearchItemState;
+extern NSString *kSearchItemTimestamp;
 
 @end

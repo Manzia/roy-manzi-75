@@ -7,6 +7,7 @@
 //
 
 #import "MzSearchItem.h"
+#import "Logging.h"
 
 @implementation MzSearchItem
 
@@ -15,6 +16,7 @@
 @synthesize searchOptions;
 @synthesize searchTitle;
 @synthesize searchStatus;
+@synthesize searchTimestamp;
 
 // Method to serialize the SearchItem - we allow for "empty" SearchItems
 -(BOOL) writeSearchItemToFile:(NSString *)filename
@@ -27,35 +29,46 @@
     if (self.priceToSearch) {
         [searchItem setObject:self.priceToSearch forKey:kSearchItemPrice];        
     } else {
-        [searchItem setObject:[NSNull null] forKey:kSearchItemPrice];
+        [searchItem setObject:[NSNumber numberWithInt:0] forKey:kSearchItemPrice];
     }
     
     // Add the days
     if (self.daysToSearch) {
         [searchItem setObject:self.daysToSearch forKey:kSearchItemDays];
     } else {
-        [searchItem setObject:[NSNull null] forKey:kSearchItemDays];
+        [searchItem setObject:[NSNumber numberWithInt:0] forKey:kSearchItemDays];
     }
     
     // Add the searchOptions
     if (self.searchOptions) {
         [searchItem setObject:self.searchOptions forKey:kSearchItemOptions];
     } else {
-        [searchItem setObject:[NSNull null] forKey:kSearchItemOptions];
+        [searchItem setObject:[NSDictionary dictionary] forKey:kSearchItemOptions];
     }
     
     // Add the title
     if (self.searchTitle) {
         [searchItem setObject:self.searchTitle forKey:kSearchItemTitle];
     } else {
-        [searchItem setObject:[NSNull null] forKey:kSearchItemTitle];
+        [searchItem setObject:[NSString string] forKey:kSearchItemTitle];
+    }
+    
+    // Add the timestamp - note that since we use the timestamp for deletion
+    // of the MzSearchItem we cannot set a default value
+    if (self.searchTimestamp) {
+        [searchItem setObject:self.searchTimestamp forKey:kSearchItemTimestamp];
+    } else {
+        
+        [[QLog log] logWithFormat:@"Search Item has invalid Timestamp"]; 
     }
     
     // Add the SearchState - default is 0 = SearchItemStateInProgress
-    [searchItem setObject:[NSNumber numberWithInt:searchStatus] forKey:kSearchItemState];
+    [searchItem setObject:[NSNumber numberWithInt:self.searchStatus] forKey:kSearchItemState];
     
     // Can now write to file
-    assert([searchItem count] == 5);
+    assert([searchItem count] == 6);
+    [[QLog log] logWithFormat:@"Number of dictionary entries to write to file: %d", [searchItem count]];
+    
     BOOL success;
     success = [searchItem writeToFile:filename atomically:YES];
     
@@ -68,5 +81,6 @@ NSString *kSearchItemPrice = @"searchItemPrice";
 NSString *kSearchItemDays = @"searchItemDays";
 NSString *kSearchItemOptions = @"searchItemOptions";
 NSString *kSearchItemState = @"searchItemState";
+NSString *kSearchItemTimestamp = @"searchItemTimestamp";
 
 @end

@@ -29,6 +29,9 @@ static NSString *kSearchFileTemplate = @"search-file%.9f";
 // Extension for the Search directory
 static NSString * kSearchExtension    = @"search";
 
+// File Prefix
+static NSString *kSearchFilePrefix = @"search-file";
+
 #pragma mark Search Directory Setup
 
 // assigns an existing Search Directory or creates a new one if none
@@ -62,7 +65,17 @@ static NSString * kSearchExtension    = @"search";
     if (![self.searchDirectory hasSuffix:kSearchExtension]) {
         collectionName = [NSString stringWithFormat:kSearchNameTemplate, [NSDate timeIntervalSinceReferenceDate], kSearchExtension];
         assert(collectionName != nil);
-        success = YES;
+        self.searchDirectory = collectionName;
+        
+        // create the directory
+        NSError *dirError = NULL;
+        NSString *dirPath = [[self pathToCachesDirectory] stringByAppendingPathComponent:self.searchDirectory];
+        assert(dirPath != nil);
+        [fileManager createDirectoryAtPath:dirPath withIntermediateDirectories:YES attributes:nil error:&dirError];
+        
+        if (!dirError) {
+            success = YES;
+        }        
     }
     
     // Log success
@@ -71,7 +84,6 @@ static NSString * kSearchExtension    = @"search";
     } else {
         [[QLog log] logWithFormat:@"Failed to Assign/Create a Search Directory: %@", self.searchDirectory];
     }
-
     
     return success;    
 }
@@ -115,7 +127,9 @@ static NSString * kSearchExtension    = @"search";
     success = NO;
     
     // write to Search Directory
-    success = [searchItem writeSearchItemToFile:[self.searchDirectory stringByAppendingPathComponent:filename]];
+    NSString *dirPath = [[self pathToCachesDirectory] stringByAppendingPathComponent:self.searchDirectory];
+    assert(dirPath != nil);
+    success = [searchItem writeSearchItemToFile:[dirPath stringByAppendingPathComponent:filename]];
     
     // Log success
     if (success) {
@@ -128,7 +142,7 @@ static NSString * kSearchExtension    = @"search";
 }
 
 // Remove a MzSearchItem from the Search Directory
--(BOOL)removeSearchItemWithTitle:(NSString *)searchTitle
+-(BOOL)removeSearchItemWithTitle:(NSString *)searchTitle andTimestamp:(NSDate *)timestamp
 {
     assert(searchTitle != nil);
     BOOL success;
@@ -144,7 +158,9 @@ static NSString * kSearchExtension    = @"search";
     NSArray *searchFiles;
     NSDictionary *searchItem;
     
-    searchFiles = [fileManager contentsOfDirectoryAtPath:self.searchDirectory error:NULL];
+    NSString *dirPath = [[self pathToCachesDirectory] stringByAppendingPathComponent:self.searchDirectory];
+    assert(dirPath != nil);
+    searchFiles = [fileManager contentsOfDirectoryAtPath:dirPath error:NULL];
     if (!searchFiles) {
         return NO;         // return if we have an empty Search Directory
     }
@@ -153,13 +169,18 @@ static NSString * kSearchExtension    = @"search";
     success = NO;
     
     // Enumerate and delete the search file if found
+    NSString *completeFileName;
     for (NSString *fileName in searchFiles) {
-        if ([fileName hasPrefix:@"search"]) {
-            searchItem = [NSDictionary dictionaryWithContentsOfFile:fileName]; 
+        if ([fileName hasPrefix:kSearchFilePrefix]) {
+            completeFileName = [dirPath stringByAppendingPathComponent:fileName];
+            assert(completeFileName != nil);
+            searchItem = [NSDictionary dictionaryWithContentsOfFile:completeFileName]; 
             assert(searchItem != nil);
             
-            if ([searchTitle isEqualToString:[searchItem objectForKey:kSearchItemTitle]]) {
-                success = [fileManager removeItemAtPath:fileName error:NULL];
+            // check the searchTitle and the Timestamp            
+            if ([searchTitle hasSuffix:[searchItem objectForKey:kSearchItemTitle]] && [timestamp isEqualToDate:[searchItem objectForKey:kSearchItemTimestamp]]) {
+                
+                success = [fileManager removeItemAtPath:completeFileName error:NULL];
                 break;
             }
             
@@ -182,17 +203,20 @@ static NSString * kSearchExtension    = @"search";
 {
     assert(searchItem != nil);
     NSString *searchTitle;
+    NSDate *itemTimestamp;
     BOOL success;
     
     searchTitle = searchItem.searchTitle;
     assert(searchTitle != nil);
-    success = [self removeSearchItemWithTitle:searchTitle];
+    itemTimestamp = searchItem.searchTimestamp;
+    assert(itemTimestamp != nil);
+    success = [self removeSearchItemWithTitle:searchTitle andTimestamp:itemTimestamp];
     
     return success;
 }
 
 // Remove all completed MzSearchItems from the Search Directory
--(BOOL)removeCompletedSearchItems
+-(BOOL)removeSearchItemsWithStatus:(SearchItemState)searchStatus
 {
     BOOL success;
     NSUInteger count = 0;
@@ -209,21 +233,25 @@ static NSString * kSearchExtension    = @"search";
     NSArray *searchFiles;
     NSDictionary *searchItem;
     
-    searchFiles = [fileManager contentsOfDirectoryAtPath:self.searchDirectory error:NULL];
+    NSString *dirPath = [[self pathToCachesDirectory] stringByAppendingPathComponent:self.searchDirectory];
+    assert(dirPath != nil);
+    searchFiles = [fileManager contentsOfDirectoryAtPath:dirPath error:NULL];
     if (!searchFiles) {
         return NO;         // return if we have an empty Search Directory
     }
 
     assert(searchFiles != nil);
     success = NO;
+    NSString *completeFileName;
     for (NSString *fileName in searchFiles) {
-        if ([fileName hasSuffix:kSearchExtension]) {
-            
-            searchItem = [NSDictionary dictionaryWithContentsOfFile:fileName]; 
+        if ([fileName hasPrefix:kSearchFilePrefix]) {
+            completeFileName = [dirPath stringByAppendingPathComponent:fileName];
+            assert(completeFileName != nil);
+            searchItem = [NSDictionary dictionaryWithContentsOfFile:completeFileName]; 
             assert(searchItem != nil);
             
-            if (SearchItemStateCompleted == [[searchItem objectForKey:kSearchItemState] intValue]) {
-                success = [fileManager removeItemAtPath:fileName error:&error];
+            if (searchStatus == [[searchItem objectForKey:kSearchItemState] intValue]) {
+                success = [fileManager removeItemAtPath:completeFileName error:&error];
                 
                 if (error) count++;     // Just keep a count of any errors
             }
@@ -254,11 +282,19 @@ static NSString * kSearchExtension    = @"search";
     NSDictionary *searchItem;
     NSMutableArray *items;
     MzSearchItem *serializedItem;
+    NSError *error = NULL;
     
     // get all the files
-    searchFiles = [fileManager contentsOfDirectoryAtPath:self.searchDirectory error:NULL];
+    NSString *dirPath = [[self pathToCachesDirectory] stringByAppendingPathComponent:self.searchDirectory];
+    assert(dirPath != nil);
+    searchFiles = [fileManager contentsOfDirectoryAtPath:dirPath error:&error];
     if (!searchFiles) {
         return nil;         // return if we have an empty Search Directory
+    }
+    
+    // Log errors
+    if (error) {
+        [[QLog log] logWithFormat:@"Error: %@ retrieving Search Items from directory: %@", error.localizedDescription, self.searchDirectory];
     }
     
     assert(searchFiles != nil);
@@ -266,9 +302,12 @@ static NSString * kSearchExtension    = @"search";
     assert(items != nil);
     
     // initialize the MzSearchItem objects
+    NSString *completeFileName;
     for (NSString *fileName in searchFiles) {
-        if ([fileName hasSuffix:kSearchExtension]) {
-            searchItem = [NSDictionary dictionaryWithContentsOfFile:fileName]; 
+        if ([fileName hasPrefix:kSearchFilePrefix]) {
+            completeFileName = [dirPath stringByAppendingPathComponent:fileName];
+            assert(completeFileName != nil);
+            searchItem = [NSDictionary dictionaryWithContentsOfFile:completeFileName]; 
             assert(searchItem != nil);
             serializedItem = [[MzSearchItem alloc] init];
             assert(serializedItem != nil);
@@ -281,6 +320,8 @@ static NSString * kSearchExtension    = @"search";
             serializedItem.searchOptions = [searchItem objectForKey:kSearchItemOptions];
             assert(serializedItem.searchOptions != nil);
             serializedItem.searchStatus = [[searchItem objectForKey:kSearchItemState] intValue];
+            serializedItem.searchTimestamp = [searchItem objectForKey:kSearchItemTimestamp];
+            assert(serializedItem.searchTimestamp != nil);
             
             [items addObject:serializedItem];
         }
