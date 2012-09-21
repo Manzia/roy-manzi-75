@@ -10,16 +10,14 @@
 #import "MzSearchListCell.h"
 #import "MzSearchCollection.h"
 #import "MzAddSearchViewController.h"
+#import "Logging.h"
 
 #define NUMBER_SECTIONS 1
 #define kAddSearchButtonTag 1
 
 @interface MzSearchListViewController ()
 
-@property (nonatomic, strong) NSArray *searchItems;
-
-// Selector that is called when AddSearchButton is tapped
--(void)addSearchSelected;
+@property (nonatomic, strong) NSMutableArray *searchItems;
 
 @end
 
@@ -32,6 +30,9 @@
 // Segue Identifiers
 static NSString *kAddSearchSegue = @"addSearchSegue";   // to Add Search VC 
 static NSString *kSearchDetailsSegue = @"searchDetailsSegue";   // to Search Details VC
+
+// Search Title Template
+static NSString *kSearchTitleTemplate = @"Search %d: %@";
 
 // Override the setter
 
@@ -82,10 +83,16 @@ static NSString *kSearchDetailsSegue = @"searchDetailsSegue";   // to Search Det
     
     // Retrieve all the MzSearchItems currently in the Search Directory
     //Initialize the MzSearchCollection
-    searchCollection = [[MzSearchCollection alloc] init];
+    BOOL success;
+    self.searchCollection = [[MzSearchCollection alloc] init];
     assert(searchCollection != nil);
-    [searchCollection addSearchCollection];
-    searchItems = [self.searchCollection allSearchItems];
+    success = [self.searchCollection addSearchCollection];
+    if (success) {
+        [[QLog log] logWithFormat:@"Successfully initialized Search Collection"];
+    } else {
+        [[QLog log] logWithFormat:@"Failed to initialize Search Collection"];
+    }
+    
     //assert(searchItems != nil);
     
     // Display the tableViewHeader across the top of the tableView
@@ -105,10 +112,30 @@ static NSString *kSearchDetailsSegue = @"searchDetailsSegue";   // to Search Det
 - (void)viewDidUnload
 {
     [super viewDidUnload];
+    
+    // Temporary call to remove all SearchItem
+    //[self.searchCollection removeSearchItemsWithStatus:SearchItemStateInProgress];
     // Release any retained subviews of the main view.
     self.searchCollection = nil;
-    self.searchItems = nil;
+    //self.searchItems = nil;
     self.tableView.tableHeaderView = nil;
+}
+
+- (void)viewWillAppear:(BOOL)animated
+{
+    [super viewWillAppear:animated];
+    
+    // get all the MzSearchItems we need to display
+    self.searchItems = [NSMutableArray arrayWithArray:[self.searchCollection allSearchItems]];
+    assert(self.searchItems != nil);
+}
+
+- (void)viewWillDisappear:(BOOL)animated
+{
+    [super viewWillDisappear:animated];
+    
+    // clear the searchItems property
+    self.searchItems = nil;
 }
 
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
@@ -140,7 +167,14 @@ static NSString *kSearchDetailsSegue = @"searchDetailsSegue";   // to Search Det
     // Configure the cell...
     if (cell) {
         // If searchItems array is nil or empty this method is never called...no need to check
-        [cell setSearchItem:[searchItems objectAtIndex:indexPath.row]];
+        MzSearchItem *tempSearchItem = [self.searchItems objectAtIndex:indexPath.row];
+        assert(tempSearchItem != nil);
+        NSString *oldTitle = tempSearchItem.searchTitle;
+        assert(oldTitle != nil);
+        NSString *newTitle = [NSString stringWithFormat:kSearchTitleTemplate, indexPath.row + 1, oldTitle];
+        assert(newTitle != nil);
+        tempSearchItem.searchTitle = newTitle;
+        [cell setSearchItem:tempSearchItem];
         
     } else {
         
@@ -152,7 +186,14 @@ static NSString *kSearchDetailsSegue = @"searchDetailsSegue";   // to Search Det
         self.searchCell = nil;
         
         // configure the cell
-        [cell setSearchItem:[searchItems objectAtIndex:indexPath.row]];
+        MzSearchItem *tempSearchItem = [self.searchItems objectAtIndex:indexPath.row];
+        assert(tempSearchItem != nil);
+        NSString *oldTitle = tempSearchItem.searchTitle;
+        assert(oldTitle != nil);
+        NSString *newTitle = [NSString stringWithFormat:kSearchTitleTemplate, indexPath.row, oldTitle];
+        assert(newTitle != nil);
+        tempSearchItem.searchTitle = newTitle;
+        [cell setSearchItem:tempSearchItem];        
     }
     
     return cell;
@@ -167,19 +208,27 @@ static NSString *kSearchDetailsSegue = @"searchDetailsSegue";   // to Search Det
 }
 
 
-/*
-// Override to support editing the table view.
+
+// Override to support editing the table view. We only allow the user to delete MzSearchItems
+// from the tableView
 - (void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *)indexPath
 {
     if (editingStyle == UITableViewCellEditingStyleDelete) {
+        
+        // Delete the associated MzSearchItem from the MzSearchCollection
+        MzSearchItem *itemToDelete = [self.searchItems objectAtIndex:indexPath.row];
+        assert(itemToDelete != nil);
+        [self.searchCollection removeSearchItem:itemToDelete];
+        [self.searchItems removeObjectAtIndex:indexPath.row];
+        
         // Delete the row from the data source
-        [tableView deleteRowsAtIndexPaths:[NSArray arrayWithObject:indexPath] withRowAnimation:UITableViewRowAnimationFade];
+        [tableView deleteRowsAtIndexPaths:[NSArray arrayWithObject:indexPath] withRowAnimation:UITableViewRowAnimationAutomatic];
     }   
     else if (editingStyle == UITableViewCellEditingStyleInsert) {
         // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
     }   
 }
-*/
+
 
 /*
 // Override to support rearranging the table view.
@@ -219,6 +268,23 @@ static NSString *kSearchDetailsSegue = @"searchDetailsSegue";   // to Search Det
     if (isTapped) {
         [self performSegueWithIdentifier:kAddSearchSegue sender:nil];
     }
+}
+
+#pragma mark - Add Search delegate methods
+
+-(void)controller:(MzAddSearchViewController *)searchController newSearchItem:(MzSearchItem *)searchItem
+{
+    assert(searchItem != nil);
+    assert(self.searchCollection != nil);
+    
+    // add the new Search Item
+    [self.searchCollection addSearchItem:searchItem];
+    
+    // Remove the AddSearchViewController from screen
+    [self.navigationController popViewControllerAnimated:YES];
+    
+    // Reload our table
+    [self.tableView reloadData];
 }
 
 @end

@@ -83,6 +83,10 @@ static NSString *kAttributeOptionSegue = @"kAttributeOptionSegue";
 // No option symbol
 static NSString *kAttributeFillerString = @"...";
 
+// Brand Attribute
+static NSString *kBrandAttribute = @"Brand";
+static NSString *kAllBrandsAttribute = @"All";
+
 /*
  When the "Add Search" button in the tableHeaderView of the
  MzSearchListViewController is tapped, a Segue is fired that then instantiates
@@ -188,8 +192,9 @@ static NSString *kAttributeFillerString = @"...";
     [super viewWillAppear:animated];
     
     // Set the default values for the initial view
-    // Testing only - set the currentSectionName
-    self.currentSectionName = @"Phones";
+    if (self.currentSectionName == nil) {
+        self.currentSectionName = @"Phones";
+    }    
     
     // For now hard-code the currentSection here...
     // Get the textlabel data
@@ -502,6 +507,13 @@ static NSString *kAttributeFillerString = @"...";
         optionsController.delegate = self;
         optionsController.modalButton = (UIButton *)sender;
     }
+    
+    // If categoryButton in headerView was tapped
+    if ([[segue identifier] isEqualToString:kAttributeOptionSegue] && sender == nil) {
+        MzAttributeOptionViewController *optionsController = [segue destinationViewController];
+        optionsController.delegate = self;
+        optionsController.modalButton = nil;
+    }
 }
 
 // Method that updates our button labels and dismisses the viewController we modally presented
@@ -512,14 +524,30 @@ static NSString *kAttributeFillerString = @"...";
     NSLog(@"User selected : %@ from options", self.attributeOption);
     
     // Update the OrderedSet that tracks the user's selection
-    assert(self.selectedOptions != nil);
-    [self.selectedOptions replaceObjectAtIndex:self.buttonIndex withObject:self.attributeOption];
-    
-    // dimiss the modally presented controller
-    [self dismissModalViewControllerAnimated:YES];
-    
-    // reload our visible tableView data so we update tapped buttons
-    [self.tableView reloadData];
+    if (optionController.modalButton != nil) {
+        assert(self.selectedOptions != nil);
+        [self.selectedOptions replaceObjectAtIndex:self.buttonIndex withObject:self.attributeOption];
+        
+        // dimiss the modally presented controller
+        [self dismissModalViewControllerAnimated:YES];
+        
+        // reload our visible tableView data so we update tapped buttons
+        [self.tableView reloadData];
+        
+    } else {
+        
+        // Update the categoryButton label
+        MzAddSearchHeaderView * headerView = (MzAddSearchHeaderView *)self.tableView.tableHeaderView;
+        assert(headerView != nil);
+        [headerView.productCategory setTitle:selectedString forState:UIControlStateNormal];
+        
+        // set the currentSectionName before we appear on screen
+        self.currentSectionName = selectedString;
+        [self.tableView reloadData];
+        
+        // dismiss the modal Controller
+        [self dismissModalViewControllerAnimated:YES];
+    }    
 }
 
 #pragma mark - tableView HeaderView Delegate Methods
@@ -589,8 +617,41 @@ static NSString *kAttributeFillerString = @"...";
         self.searchItem.searchOptions = searchDictionary;
     }
     
+    // create the Search Title from the product Category and selected Brand
+    // note that this requires that all sub-categories have a brand attribute
+    NSString *searchItemTitle;
+    NSString *searchItemBrand;
+    NSString *searchItemCategory;
     
+    searchItemBrand = [searchDictionary objectForKey:kBrandAttribute];
+    assert(searchItemBrand != nil);     // fail if no brand attribute
     
+    if ([searchItemBrand isEqualToString:kBrandAttribute]) {
+        
+        // In this case no specific brand has been selected
+        searchItemBrand = kAllBrandsAttribute;
+    }
+    
+    // Get the current product Category
+    MzAddSearchHeaderView *headerView = (MzAddSearchHeaderView *)self.tableView.tableHeaderView;
+    assert(headerView != nil);
+    searchItemCategory = headerView.productCategory.titleLabel.text;
+    assert(searchItemCategory != nil);
+    
+    searchItemTitle = [searchItemBrand stringByAppendingFormat:@" %@", searchItemCategory];
+    assert(searchItemTitle != nil);
+    
+    self.searchItem.searchTitle = searchItemTitle;
+    
+    // Set the search status
+    self.searchItem.searchStatus = SearchItemStateInProgress;
+    
+    // Set the search Timestamp
+    self.searchItem.searchTimestamp = [NSDate date];
+    
+    // We can now pass the MzSearchItem to our delegate who will also dismiss us
+    // from the screen
+    [self.delegate controller:self newSearchItem:self.searchItem];
 }
 
 // Delegate method from the tableView HeaderView
@@ -612,6 +673,10 @@ static NSString *kAttributeFillerString = @"...";
 -(void)tableHeaderView:(MzAddSearchHeaderView *)headerView categoryButtonState:(BOOL)isTapped
 {
     // Modally present a viewController so user can select the product Category
+    if (isTapped) {
+        // Perform the Segue and pass nil for the UIButton
+        [self performSegueWithIdentifier:kAttributeOptionSegue sender:nil];
+    }
 }
 
 @end

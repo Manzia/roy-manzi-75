@@ -11,6 +11,7 @@
 #import "Logging.h"
 #import "MzTaskAttribute.h"
 #import "MzTaskAttributeOption.h"
+#import "MzTaskType.h"
 
 @interface MzAttributeOptionViewController ()
 
@@ -18,6 +19,7 @@
 @property (nonatomic, strong) NSManagedObjectContext *managedContext;
 @property (nonatomic, strong) NSFetchedResultsController *fetchController;
 @property (nonatomic, assign) BOOL fetchSucceeded;
+@property (nonatomic, strong) NSFetchedResultsController *categoryFetchController;
 
 @end
 
@@ -29,10 +31,12 @@
 @synthesize managedContext;
 @synthesize fetchController;
 @synthesize fetchSucceeded;
+@synthesize categoryFetchController;
 
 // declare string constants
 static NSString *kTaskAttributeEntity = @"MzTaskAttribute";
 static NSString *kTaskAttributeOptionEntity = @"MzTaskAttributeOption";
+static NSString *kTaskTypeEntity = @"MzTaskType";
 
 
 - (id)initWithStyle:(UITableViewStyle)style
@@ -134,38 +138,64 @@ static NSString *kTaskAttributeOptionEntity = @"MzTaskAttributeOption";
             }
             
         }
-    }
-    
-    // We now setup a NSFetchedResultsController to retrieve all the attributeOptionName values
-    // using the taskAttributeId we retrieved above
-    NSFetchRequest *mrequest = [NSFetchRequest fetchRequestWithEntityName:kTaskAttributeOptionEntity];
-    assert(mrequest != nil);
-    [mrequest setRelationshipKeyPathsForPrefetching:[NSArray arrayWithObject:@"taskAttribute"]];
-    NSPredicate *predicate = [NSPredicate predicateWithFormat:@"attributeOptionId like[c] %@", self.taskAttributeString];
-    [mrequest setPredicate:predicate];
-    NSSortDescriptor * sortDescriptor = [[NSSortDescriptor alloc] initWithKey:@"attributeOptionName" ascending:YES];
-    NSArray *sortDescriptors = [NSArray arrayWithObject:sortDescriptor];
-    [mrequest setSortDescriptors:sortDescriptors];
-    
-    NSFetchedResultsController *controller = [[NSFetchedResultsController alloc] initWithFetchRequest:mrequest managedObjectContext:self.managedContext sectionNameKeyPath:nil cacheName:nil];
-    assert(controller != nil);
-    self.fetchController = controller;
-    
-    // Execute the fetch
-    NSError *error = NULL;
-    self.fetchSucceeded = [self.fetchController performFetch:&error];
-    
-    // Log success
-    if (self.fetchSucceeded) {
-        [[QLog log] logWithFormat:@"Success: Fetched %d objects from the Task Collection data store", [[self.fetchController fetchedObjects] count]];
-    }
-    
-    //Log error
-    if (error) {
-        [[QLog log] logWithFormat:@"Error fetching from TaskAttributeOption Entity with error: %@", error.localizedDescription];
-    }
-
-    
+        
+        // We now setup a NSFetchedResultsController to retrieve all the attributeOptionName values
+        // using the taskAttributeId we retrieved above
+        NSFetchRequest *mrequest = [NSFetchRequest fetchRequestWithEntityName:kTaskAttributeOptionEntity];
+        assert(mrequest != nil);
+        [mrequest setRelationshipKeyPathsForPrefetching:[NSArray arrayWithObject:@"taskAttribute"]];
+        NSPredicate *predicate = [NSPredicate predicateWithFormat:@"attributeOptionId like[c] %@", self.taskAttributeString];
+        [mrequest setPredicate:predicate];
+        NSSortDescriptor * sortDescriptor = [[NSSortDescriptor alloc] initWithKey:@"attributeOptionName" ascending:YES];
+        NSArray *sortDescriptors = [NSArray arrayWithObject:sortDescriptor];
+        [mrequest setSortDescriptors:sortDescriptors];
+        
+        NSFetchedResultsController *controller = [[NSFetchedResultsController alloc] initWithFetchRequest:mrequest managedObjectContext:self.managedContext sectionNameKeyPath:nil cacheName:nil];
+        assert(controller != nil);
+        self.fetchController = controller;
+        
+        // Execute the fetch
+        NSError *error = NULL;
+        self.fetchSucceeded = [self.fetchController performFetch:&error];
+        
+        // Log success
+        if (self.fetchSucceeded) {
+            [[QLog log] logWithFormat:@"Success: Fetched %d objects from the Task Collection data store", [[self.fetchController fetchedObjects] count]];
+        }
+        
+        //Log error
+        if (error) {
+            [[QLog log] logWithFormat:@"Error fetching from TaskAttributeOption Entity with error: %@", error.localizedDescription];
+        }
+        
+    } else {
+        
+        // In this case, where our modal Button is nil, the user has tapped the categoryButton
+        // in the tableView HeaderView so we retrieve from the MzTaskType entity
+        
+        NSFetchRequest *categoryRequest = [NSFetchRequest fetchRequestWithEntityName:kTaskTypeEntity];
+        assert(categoryRequest != nil);
+        NSSortDescriptor * sortDescriptor = [[NSSortDescriptor alloc] initWithKey:@"taskTypeName" ascending:YES];
+        NSArray *sortDescriptors = [NSArray arrayWithObject:sortDescriptor];
+        [categoryRequest setSortDescriptors:sortDescriptors];
+        NSFetchedResultsController *controller = [[NSFetchedResultsController alloc] initWithFetchRequest:categoryRequest managedObjectContext:self.managedContext sectionNameKeyPath:nil cacheName:nil];
+        assert(controller != nil);
+        self.categoryFetchController = controller;
+        
+        // Execute the fetch
+        NSError *error = NULL;
+        self.fetchSucceeded = [self.categoryFetchController performFetch:&error];
+        
+        // Log success
+        if (self.fetchSucceeded) {
+            [[QLog log] logWithFormat:@"Success: Fetched %d objects from the Task Collection data store", [[self.categoryFetchController fetchedObjects] count]];
+        }
+        
+        //Log error
+        if (error) {
+            [[QLog log] logWithFormat:@"Error fetching from TaskType Entity with error: %@", error.localizedDescription];
+        }
+    }        
 }
 
 - (void)viewDidUnload
@@ -177,6 +207,7 @@ static NSString *kTaskAttributeOptionEntity = @"MzTaskAttributeOption";
     self.fetchController = nil;
     self.taskAttributeString = nil;
     self.modalButton = nil;
+    self.categoryFetchController = nil;
 }
 
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
@@ -197,7 +228,14 @@ static NSString *kTaskAttributeOptionEntity = @"MzTaskAttributeOption";
 {
 
     // Return the number of rows in the section.
-    return [[self.fetchController fetchedObjects] count];
+    if (self.modalButton != nil) {
+        
+        return [[self.fetchController fetchedObjects] count];
+        
+    } else {
+        
+        return [[self.categoryFetchController fetchedObjects] count];
+    }    
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
@@ -206,10 +244,19 @@ static NSString *kTaskAttributeOptionEntity = @"MzTaskAttributeOption";
     UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellIdentifier];
     
     // Configure the cell...
-    MzTaskAttributeOption *attributeOption = [[self.fetchController fetchedObjects] objectAtIndex:indexPath.row];
-    assert(attributeOption != nil);
-    cell.textLabel.text = attributeOption.attributeOptionName;
-    cell.textLabel.font = [UIFont boldSystemFontOfSize:12.0];
+    if (self.modalButton != nil) {
+        
+        MzTaskAttributeOption *attributeOption = [[self.fetchController fetchedObjects] objectAtIndex:indexPath.row];
+        assert(attributeOption != nil);
+        cell.textLabel.text = attributeOption.attributeOptionName;
+        cell.textLabel.font = [UIFont boldSystemFontOfSize:12.0];
+    } else {
+        
+        MzTaskType *taskType = [[self.categoryFetchController fetchedObjects] objectAtIndex:indexPath.row];
+        assert(taskType != nil);
+        cell.textLabel.text = taskType.taskTypeName;
+        cell.textLabel.font = [UIFont boldSystemFontOfSize:12.0];
+    }    
     
     return cell;
 }
@@ -258,11 +305,20 @@ static NSString *kTaskAttributeOptionEntity = @"MzTaskAttributeOption";
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
 {
     // Get the user's selection
-    MzTaskAttributeOption *attributeOption = [[self.fetchController fetchedObjects] objectAtIndex:indexPath.row];
-    assert(attributeOption != nil);
-    NSString *selectedString = attributeOption.attributeOptionName;
-    assert(selectedString != nil);
-    
+    NSString *selectedString;
+    if (self.modalButton != nil) {
+        MzTaskAttributeOption *attributeOption = [[self.fetchController fetchedObjects] objectAtIndex:indexPath.row];
+        assert(attributeOption != nil);
+        selectedString = attributeOption.attributeOptionName;
+        assert(selectedString != nil);
+    } else {
+        
+        MzTaskType *taskType = [[self.categoryFetchController fetchedObjects] objectAtIndex:indexPath.row];
+        assert(taskType != nil);
+        selectedString = taskType.taskTypeName;
+        assert(selectedString != nil);
+    }
+        
     //Pass user's selection to our delegate - this method also causes our delegate to dismiss us
     [self.delegate controller:self selection:selectedString];
 }
