@@ -25,6 +25,7 @@
 @property (nonatomic, strong) NSManagedObjectContext *managedContext;
 @property (nonatomic, strong) NSFetchedResultsController *fetchController;
 @property (nonatomic, assign) BOOL fetchSucceeded;
+@property (nonatomic, assign) BOOL categoryDidChange;
 @property(nonatomic, strong) id <NSFetchedResultsSectionInfo> currentSection;
 //@property (nonatomic, strong) MzAddSearchHeaderView *searchHeaderView;
 
@@ -73,6 +74,7 @@
 @synthesize searchItem;
 @synthesize buttonIndex;
 @synthesize selectedOptions;
+@synthesize categoryDidChange;
 
 // Database entity that we fetch from
 static NSString *kTaskAttributeEntity = @"MzTaskAttribute";
@@ -134,6 +136,7 @@ static NSString *kAllBrandsAttribute = @"All";
     NSFetchedResultsController *controller = [[NSFetchedResultsController alloc] initWithFetchRequest:mrequest managedObjectContext:self.managedContext sectionNameKeyPath:@"taskType.taskTypeName" cacheName:nil];
     assert(controller != nil);
     self.fetchController = controller;
+    assert(self.fetchController != nil);
     
     // Execute the fetch
     NSError *error = NULL;
@@ -142,6 +145,46 @@ static NSString *kAllBrandsAttribute = @"All";
     // Log success
     if (self.fetchSucceeded) {
         [[QLog log] logWithFormat:@"Success: Fetched %d objects from the Task Collection data store", [[self.fetchController fetchedObjects] count]];
+        
+        //Initialize boolean that tracks whenever the Category button is tapped by the user which signals 
+        // that we need to reload all the tableView data
+        self.categoryDidChange = true;
+        
+        // Set the default values for the initial view
+        self.currentSectionName = @"Phones";        
+        
+        // Initialize the currentSection property
+        NSArray *tempSections = [self.fetchController sections];
+        assert(tempSections != nil);
+        assert([tempSections count] > 0);
+        NSLog(@"Created tempSections array with size: %d", [tempSections count]);
+        
+        if ([tempSections count] > 0) {
+            for (id <NSFetchedResultsSectionInfo> sectionItem in tempSections) {
+                NSLog(@"Section name: %@", [sectionItem name]);
+                if ([[sectionItem name] isEqualToString:self.currentSectionName]) {
+                    self.currentSection = sectionItem;
+                }
+            }
+        } else {
+            [[QLog log] logWithFormat:@" Zero sections retrieved from Task Collection"];
+        }
+        assert(self.currentSection != nil);
+        
+        // Initialize the NSMutableOrderedSet that keeps track of all the user's choices
+        
+        NSMutableArray *taskAttributes;
+        taskAttributes = [NSMutableArray array];
+        assert(taskAttributes != nil);
+        [[self.currentSection objects] enumerateObjectsUsingBlock:^(MzTaskAttribute *attribute, NSUInteger idx, BOOL *stop) {
+            [taskAttributes addObject:attribute.taskAttributeName];
+        }];
+        
+        if ([taskAttributes count] > 0) {
+            self.selectedOptions = [NSMutableOrderedSet orderedSetWithArray:taskAttributes];
+            assert(self.selectedOptions != nil);
+            self.categoryDidChange = false;
+        }
     }
         
     //Log error
@@ -162,8 +205,7 @@ static NSString *kAllBrandsAttribute = @"All";
     // Initialize the MzSearchItem we shall send back to our MzSearchListViewController delegate
     MzSearchItem *tempSearchItem = [[MzSearchItem alloc] init];
     assert(tempSearchItem != nil);
-    self.searchItem = tempSearchItem;    
-    
+    self.searchItem = tempSearchItem; 
     
 }
 
@@ -185,34 +227,35 @@ static NSString *kAllBrandsAttribute = @"All";
     
     // Release the section info
     self.selectedOptions = nil;
+    self.currentSectionName = nil;
+    self.currentSection = nil;
 }
 
 - (void)viewWillAppear:(BOOL)animated
 {
     [super viewWillAppear:animated];
     
-    // Set the default values for the initial view
-    if (self.currentSectionName == nil) {
-        self.currentSectionName = @"Phones";
-    }    
-    
-    // For now hard-code the currentSection here...
-    // Get the textlabel data
-    NSArray *tempSections = [NSArray arrayWithArray:[self.fetchController sections]];
-    assert(tempSections != nil);
-    
-    if ([tempSections count] > 0) {
-        for (id <NSFetchedResultsSectionInfo> sectionItem in tempSections) {
-            NSLog(@"Section name: %@", [sectionItem name]);
-            if ([[sectionItem name] isEqualToString:self.currentSectionName]) {
-                self.currentSection = sectionItem;
+      
+        
+    // Reload the NSMutableOrderedSet that keeps track of all the user's choices if the Category has changed
+    if (self.categoryDidChange) {
+        
+        NSArray *tempSections = [NSArray arrayWithArray:[self.fetchController sections]];
+        assert(tempSections != nil);
+        assert([tempSections count] > 0);
+        
+        if ([tempSections count] > 0) {
+            for (id <NSFetchedResultsSectionInfo> sectionItem in tempSections) {
+                NSLog(@"Section name: %@", [sectionItem name]);
+                if ([[sectionItem name] isEqualToString:self.currentSectionName]) {
+                    self.currentSection = sectionItem;
+                }
             }
+        } else {
+            [[QLog log] logWithFormat:@" Zero sections retrieved from Task Collection"];
         }
-    }
-    assert(self.currentSection != nil);
-    
-    // Initialize the NSMutableOrderedSet that keeps track of all the user's choices
-    if (self.selectedOptions == nil) {
+        assert(self.currentSection != nil);
+
         NSMutableArray *taskAttributes;
         taskAttributes = [NSMutableArray array];
         assert(taskAttributes != nil);
@@ -223,6 +266,7 @@ static NSString *kAllBrandsAttribute = @"All";
         if ([taskAttributes count] > 0) {
             self.selectedOptions = [NSMutableOrderedSet orderedSetWithArray:taskAttributes];
             assert(self.selectedOptions != nil);
+            self.categoryDidChange = false;
         }
     }        
 }
@@ -232,8 +276,7 @@ static NSString *kAllBrandsAttribute = @"All";
     
     //Testing
     self.currentButton = nil;
-    self.currentSectionName = nil;
-    self.currentSection = nil;
+    //self.currentSection = nil;
     
     [super viewWillDisappear:animated];
 }
@@ -262,7 +305,9 @@ static NSString *kAllBrandsAttribute = @"All";
     // number over all sections to be number of rows for the tableView
     if (self.fetchSucceeded) {
         
-        NSArray *tempSections = [self.fetchController sections];
+        assert(self.selectedOptions != nil);
+        NSInteger maxSectionCount = [self.selectedOptions count];
+        /* NSArray *tempSections = [self.fetchController sections];
         [[QLog log] logWithFormat:@" %d sections retrieved from Task Collection", [tempSections count]];
         
         assert(tempSections != nil);
@@ -279,7 +324,7 @@ static NSString *kAllBrandsAttribute = @"All";
             
             [[QLog log] logWithFormat:@"Zero rows from Task Collection returned for TableView"];
             return 0;
-        }
+        } */
         assert(maxSectionCount > 0);    // prevent zero division
         [[QLog log] logWithFormat:@"%d mod 3 rows from Task Collection returned for TableView", maxSectionCount];
         
@@ -316,19 +361,21 @@ static NSString *kAllBrandsAttribute = @"All";
         NSUInteger rightIndex = (indexPath.row * kSearchButtonsPerCell) + SearchOptionButtonRight;
         
         // We can now set the textLabels
-        if (leftIndex < [self.currentSection numberOfObjects]) {
+        if (leftIndex < [self.selectedOptions count]/*[self.currentSection numberOfObjects]*/) {
             cell.leftOptionButton.titleLabel.numberOfLines = 2;
             cell.leftOptionButton.titleLabel.textAlignment = UITextAlignmentCenter;
-            NSString *leftTitle = [(MzTaskAttribute *)[[self.currentSection objects] objectAtIndex:leftIndex] taskAttributeName];
+            NSString *leftTitle = [self.selectedOptions objectAtIndex:leftIndex];
+            //[(MzTaskAttribute *)[[self.currentSection objects] objectAtIndex:leftIndex] taskAttributeName];
             [cell.leftOptionButton setTitle:leftTitle forState:UIControlStateNormal];
             [cell.leftOptionButton setTitle:leftTitle forState:UIControlStateHighlighted];
+            [cell.leftOptionButton setTag:leftIndex];
             
             // Reset the button's titleLabel from its attribute value to the attributeOption value
             // if the button was tapped (i.e touchUpInside event occurred and caused us to modally
             // present a table viewcontroller with attribute options)
-            if (self.attributeOption != nil && leftIndex == self.buttonIndex) {
+            /*if (self.attributeOption != nil && leftIndex == self.buttonIndex) {
                 [cell.leftOptionButton setTitle:self.attributeOption forState:UIControlStateNormal];
-            }
+            }*/
             
         } else {
             [cell.leftOptionButton setTitle:kAttributeFillerString forState:UIControlStateNormal];
@@ -336,19 +383,21 @@ static NSString *kAllBrandsAttribute = @"All";
             cell.leftOptionButton.titleLabel.textAlignment = UITextAlignmentCenter;
         }
         
-        if (middleIndex < [self.currentSection numberOfObjects]) {
+        if (middleIndex < [self.selectedOptions count]/*[self.currentSection numberOfObjects]*/) {
             cell.middleOptionButton.titleLabel.numberOfLines = 2;
             cell.middleOptionButton.titleLabel.textAlignment = UITextAlignmentCenter;
-            NSString *middleTitle = [(MzTaskAttribute *)[[self.currentSection objects] objectAtIndex:middleIndex] taskAttributeName];
+            NSString *middleTitle = [self.selectedOptions objectAtIndex:middleIndex];
+            //[(MzTaskAttribute *)[[self.currentSection objects] objectAtIndex:middleIndex] taskAttributeName];
             [cell.middleOptionButton setTitle:middleTitle forState:UIControlStateNormal];
             [cell.middleOptionButton setTitle:middleTitle forState:UIControlStateHighlighted];
+            [cell.middleOptionButton setTag:middleIndex];
             
             // Reset the button's titleLabel from its attribute value to the attributeOption value
             // if the button was tapped (i.e touchUpInside event occurred and caused us to modally
             // present a table viewcontroller with attribute options)
-            if (self.attributeOption != nil && middleIndex == self.buttonIndex) {
+            /*if (self.attributeOption != nil && middleIndex == self.buttonIndex) {
                 [cell.middleOptionButton setTitle:self.attributeOption forState:UIControlStateNormal];
-            }
+            }*/
 
             
         } else {
@@ -357,19 +406,21 @@ static NSString *kAllBrandsAttribute = @"All";
             cell.middleOptionButton.titleLabel.textAlignment = UITextAlignmentCenter;
         }
         
-        if (rightIndex < [self.currentSection numberOfObjects]) {
+        if (rightIndex < [self.selectedOptions count]/*[self.currentSection numberOfObjects]*/) {
             cell.rightOptionButton.titleLabel.numberOfLines = 2;
             cell.rightOptionButton.titleLabel.textAlignment = UITextAlignmentCenter;
-            NSString *rightTitle = [(MzTaskAttribute *)[[self.currentSection objects] objectAtIndex:rightIndex] taskAttributeName];
+            NSString *rightTitle = [self.selectedOptions objectAtIndex:rightIndex];
+            //[(MzTaskAttribute *)[[self.currentSection objects] objectAtIndex:rightIndex] taskAttributeName];
             [cell.rightOptionButton setTitle:rightTitle forState:UIControlStateNormal];
             [cell.rightOptionButton setTitle:rightTitle forState:UIControlStateHighlighted];
+            [cell.rightOptionButton setTag:rightIndex];
             
             // Reset the button's titleLabel from its attribute value to the attributeOption value
             // if the button was tapped (i.e touchUpInside event occurred and caused us to modally
             // present a table viewcontroller with attribute options)
-            if (self.attributeOption != nil && rightIndex == self.buttonIndex) {
+            /*if (self.attributeOption != nil && rightIndex == self.buttonIndex) {
                 [cell.rightOptionButton setTitle:self.attributeOption forState:UIControlStateNormal];
-            }
+            }*/
             
         } else {
             [cell.rightOptionButton setTitle:kAttributeFillerString forState:UIControlStateNormal];
@@ -441,17 +492,19 @@ static NSString *kAllBrandsAttribute = @"All";
     assert([sender isKindOfClass:[UIButton class]]);
     
     // Boolean to verify containment
-    BOOL continueCheckButton = YES;
-    BOOL buttonPosition;
+    //BOOL continueCheckButton = YES;
+    //BOOL buttonPosition;
     
     // set our currentButton property
     UIButton *tempButton = (UIButton *)sender;
     self.currentButton = [UIButton buttonWithType:UIButtonTypeRoundedRect];
     self.currentButton.titleLabel.text = [NSString stringWithString:tempButton.titleLabel.text];
     NSLog(@"Button with title :%@ was tapped", self.currentButton.titleLabel.text);
+    self.buttonIndex = tempButton.tag;
+    NSLog(@"Button number: %d in tableView was tapped", self.buttonIndex );
     
     // Determine the position(index) of the button that was tapped
-    //Adjust the y-coordinate of the tempButton center to take into account the tableHeaderView
+    /*Adjust the y-coordinate of the tempButton center to take into account the tableHeaderView
     assert(tempButton.superview != nil);
     CGPoint buttonPoint = [self.tableView convertPoint:tempButton.center fromView:tempButton.superview];
     NSIndexPath *senderIndexPath = [self.tableView indexPathForRowAtPoint:buttonPoint];
@@ -483,7 +536,7 @@ static NSString *kAllBrandsAttribute = @"All";
             NSLog(@"Right button tapped...");
             continueCheckButton = NO;
         }
-    }
+    } */
         
     // ignore the buttons with the "..." filler string
     if (![self.currentButton.titleLabel.text isEqualToString:kAttributeFillerString]) {
@@ -524,6 +577,7 @@ static NSString *kAllBrandsAttribute = @"All";
     NSLog(@"User selected : %@ from options", self.attributeOption);
     
     // Update the OrderedSet that tracks the user's selection
+    // Note that if the UIButton property is nil, then user tapped the categoryButton in the headerView
     if (optionController.modalButton != nil) {
         assert(self.selectedOptions != nil);
         [self.selectedOptions replaceObjectAtIndex:self.buttonIndex withObject:self.attributeOption];
@@ -543,6 +597,7 @@ static NSString *kAllBrandsAttribute = @"All";
         
         // set the currentSectionName before we appear on screen
         self.currentSectionName = selectedString;
+        self.categoryDidChange = true;
         [self.tableView reloadData];
         
         // dismiss the modal Controller
