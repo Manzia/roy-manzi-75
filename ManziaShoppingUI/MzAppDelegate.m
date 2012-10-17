@@ -32,9 +32,18 @@
     assert(self.window != nil);
     
     // URL String for the TaskCollection pointing to the Manzia Servers
-    static NSString *kTaskURLString = @"http://localhost:8080/ManziaWebServices/service/interface";
+    static NSString *kTaskURLString = @"http://192.168.1.102:8080/ManziaWebServices/service/interface";
     
-    // add the tab bar controller's current view as a subview of the window
+    // add tabBarItems to the tab bar controller
+    UITabBarController *tabBarController = (UITabBarController *)self.window.rootViewController;
+    UITabBarItem *searchesItem = [[UITabBarItem alloc] initWithTitle:@"Searches" image:nil tag:0];
+    UITabBarItem *resultsItem = [[UITabBarItem alloc] initWithTitle:@"Results" image:nil tag:1];
+    UIOffset upTitle = UIOffsetMake(0.0, 10.0);
+    [searchesItem setTitlePositionAdjustment:upTitle];
+    [resultsItem setTitlePositionAdjustment:upTitle];
+    [[[tabBarController viewControllers] objectAtIndex:0] setTabBarItem:searchesItem];
+    [[[tabBarController viewControllers] objectAtIndex:1] setTabBarItem:resultsItem];
+    
 	//[self.window addSubview:tabBarController.view];
     [self.window makeKeyAndVisible];
     
