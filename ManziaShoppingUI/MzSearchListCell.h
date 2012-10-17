@@ -12,9 +12,9 @@
 
 @interface MzSearchListCell : UITableViewCell
 
-@property (nonatomic, weak) IBOutlet UILabel *searchTitleLabel;
-@property (nonatomic, weak) IBOutlet UILabel *searchPriceLabel;
-@property (nonatomic, weak) IBOutlet UILabel *searchStatusLabel;
+@property (nonatomic, strong) IBOutlet UILabel *searchTitleLabel;
+@property (nonatomic, strong) IBOutlet UILabel *searchPriceLabel;
+@property (nonatomic, strong) IBOutlet UILabel *searchStatusLabel;
 
 // MzSearchItem
 @property (nonatomic, strong) MzSearchItem *searchItem; 
