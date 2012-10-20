@@ -7,7 +7,8 @@
 //
 
 #import <UIKit/UIKit.h>
-#import "MzTaskCollection.h"
+
+@class MzSearchCollection;
 
 @interface MzAppDelegate : UIResponder <UIApplicationDelegate, UITabBarControllerDelegate> {
     
@@ -16,5 +17,14 @@
 }
 
 @property (strong, nonatomic) IBOutlet UIWindow *window;
+
+// App Delegate keeps a reference to a unique Device Id generated from the deviceToken
+// obtained through the remote notification registration process.
+@property (nonatomic, copy, readonly) NSString *uniqueDeviceId;
+
+// Return a global instance of the MzSearchCollection that the MzSearchListViewController and
+// the MzResultListViewController can share in a thread-safe way since all file access is via
+// the thread-safe [NSFileManager defaultManager]
+@property (nonatomic, strong, readonly) MzSearchCollection *searchCollection;
 
 @end

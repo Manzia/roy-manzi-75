@@ -9,13 +9,16 @@
 #import "MzAppDelegate.h"
 #import "Logging.h"
 #import "NetworkManager.h"
+#import "MzSearchCollection.h"
+#import "MzTaskCollection.h"
 
 
 @interface MzAppDelegate ()
 
 // private properties
-
-@property (nonatomic, retain) MzTaskCollection *taskCollection;
+@property (nonatomic, readwrite, copy) NSString *uniqueDeviceId;
+@property (nonatomic, strong) MzTaskCollection *taskCollection;
+@property (nonatomic, strong, readwrite) MzSearchCollection *searchCollection;
 
 @end
 
@@ -24,15 +27,17 @@
 
 @synthesize window = _window;
 @synthesize taskCollection;
+@synthesize uniqueDeviceId;
+@synthesize searchCollection;
+
+// URL String for the TaskCollection pointing to the Manzia Servers
+static NSString *kTaskURLString = @"http://192.168.1.102:8080/ManziaWebServices/service/interface";
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
 #pragma unused(application)
 #pragma unused(launchOptions)
     assert(self.window != nil);
-    
-    // URL String for the TaskCollection pointing to the Manzia Servers
-    static NSString *kTaskURLString = @"http://192.168.1.102:8080/ManziaWebServices/service/interface";
     
     // add tabBarItems to the tab bar controller
     UITabBarController *tabBarController = (UITabBarController *)self.window.rootViewController;
@@ -62,10 +67,8 @@
     assert([NSURL URLWithString:kTaskURLString] != nil); //check we have a valid URL
     self.taskCollection = [[MzTaskCollection alloc] initWithTasksURLString:kTaskURLString];
     assert(self.taskCollection != nil);
-    
-    
+        
     [self.taskCollection applicationHasLaunched];
-
     
     // If the "applicationClearSetup" user default is set, clear our preferences. 
     // This provides an easy way to get back to the initial state while debugging.
@@ -75,6 +78,18 @@
         [userDefaults removeObjectForKey:@"applicationClearSetup"];
        // [userDefaults removeObjectForKey:@"galleryURLString"];
     }
+    
+    // Start the MzSearchCollection
+    self.searchCollection = [[MzSearchCollection alloc] init];
+    assert(self.searchCollection != nil);
+    BOOL success = false;
+    success = [self.searchCollection addSearchCollection];
+    if (success) {
+        [[QLog log] logWithFormat:@"Successfully initialized Search Collection"];
+    } else {
+        [[QLog log] logWithFormat:@"Failed to initialize Search Collection"];
+    }
+
          
     return YES;
 }
