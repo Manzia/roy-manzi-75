@@ -10,17 +10,17 @@
 
 @interface MzCollectionParserOperation : NSOperation 
 {
-    NSData *xmlData;
-    NSError *parseError;
+    //NSData *xmlData;
+    //NSError *parseError;
 #if ! defined(NDEBUG)
     NSTimeInterval debugDelay;
     NSTimeInterval debugDelaySoFar;
 #endif
-    NSXMLParser *collectionParser;
-    NSMutableArray *mutableResults;
-    NSMutableDictionary *productItemProperties;
+    //NSXMLParser *collectionParser;
+    //NSMutableArray *mutableResults;
+    //NSMutableDictionary *productItemProperties;
     BOOL storeCharacters;
-    NSMutableString *currentStringValue;
+    //NSMutableString *currentStringValue;
 }
 
 // Initialize with XML data

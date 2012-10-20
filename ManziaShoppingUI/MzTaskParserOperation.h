@@ -9,15 +9,15 @@
 #import <Foundation/Foundation.h>
 
 @interface MzTaskParserOperation : NSOperation {
-    NSData *xmlData;
-    NSError *parseError;
+    //NSData *xmlData;
+    //NSError *parseError;
 #if ! defined(NDEBUG)
     NSTimeInterval debugDelay;
     NSTimeInterval debugDelaySoFar;
 #endif
-    NSXMLParser *collectionParser;
-    NSMutableArray *mutableResults;
-    NSMutableDictionary *tasksProperties;    
+    //NSXMLParser *collectionParser;
+    //NSMutableArray *mutableResults;
+    //NSMutableDictionary *tasksProperties;    
 }
 
 // Initialize with XML data

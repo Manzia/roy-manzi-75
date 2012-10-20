@@ -49,7 +49,7 @@
     assert(data != nil);
     self = [super init];
     if (self != nil) {
-        self->xmlData = [data copy];
+        self->xmldata = [data copy];
         self->mutableResults  = [[NSMutableArray alloc] init];
         assert(self->mutableResults != nil);
         self->productItemProperties = [[NSMutableDictionary alloc] init];
@@ -124,23 +124,23 @@
 
 /*
  Below is sample XML product Item entry:
- <entry>
- <title type="text">Tadashi Shoji One Shoulder Lace Sheath Dress</title>
- <link rel="alternate" type="text/html" href="http://shop.nordstrom.com/s/tadashi-shoji-one-shoulder-lace-sheath-dress/3205422?"/>
- <mz:image_link>http://aws.amazon.com/image/120000</mz:image_link>
- <mz:thumbnail_link>http://aws.amazon.com/thumbnail/120000<thumbnail_link>
- <mz:id>100303001</mz:id>
- <content type="xhtml">
- <p> Tadashi Shoji One Shoulder Lace Sheath Dress. </p>
- </content>
- <mz:content_language>en</mz:content_language>
- <mz:target_country>US</mz:target_country>
- <mz:product_type classId="10010" subClassId="3">Women's Dresses &amp; Dresses</mz:product_type>
- <mz:price unit="usd">298.00</mz:price>
- <mz:brand>Tadashi Shoji</mz:brand>
- <mz:condition>new</mz:condition>
- <mz:availability>In Stock</mz:availability>
- </entry>
+ <mz:rankedProducts>
+    <mz:rankedProduct>
+        <mz:title type="text">Tadashi Shoji One Shoulder Lace Sheath Dress</mz:title>
+        <mz:link rel="alternate" type="text/html" href="http://shop.nordstrom.com/s/tadashi-shoji-one-shoulder-lace-sheath-dress/3205422?"/>
+        <mz:image_link>http://aws.amazon.com/image/120000</mz:image_link>
+        <mz:thumbnail_link>http://aws.amazon.com/thumbnail/120000<thumbnail_link>
+        <mz:id>100303001</mz:id>
+        <mz:description>Tadashi Shoji One Shoulder Lace Sheath Dress.</mz:description>
+        <mz:content_language>en</mz:content_language>
+        <mz:target_country>US</mz:target_country>
+        <mz:product_type classId="10010" subClassId="3">Women's Dresses &amp; Dresses</mz:product_type>
+        <mz:price unit="usd">298.00</mz:price>
+        <mz:brand>Tadashi Shoji</mz:brand>
+        <mz:condition>new</mz:condition>
+        <mz:availability>In Stock</mz:availability>
+    </mz:rankedProduct>
+ </mz:rankedProducts>
  
  */
 
@@ -163,18 +163,17 @@
 
        
     // root element - ensure we have an array to insert product Items
-    if ([elementName isEqualToString:@"feed"]) {
+    if ([elementName isEqualToString:@"rankedProducts"]) {
         assert(self.mutableResults != nil);
     }
     
     // Check for cancellation at the start of each element.
-    
     if ( [self isCancelled] ) {
         self.parseError = [NSError errorWithDomain:NSCocoaErrorDomain code:NSUserCancelledError userInfo:nil];
         [self.collectionParser abortParsing];
     } else
     // entry element - ensure we have a dictionary to store product Item attributes
-    if ([elementName isEqualToString:@"entry"]) {
+    if ([elementName isEqualToString:@"rankedProduct"]) {
         assert(self.productItemProperties != nil);
                         
         // Starting a new entry so remove all elements
@@ -218,7 +217,7 @@
     }
     
     // content description element
-    if ([elementName isEqualToString:@"p"]) {
+    if ([elementName isEqualToString:@"description"]) {
         storeCharacters = YES;        
     }
     
@@ -294,7 +293,7 @@
 -(void)parser:(NSXMLParser *)parser didEndElement:(NSString *)elementName namespaceURI:(NSString *)namespaceURI qualifiedName:(NSString *)qName {
     
     // ignore root, empty and unused elements
-    if ([elementName isEqualToString:@"feed"]) {
+    if ([elementName isEqualToString:@"rankedProducts"]) {
         return;
     }
     
@@ -343,7 +342,7 @@
     }
 
     // copy the p string - product description
-    if ([elementName isEqualToString:@"p"]) {
+    if ([elementName isEqualToString:@"description"]) {
         
         if ( (self.currentStringValue == nil) || ([self.currentStringValue length] == 0) ) {
             [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"XML parse skipped, missing 'productDescription'"];
@@ -422,7 +421,7 @@
         
     
     // Add properties dictionary to array, stop storing characters and reset currentStringValue
-    if ([elementName isEqualToString:@"entry"]) {
+    if ([elementName isEqualToString:@"rankedProduct"]) {
         storeCharacters = NO;
         self.currentStringValue = nil;
                 
@@ -451,7 +450,7 @@
                     assert([[self.productItemProperties objectForKey:kCollectionParserResultAvailability] isKindOfClass:[NSString class]]);
                     
                     // Log Success!
-                    [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"xml parse photo success %@", [self.productItemProperties objectForKey:kCollectionParserResultProductID]];
+                    [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"Product XML parse success %@", [self.productItemProperties objectForKey:kCollectionParserResultProductID]];
                     [self.mutableResults addObject:[self.productItemProperties copy]];
                     [self.productItemProperties removeAllObjects];
                 }
