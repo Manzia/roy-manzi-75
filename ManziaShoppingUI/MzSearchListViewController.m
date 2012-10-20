@@ -13,6 +13,7 @@
 #import "Logging.h"
 #import "MzSearchItem.h"
 #import "MzSearchDetailViewController.h"
+#import "MzAppDelegate.h"
 
 #define NUMBER_SECTIONS 1
 #define kAddSearchButtonTag 1
@@ -102,20 +103,10 @@ static NSString *kSearchTitleTemplate = @"Search %d: %@";
     // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
     self.navigationItem.rightBarButtonItem = self.editButtonItem;
     
-    // Retrieve all the MzSearchItems currently in the Search Directory
     //Initialize the MzSearchCollection
-    BOOL success;
-    self.searchCollection = [[MzSearchCollection alloc] init];
+    self.searchCollection = [(MzAppDelegate *)[[UIApplication sharedApplication] delegate] searchCollection];
     assert(searchCollection != nil);
-    success = [self.searchCollection addSearchCollection];
-    if (success) {
-        [[QLog log] logWithFormat:@"Successfully initialized Search Collection"];
-    } else {
-        [[QLog log] logWithFormat:@"Failed to initialize Search Collection"];
-    }
-    
-    //assert(searchItems != nil);
-    
+        
     // Display the tableViewHeader across the top of the tableView
     CGRect headerFrame = CGRectMake(0, 0, 320, 60);
     MzSearchListHeaderView *headerView = [[MzSearchListHeaderView alloc] initWithFrame:headerFrame delegate:self];
