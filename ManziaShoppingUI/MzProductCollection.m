@@ -15,33 +15,34 @@
 #import "MzCollectionParserOperation.h"
 #import "MzProductItem.h"
 
-#define kActiveCollectionCachesLimit 2              // Max no of collections
 #define kAutoSaveContextChangesTimeInterval 5.0     // 5 secs to auto-save
 #define kTimeIntervalToRefreshCollection 600        // 10mins to auto-refresh
-#define kDefaultRelativePath "default"
+#define kMAX_COLLECTION_DURATION 1209600        // 2 weeks or 14 days in Seconds
+#define kMAX_REFRESH_INTERVAL 86400             // 1 day in Seconds
 
 @interface MzProductCollection() 
 
 // private properties
 @property (nonatomic, copy, readwrite) NSString *collectionURLString;
-@property (nonatomic, retain, readwrite)NSEntityDescription *productItemEntity;
-@property (nonatomic, retain, readwrite)MzProductCollectionContext* productCollectionContext;
+@property (nonatomic, strong, readwrite)NSEntityDescription *productItemEntity;
+//@property (nonatomic, retain, readwrite)MzProductCollectionContext* productCollectionContext;
+@property (nonatomic, strong, readwrite) NSManagedObjectContext *managedObjectContext;
 @property (nonatomic, copy, readonly) NSString *collectionCachePath;
 @property (nonatomic, assign, readwrite) ProductCollectionSyncState stateOfSync;
-@property (nonatomic, retain, readwrite) NSTimer *timeToSave;
-@property (nonatomic, retain, readwrite) NSTimer *timeToRefresh;
+@property (nonatomic, strong, readwrite) NSTimer *timeToSave;
+//@property (nonatomic, strong, readwrite) NSTimer *timeToRefresh;
 @property (nonatomic, copy, readwrite) NSDate *dateLastSynced;
 @property (nonatomic, copy, readwrite) NSError *errorFromLastSync;
-@property (nonatomic, retain, readwrite) RetryingHTTPOperation *getCollectionOperation;
-@property (nonatomic, retain, readwrite) MzCollectionParserOperation *parserOperation;
+@property (nonatomic, strong, readwrite) RetryingHTTPOperation *getCollectionOperation;
+@property (nonatomic, strong, readwrite) MzCollectionParserOperation *parserOperation;
 
 // This property will hold the value of the relativePath that was appended to
 // the collectionURLString to create the NSURLRequest for the HTTP GET
-@property (nonatomic, copy, readwrite) NSString * variableRelativePath;
+//@property (nonatomic, copy, readwrite) NSString * variableRelativePath;
 
 // Keys are relativePaths and values are an array of old parserResults
 // and time parseOperation completed
-@property (retain, readonly) NSMutableDictionary *pathsOldResults;
+//@property (retain, readonly) NSMutableDictionary *pathsOldResults;
 
 // forward declarations
 
@@ -55,7 +56,7 @@
 // Synthesize properties
 @synthesize collectionURLString;
 @synthesize productItemEntity;
-@synthesize productCollectionContext;
+//@synthesize productCollectionContext;
 @synthesize collectionCachePath;
 @synthesize stateOfSync;
 @synthesize timeToSave;
@@ -64,34 +65,43 @@
 @synthesize errorFromLastSync;
 @synthesize getCollectionOperation;
 @synthesize parserOperation;
-@synthesize pathsOldResults;
-@synthesize variableRelativePath;
-@synthesize timeToRefresh;
+//@synthesize pathsOldResults;
+//@synthesize variableRelativePath;
+//@synthesize timeToRefresh;
 @synthesize synchronizing;
 @synthesize statusOfSync;
+@synthesize managedObjectContext;
 
 
-// Other Getters
+/* Other Getters
 -(id)managedObjectContext
 {
     return self.productCollectionContext;
-}
+} */
 
-//Override getter and maintain KVC compliance
-- (NSString *)collectionCachePath
+/*Override getter and maintain KVC compliance
++ (NSString *)collectionCachePath
 {
-    assert(self.productCollectionContext != nil);
-    return self.productCollectionContext.collectionCachePath;
-}
+    NSString *cacheDir;
+    NSArray *cachesPaths;
+    
+    cacheDir = nil;
+    cachesPaths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
+    if ( (cachesPaths != nil) && ([cachesPaths count] != 0) ) {
+        assert([[cachesPaths objectAtIndex:0] isKindOfClass:[NSString class]]);
+        cacheDir = [cachesPaths objectAtIndex:0];
+    }
+    return cacheDir;
+} */
 
 
 
-// Changes in the productCollectionContext property will trigger
+/* Changes in the productCollectionContext property will trigger
 // KVO notifications to observers of managedObjectContext property
 + (NSSet *)keyPathsForValuesAffectingManagedObjectContext
 {
     return [NSSet setWithObject:@"productCollectionContext"];
-}
+} */
 
 // Format for the ProductCollection Cache directory
 static NSString * kCollectionNameTemplate = @"Collection%.9f.%@";
@@ -132,11 +142,11 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     self = [super init];
     if (self != nil) {
         self.collectionURLString = collectURLString;
-        pathsOldResults = [[NSMutableDictionary alloc] init];
-        assert(pathsOldResults!=nil);
-        self->variableRelativePath = @"default";
+        //pathsOldResults = [[NSMutableDictionary alloc] init];
+        //assert(pathsOldResults!=nil);
+        //self->variableRelativePath = @"default";
                         
-        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(appDidBecomeActive:) name:UIApplicationDidBecomeActiveNotification object:nil];
+        //[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(appDidBecomeActive:) name:UIApplicationDidBecomeActiveNotification object:nil];
         
         [[QLog log] logWithFormat:@"Collection cache instantiated with URL: %@", self.collectionURLString];
     }
@@ -178,7 +188,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     NSString *          cachesDirectoryPath;
     NSArray *           possibleCollectionCacheNames;
     NSMutableArray *    collectionCachePathsToDelete;
-    NSMutableArray *    activeCollectionCachePathsAndDates;
+    //NSMutableArray *    activeCollectionCachePathsAndDates;
     
     fileManager = [NSFileManager defaultManager];
     assert(fileManager != nil);
@@ -217,8 +227,8 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     possibleCollectionCacheNames = [fileManager contentsOfDirectoryAtPath:cachesDirectoryPath error:NULL];
     assert(possibleCollectionCacheNames != nil);
     
-    activeCollectionCachePathsAndDates = [NSMutableArray array];
-    assert(activeCollectionCachePathsAndDates != nil);
+    //activeCollectionCachePathsAndDates = [NSMutableArray array];
+    //assert(activeCollectionCachePathsAndDates != nil);
     
     // Enumerate through all the ProductCollection Cache directories
     
@@ -260,29 +270,13 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
                     [collectionCachePathsToDelete addObject:collectionPath];
                 } else {
                     assert([modifiedDate isKindOfClass:[NSDate class]]);
-                    [activeCollectionCachePathsAndDates addObject:
-                        [NSDictionary dictionaryWithObjectsAndKeys:
-                         collectionPath, @"collectionPath", modifiedDate, @"modifiedDate",nil]];
+                    if ([modifiedDate timeIntervalSinceNow] >= -kMAX_COLLECTION_DURATION) {
+                        [[QLog log] logWithFormat:@"Database in Collection Cache: %@ exceeds Max Duration: %d, will be deleted!", collectionCacheName, kMAX_COLLECTION_DURATION];
+                        [collectionCachePathsToDelete addObject:collectionPath];
+                    }                    
                 }
             }
         }
-    }
-    
-    // Mark the oldest Collection cache directories for deletion until we are under the
-    // Collection Cache limit - kActiveCollectionCachesLimit
-    
-    [activeCollectionCachePathsAndDates sortUsingDescriptors:[NSArray arrayWithObject:[[NSSortDescriptor alloc] initWithKey:@"modifiedDate" ascending:YES]]];
-    while ([activeCollectionCachePathsAndDates count] > kActiveCollectionCachesLimit) {
-        
-        NSString *collectionPath;
-        collectionPath = [[activeCollectionCachePathsAndDates objectAtIndex:0] objectForKey:@"collectionPath"];
-        assert([collectionPath isKindOfClass:[NSString class]]);
-        
-        [[QLog log] logWithFormat:@"Stale Collection Cache marked for delete: '%@'", [collectionPath lastPathComponent]];
-        
-        [self markForRemoveCollectionCacheAtPath:collectionPath];
-        [collectionCachePathsToDelete addObject:collectionPath];
-        [activeCollectionCachePathsAndDates removeObjectAtIndex:0];
     }
     
     /*
@@ -320,25 +314,26 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
 
 #pragma mark * ProductCollection lifecycle Management
 
-// Method that is called when application is transitioning to the ACTIVE state
+/* Method that is called when application is transitioning to the ACTIVE state
 - (void)appDidBecomeActive:(NSNotification *)notification
 {
 #pragma unused(notification)
     
      if ( [[NSUserDefaults standardUserDefaults] boolForKey:@"collectionSyncOnActivate"] ) {
-        if (self.productCollectionContext != nil) {
-            [self startSynchronization:variableRelativePath];
+        if ( self.managedObjectContext != nil  self.productCollectionContext != nil ) {
+            [self startSynchronization:nil];
         }
     }
-}
+} */
 
 #pragma mark * Core Data Management
 // Override synthesized Getter for the productItemEntity property
 - (NSEntityDescription *)productItemEntity
 {
     if (self->productItemEntity == nil) {
-        assert(self.productCollectionContext != nil);
-        self->productItemEntity = [NSEntityDescription entityForName:@"MzProductItem" inManagedObjectContext:self.productCollectionContext];
+        //assert(self.productCollectionContext != nil);
+        assert(self.managedObjectContext != nil);
+        self->productItemEntity = [NSEntityDescription entityForName:@"MzProductItem" inManagedObjectContext:self.managedObjectContext];
         assert(self->productItemEntity != nil);
     }
     return self->productItemEntity;
@@ -347,6 +342,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
 // Method to return all stored ProductItems (MzProductItem objects)
 - (NSFetchRequest *)productItemsFetchRequest
 {
+    assert(self.productItemEntity != nil);
     NSFetchRequest *    fetchRequest;    
     fetchRequest = [[NSFetchRequest alloc] init];
     assert(fetchRequest != nil);
@@ -355,6 +351,52 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     [fetchRequest setFetchBatchSize:20];
     
     return fetchRequest;
+}
+
+// Retrieve all the ProductItems in the Collection asynchronously. This method will return immediately
+//so the caller is expected to use KVO on the returned NSArray to get notified when the productItems 
+// have been fetched
+-(NSArray *)fetchProductsInCollection
+{
+    assert(self.collectionURLString != nil);
+    BOOL success;
+    __block NSArray *products = nil;
+    // Check if we have already set up our NSManagedObjectContext and Cache
+    if (self.managedObjectContext == nil) {
+        success = [self setupProductCollectionContext];
+        if (success) {
+            // we can now fetch the products
+            assert(self.managedObjectContext != nil);
+            
+            [self.managedObjectContext performBlock:^{
+                NSError *error = nil;
+                NSFetchRequest *fetchRequest = [self productItemsFetchRequest];
+                assert(fetchRequest != nil);
+                NSArray *fetchResults = [self.managedObjectContext executeFetchRequest:fetchRequest error:&error];
+                if (fetchResults != nil) {
+                    products = [NSArray arrayWithArray:fetchResults];
+                } else {
+                    [[QLog log] logWithFormat:@"Failed to retrieve Products in Collection Cache database at Path: '%@'", self.collectionCachePath];
+                }
+            }];
+        } else {
+            [[QLog log] logWithFormat:@"Failed to instantiate ProductCollectionContext for Cache database at Path: '%@'", self.collectionCachePath];        }
+    } else {
+        
+        // we already have our NSManagedObjectContext setup
+        [self.managedObjectContext performBlock:^{
+            NSError *error = nil;
+            NSFetchRequest *fetchRequest = [self productItemsFetchRequest];
+            assert(fetchRequest != nil);
+            NSArray *fetchResults = [self.managedObjectContext executeFetchRequest:fetchRequest error:&error];
+            if (fetchResults != nil) {
+                products = [NSArray arrayWithArray:fetchResults];
+            } else {
+                [[QLog log] logWithFormat:@"Failed to retrieve Products in Collection Cache database at Path: '%@'", self.collectionCachePath];
+            }
+        }];
+    }
+    return products;
 }
 
 // Finds the associated CollectionCache(Path) given a collectionURLString and
@@ -503,10 +545,16 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
         success = (persistentCoordinator != nil);
     }
     if (success) {
+        
+        // Checks if we already have a persistent store and initialize if we do or else create a new
+        // persistent store        
+        NSDictionary *options = [NSDictionary dictionaryWithObjectsAndKeys:
+                                 [NSNumber numberWithBool:YES], NSMigratePersistentStoresAutomaticallyOption,
+                                 [NSNumber numberWithBool:YES], NSInferMappingModelAutomaticallyOption, nil];
         success = [persistentCoordinator addPersistentStoreWithType:NSSQLiteStoreType 
                                     configuration:nil 
                                               URL:collectionDbURL
-                                          options:nil 
+                                          options:options 
                                             error:&error] != nil;
         if (success) {
             error = nil;
@@ -515,19 +563,29 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     
     // Create a managed Object Context from the created persistent store
     if (success) {
-        MzProductCollectionContext *collectionContext;
+        
+        NSManagedObjectContext *collectionContext;
+        collectionContext = [[NSManagedObjectContext alloc] initWithConcurrencyType:NSPrivateQueueConcurrencyType];
+        assert(collectionContext != nil);
+        /*MzProductCollectionContext *collectionContext;
         
         collectionContext = [[MzProductCollectionContext alloc] initWithCollectionURLString:self.collectionURLString cachePath:collectionPath];
-        assert(collectionContext != nil);
+        assert(collectionContext != nil); */
         
         [collectionContext setPersistentStoreCoordinator:persistentCoordinator];
-        self.productCollectionContext = collectionContext;
+        //self.productCollectionContext = collectionContext;
+        self.managedObjectContext = collectionContext;
         
         // Subscribe to the context changed notification so that we can auto-save.
         
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(collectionContextChanged:) name:NSManagedObjectContextObjectsDidChangeNotification object:self.managedObjectContext];
         
         [[QLog log] logWithFormat:@"Collection started successfully at Path: '%@' for URL: %@", [self.collectionCachePath lastPathComponent], self.collectionURLString];
+        
+        // Set our dateLastSynced property
+        if (self.dateLastSynced == nil) {
+            self.dateLastSynced = [NSDate date];
+        }
     } else {
         
         // Log the error and return NO.
@@ -570,118 +628,40 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
         
         // append the variableRelativePath to collectionURLString happens in the
         // startGetOperation: method
-        [self startSynchronization:self.variableRelativePath];
+        [self startSynchronization:nil];
         
-        // start the Refresh Timer
+        /* start the Refresh Timer
         self.timeToRefresh = [NSTimer scheduledTimerWithTimeInterval:kTimeIntervalToRefreshCollection target:self selector:@selector(refreshCollection) userInfo:nil repeats:YES];
-        assert([self.timeToRefresh isValid]);
+        assert([self.timeToRefresh isValid]); */
     } else {
         abort();
     }
 }
 
-// Refresh the collection - method called by RefreshTimer
+/* Refresh the collection
+ If the dateLastSynced time interval from now is greater than kMAX_REFRESH_INTERVAL then the
+ ProductCollection cache is re-synchronized. This method is called by the MzResultListViewController
+ which checks the dateLastSynced property of every ProductCollection when we receive a
+ UIApplicationDidBecomeActiveNotification
+ */
 - (void)refreshCollection 
 {
-    /*
-     Because the RefreshTimer is set to fire after 10mins, productItems will be
-     refreshed in database in the time range > 10 minutes. We simply choose the "oldest"
-     relativePath (i.e, the relativePath associated with the oldest parserResults)
-     for the refresh operation. We also check that the relativePath is at least 10mins
-     "old" before we hit the network.
-     
-     NOTE: Its likely most users will not keep a particular collection active for more
-     than 10 mins, but if they do we need to refresh the collection since productItem
-     attributes like price and availability change very quickly and often.
-     */
-    
-    //Refresh only if we are not already syncing to avoid potential conflict with
-    // the MzProductCollectionViewController - checked in startSynchronization method
-    
-    assert(pathsOldResults != nil);
-    
-    // Check that we have more than 1 entry in the pathsOldResults map. If only 1 entry,
-    // don't bother looking for the "oldest" and just refresh that entry
-    if ([pathsOldResults count] > 1) {
-        
-        [[QLog log] logWithFormat:@"Start Refresh of Collection Cache with URL: %@", self.collectionURLString];
-        
-        NSString *pathToRefresh;
-        NSArray * pathsValues;
-        NSString *pathKey;
-        NSArray *oldestKey;
-        
-        //keep track of which dates associate with which paths
-        NSMutableDictionary *pathsToDates;             
-        pathsToDates = [NSMutableDictionary dictionary];
-        assert(pathsToDates != nil);
-        
-                                
-        //Enumerate and create a relativePath to date map
-        NSEnumerator *pathEnumerator;
-        pathEnumerator = [pathsOldResults keyEnumerator];
-        assert(pathEnumerator != nil);
-        
-        while (pathKey = [pathEnumerator nextObject]) {
-            [pathsToDates setObject:[[pathsOldResults objectForKey:pathKey] lastObject] forKey:pathKey];
+    if (self.dateLastSynced != nil && self.managedObjectContext != nil) {
+        if ([self.dateLastSynced timeIntervalSinceNow] >= -kMAX_REFRESH_INTERVAL) {
             
-        }
-        
-        // Sort by the Date values
-        pathsValues = [pathsToDates allValues];
-        assert(pathsValues != nil);
-        assert([pathsValues count] > 0);
-        [pathsValues sortedArrayUsingComparator:^(id obj1, id obj2) {
-            return [obj1 compare:obj2];
-        }];
-        
-        // Check that the oldest Date value is more than kTimeIntervalToRefreshCollection
-        // so we do not waste time hitting the network
-        NSDate *currentTime;
-        currentTime = [NSDate date];
-        assert(currentTime!= nil);
-        
-        if ([currentTime timeIntervalSinceDate:[pathsValues objectAtIndex:0]] > kTimeIntervalToRefreshCollection) {
+            // We can now refresh
+            [[QLog log] logWithFormat:@"Start Refresh of Collection Cache with URL: %@", self.collectionCachePath];
             
-            // Get the "oldest" key - associated with earliest parserResult
-            oldestKey = [pathsToDates allKeysForObject:[pathsValues objectAtIndex:0]];
-            assert(oldestKey != nil);
-            assert([oldestKey count] == 1);
-            pathToRefresh = [oldestKey objectAtIndex:0];
-            assert(pathToRefresh!= nil);
-            
-            // we can now start synchronization to Refresh
-            [self startSynchronization:pathToRefresh];
-
+            // Introduce a random delay so all the Product Collection caches do not all get
+            // synchronizing at the same time
+            int delay = arc4random() % 100;      // get a number between 1 and 99
+            NSTimeInterval delayTime = delay / 10000;
+            [self performSelector:@selector(startSynchronization:) withObject:nil afterDelay:delayTime];            
         } else {
-            // Ignore the Refresh
-            [[QLog log] logWithFormat:@"Too soon to Refresh Collection Cache with URL: %@", self.collectionURLString];
+            [[QLog log] logWithFormat:@"Too soon to Refresh Collection Cache with URL: %@", self.collectionCachePath];
         }
-        
-        
     } else {
-        // We have 0 or 1 entry in the pathsOldResults map
-        if ([pathsOldResults count] > 0) {
-            
-            [[QLog log] logWithFormat:@"Start Refresh of Collection Cache with URL: %@", self.collectionURLString];
-            
-            NSString * pathToRefresh;
-            NSArray *pathKeys;
-            pathKeys = [pathsOldResults allKeys];
-            assert(pathKeys != nil);
-            pathToRefresh = [pathKeys lastObject];
-            assert(pathToRefresh != nil);
-            
-            // Refresh
-            [self startSynchronization:pathToRefresh];
-        } else {
-            
-            // Ignore Refresh
-            [[QLog log] logWithFormat:@"Cannot Refresh Collection Cache with URL: %@", self.collectionURLString];
-            return;
-        }        
-    }   
-        
+        [[QLog log] logWithFormat:@"Failed to Refresh due to invalid Collection State at Path: %@", self.collectionCachePath];    }
 }
 
 // Save the Collection Cache
@@ -698,9 +678,17 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     
     // Now save.
     
-    if ( (self.productCollectionContext != nil) && [self.productCollectionContext hasChanges] ) {
+    /*if ( (self.productCollectionContext != nil) && [self.productCollectionContext hasChanges] ) {
         BOOL success;
         success = [self.productCollectionContext save:&error];
+        if (success) {
+            error = nil;
+        }
+    }*/
+    
+    if (self.managedObjectContext != nil && [self.managedObjectContext hasChanges] ) {
+        BOOL success;
+        success = [self.managedObjectContext save:&error];
         if (success) {
             error = nil;
         }
@@ -734,20 +722,21 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     
     // Shut down the managed object context.
     
-    if (self.productCollectionContext != nil) {
+    if ( self.managedObjectContext != nil /*self.productCollectionContext != nil */) {
         
         // Stop the auto save mechanism and then force a save.
         
-        [[NSNotificationCenter defaultCenter] removeObserver:self name:NSManagedObjectContextObjectsDidChangeNotification object:self.productCollectionContext];
+        [[NSNotificationCenter defaultCenter] removeObserver:self name:NSManagedObjectContextObjectsDidChangeNotification object:self.managedObjectContext];
         
         [self saveCollection];
         
         self.productItemEntity = nil;
-        self.productCollectionContext = nil;
+        //self.productCollectionContext = nil;
+        self.managedObjectContext = nil;
         
         // Invalidate the Refresh Timer
-        [self.timeToRefresh invalidate];
-        self.timeToRefresh = nil;
+        //[self.timeToRefresh invalidate];
+        //self.timeToRefresh = nil;
     }
     [[QLog log] logWithFormat:@"Stopped Collection Cache with URL: %@", self.collectionURLString];
 }
@@ -848,6 +837,38 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     }
 }
 
+/* Method to create the URLRequest, */
+
+- (NSMutableURLRequest *)requestToGetCollectionRelativeString:(NSString *)path
+{
+    NSMutableURLRequest *urlRequest;
+    NSURL *url;
+    
+    assert([NSThread isMainThread]);
+    assert(self.collectionURLString != nil);
+    
+    urlRequest = nil;
+    
+    // Construct the URL.
+    
+    url = [NSURL URLWithString:self.collectionURLString];
+    assert(url != nil);
+    if (path != nil) {
+        url = [NSURL URLWithString:path relativeToURL:url];               
+    }
+    
+    // Call down to the network manager so that it can set up its stuff 
+    // (notably the user agent string).
+    
+    if (url != nil) {
+        urlRequest = [[NetworkManager sharedManager] requestToGetURL:url];
+        assert(urlRequest != nil);
+    }
+    
+    return urlRequest;
+}
+
+
 /* Method that starts an HTTP GET operation to retrieve the product collection's
  XML file. The method has a relativePath argument whose value will be  
  appended to the product collection's collectionURLString for the HTTP GET.
@@ -866,7 +887,8 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     
     [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Start HTTP GET for Collection Cache with URL %@", self.collectionURLString];
     
-    requestURL = [self.productCollectionContext requestToGetCollectionRelativeString:relativePath];
+    //requestURL = [self.productCollectionContext requestToGetCollectionRelativeString:relativePath];
+    requestURL = [self requestToGetCollectionRelativeString:relativePath];
     assert(requestURL != nil);
     
     assert(self.getCollectionOperation == nil);
@@ -881,7 +903,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     self.stateOfSync = ProductCollectionSyncStateGetting;
     
     // Set the variableRelativePath property to keep track of the relativePaths
-    self.variableRelativePath = relativePath;
+    //self.variableRelativePath = relativePath;
 }
 
 // Starts an operation to parse the product collection's XML when the HTTP GET
@@ -943,7 +965,10 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
         self.errorFromLastSync = operation.parseError;
         self.stateOfSync = ProductCollectionSyncStateStopped;
     } else {
-        [self commitParserResults:operation.parseResults];
+        //[self commitParserResults:operation.parseResults];
+        [self.managedObjectContext performBlock:^{
+            [self commitParserResults:operation.parseResults];
+        }];
         
         assert(self.errorFromLastSync == nil);
         self.dateLastSynced = [NSDate date];
@@ -975,273 +1000,132 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
 // Commit the parseResults to the Core Data database
 - (void)commitParserResults:(NSArray *)parserResults
 {
-    /*
-     At this point in the proceedings it is safe to assume that the value of variableRelativePath property corresponds to the parserResults we are being
-     passed so we associate/map the relativePath to the parserResults & timestamp in
-     either the pathsOldResults or pathsNewResults dictionaries depending on whether
-     we seen this relativePath before.
-     
-     This enables us to periodically refresh the parserResults (after every 5-10 minutes)
-     */
+    assert(parserResults != nil);
     
-    assert(self.variableRelativePath != nil);
-    assert(self.pathsOldResults != nil);
-        
-    NSArray *oldKeys = [pathsOldResults allKeys];
-    assert(oldKeys != nil);
-        
-    /*
-     We now do the following:
-     1- check if there are any relative paths in BOTH the pathsOldResult and the pathsNewResult dictionaries AND the time interval between the creation time of the old and new parserResults > 5mins, if none, just commit the parserResults
-     2- If step 1, get all the productItems corresponding to the productID's in the old parserResults (oldSet) from the Core Data database
-     - parse and get all the productID's in the new parserResults (newSet)
-     - Update the attributes of any productItems that are in both the oldSet and the newSet
-     - Delete the productItems that are in the oldSet but not in the newSet
-     - Insert the productItems that are not in oldSet but are in the newSet
-     */
-    
-    // create the array with a parseResult and timestamp
-    
-    if ([oldKeys containsObject:self.variableRelativePath]){
-        NSDictionary *pathsNewResults;
-        NSArray * newResult = [NSArray arrayWithObjects:parserResults,[NSDate date], nil];
-        assert(newResult != nil);
-        pathsNewResults = [NSDictionary dictionaryWithObject:newResult forKey:self.variableRelativePath];
-        assert(pathsNewResults != nil);          
-            
-        // compare the times for the parserResults
-        NSDate *oldparserTime;
-        NSDate *newparserTime;
-        NSTimeInterval parserUpdateInterval;
-        
-        oldparserTime = [NSDate dateWithTimeInterval:0 sinceDate:[[pathsOldResults objectForKey:self.variableRelativePath] lastObject]];
-        assert(oldparserTime != nil);
-        newparserTime = [NSDate dateWithTimeInterval:0 sinceDate:[[pathsNewResults objectForKey:self.variableRelativePath] lastObject]];
-        assert(newparserTime != nil);
-        
-        parserUpdateInterval = [newparserTime timeIntervalSinceDate:oldparserTime];
-        
-        // Update, delete, insert the new product items accordingly since we are sure
-        // we have likely seen these productItems and need to refresh them
-        
-        if (parserUpdateInterval > kTimeIntervalToRefreshCollection) {
+     if ([parserResults count] > 0) {
             
             NSFetchRequest *fetchRequest;
-            NSError *fetchError;
+            NSError *fetchError = NULL;
             NSMutableSet *oldParserIDs;
             NSMutableSet *newParserIDs;
-            MzProductItem * newProduct;
-            NSPredicate *existingProducts;
+            NSMutableSet *updateParserIDs;
+            NSMutableSet *deleteParserIDs;
             NSArray *retrievedProducts;
             
-            oldParserIDs = [NSMutableSet set];
-            assert(oldParserIDs != nil);
-            newParserIDs = [NSMutableSet set];
+            // Retrieve and store the productIDs from the parserResults in a set (avoids duplicates)
+            newParserIDs = [NSMutableSet setWithArray:[parserResults valueForKey:kCollectionParserResultProductID]];
             assert(newParserIDs != nil);
             
-            // Parse the old parserResults and store the productIDs
-            NSArray *oldparserResults = [NSArray arrayWithArray:[[pathsOldResults objectForKey:self.variableRelativePath] objectAtIndex:0]];
-            assert(oldparserResults != nil);
-            
-            for (NSDictionary * oldParserResult in oldparserResults) {
-                NSString *productID;
-                
-                productID  = [oldParserResult objectForKey:kCollectionParserResultProductID];
-                assert([productID isKindOfClass:[NSString class]]);
-                
-                // Check for duplicates.
-                
-                if ([oldParserIDs containsObject:productID]) {
-                    [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Collection Cache with URL %@ contains duplicate productItem %@", self.collectionURLString, productID];
-                } else {
-                    
-                    [oldParserIDs addObject:productID];
-                }
-                
-                // Get all the productItems from the database that correspond to the productID's in the
-                // old parserResults
-                
-                fetchRequest = [[NSFetchRequest alloc] init];
-                assert(fetchRequest != nil);
-                existingProducts = [NSPredicate predicateWithFormat:@"productID IN %@", oldParserIDs];
-                assert(existingProducts != nil);
-                
-                [fetchRequest setEntity:self.productItemEntity];
-                [fetchRequest setFetchBatchSize:20];
-                [fetchRequest setPredicate:existingProducts];
-                retrievedProducts = [self.productCollectionContext executeFetchRequest:fetchRequest error:&fetchError];
-                assert(retrievedProducts != nil);    
-                
-                //Update, insert, delete the retrieved productItems based on the properties of the new
-                // parserResults
-                
-                if (retrievedProducts != nil) {
-                    NSMutableSet *productsToRemove;
-                    NSMutableDictionary *productIDToRetrievedProduct;
-                    MzProductItem *existingProduct;
-                    
-                    // productsToRemove starts as the set of all productItems we retrieved
-                    productsToRemove = [NSMutableSet setWithArray:retrievedProducts];
-                    assert(productsToRemove != nil);
-                    
-                    // create the map from productID to productItem
-                    productIDToRetrievedProduct = [NSMutableDictionary dictionary];
-                    assert(productIDToRetrievedProduct != nil);
-                    
-                    for (existingProduct in retrievedProducts) {
-                        assert([existingProduct isKindOfClass:[MzProductItem class]]);
-                        
-                        [productIDToRetrievedProduct setObject:existingProduct forKey:existingProduct.productID];
-                    }
-                    
-                    // Iterate through the incoming XML results, processing each one in turn
-                    for (NSDictionary * parserResult in parserResults) {
-                        NSString *productID;
-                        
-                        productID  = [parserResult objectForKey:kCollectionParserResultProductID];
-                        assert([productID isKindOfClass:[NSString class]]);
-                        
-                        // Check for duplicates.
-                        
-                        if ([newParserIDs containsObject:productID]) {
-                            [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Collection Cache with URL %@ contains duplicate productItem %@", self.collectionURLString, productID];
-                        } else {
-                            NSDictionary *properties;
-                            
-                            [newParserIDs addObject:productID];
-                            
-                            // Build a properties dictionary to create new MzProductItem.
-                            
-                            properties = [NSDictionary dictionaryWithObjectsAndKeys:
-                                          productID,                                                        @"productID",
-                                          [parserResult objectForKey:kCollectionParserResultTitle],           @"productTitle", 
-                                          [parserResult objectForKey:kCollectionParserResultDetailsPath],           @"productDetailPath", 
-                                          [parserResult objectForKey:kCollectionParserResultImagePath],      @"remoteImagePath", 
-                                          [parserResult objectForKey:kCollectionParserResultThumbNailPath],  @"remoteThumbnailPath",
-                                          [parserResult objectForKey:kCollectionParserResultDescription], @"productDescription",
-                                          [parserResult objectForKey:kCollectionParserResultLanguage],           @"productLanguage",
-                                          [parserResult objectForKey:kCollectionParserResultCountry],           @"productCountry",
-                                          [parserResult objectForKey:kCollectionParserResultClassID],           @"productClassID",
-                                          [parserResult objectForKey:kCollectionParserResultSubClassID],           @"productSubClassID",
-                                          [parserResult objectForKey:kCollectionParserResultPriceUnit],           @"productPriceUnit",
-                                          [parserResult objectForKey:kCollectionParserResultPriceAmount],           @"productPriceAmount",
-                                          [parserResult objectForKey:kCollectionParserResultBrand],           @"productBrand",
-                                          [parserResult objectForKey:kCollectionParserResultCondition],           @"productCondition",
-                                          [parserResult objectForKey:kCollectionParserResultAvailability],           @"productAvailability",
-                                          nil
-                                          ];
-                            assert(properties != nil);
-                            
-                            // check for existing productItem and update or insert accordingly
-                            existingProduct = [productIDToRetrievedProduct objectForKey:productID];
-                            
-                            if (existingProduct != nil) {
-                                
-                                //Update productItem with new incoming properties.
-                                
-                                [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Update ProductItem: %@ for Collection Cache with URL: %@", productID, self.collectionURLString];
-                                [productsToRemove removeObject:existingProduct];
-                                [existingProduct updateWithProperties:properties];
-                                
-                            } else {
-                                //Create a new ProductItem with the specified properties.
-                                
-                                [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Create  ProductItem: %@ for Collection Cache with URL: %@", productID, self.collectionURLString];
-                                newProduct = [MzProductItem insertNewMzProductItemWithProperties:properties inManagedObjectContext:self.productCollectionContext];
-                                assert(newProduct != nil);
-                                assert(newProduct.productID != nil);
-                                assert(newProduct.localImagePath == nil);
-                                assert(newProduct.thumbnail == nil);
-                                assert(newProduct.productTimestamp != nil);
-                            }
-                            
-                        }
-                    }
-                    // Remove any products not in the newParserResults.
-                    
-                    for (existingProduct in productsToRemove) {
-                        [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Delete ProductItem: %@ for Collection Cache with URL %@", existingProduct.productID, self.collectionURLString];
-                        [self.productCollectionContext deleteObject:existingProduct];
-                    }
-                }
+            // Check for duplicates - the duplicates will be ignored
+            if ([newParserIDs count] != [parserResults count]) {
+                [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Duplicates in new product Items for Collection Cache at Path: %@", self.collectionCachePath];
             }
-
-        } else {
             
-            // In this case we do nothing....
-            [[QLog log] logWithFormat:@"Ignored Refresh for Collection Cache with URL: %@", self.collectionURLString];
+            // Get all the productItems from the database
+            fetchRequest = [self productItemsFetchRequest];
+            assert(fetchRequest != nil);
+            retrievedProducts = [self.managedObjectContext executeFetchRequest:fetchRequest error:&fetchError];
+            assert(retrievedProducts != nil);
             
-        }
-        
-    } else {
-        
-        // Update the the oldpathResults dictionary
-        NSArray * oldResult = [NSArray arrayWithObjects:parserResults,[NSDate date], nil];
-        assert(oldResult != nil);
-        [pathsOldResults setValue:oldResult forKey:variableRelativePath];
-        
-        // commit the new parserResults, there is no need to check the database since
-        // we are sure we have not seen the relativePath that generated these parserResults
-        // so these should all be new productItems.
-        
-        NSMutableSet *newParserIDs;
-        MzProductItem *newProduct;
-        newParserIDs = [NSMutableSet set];
-        assert(newParserIDs != nil);
-        
-        // Iterate through the incoming XML results, processing each one in turn
-        for (NSDictionary * parserResult in parserResults) {
-            NSString *productID;
-            
-            productID  = [parserResult objectForKey:kCollectionParserResultProductID];
-            assert([productID isKindOfClass:[NSString class]]);
-            
-            // Check for duplicates.
-            
-            if ([newParserIDs containsObject:productID]) {
-                [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Collection Cache with URL %@ contains duplicate productItem %@", self.collectionURLString, productID];
-            } else {
-                NSDictionary *properties;
+            // Handle errors, we do not commit the new parserResults if we have errors and we mark ourselves for
+            // deletion...the next time we synchronize we shall re-create the Cache and database and commit the
+            // parser results
+            if (fetchError) {
+                [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Error: %@ while fetching from Collection Cache at Path: %@..will mark self for Deletion!", fetchError.localizedDescription, self.collectionCachePath];
+                [self markForRemoveCollectionCacheAtPath:self.collectionCachePath];
+                return;
+            }
                 
-                [newParserIDs addObject:productID];
+            // Do the Updates accordingly
+            if ([retrievedProducts count] > 0) {
                 
-                // Build a properties dictionary to create new MzProductItem.
+                // Retrieve the productIDs from the existing productItems
+                oldParserIDs = [NSMutableSet setWithArray:[retrievedProducts valueForKey:kCollectionParserResultProductID]];
+                assert(oldParserIDs != nil);
                 
-                properties = [NSDictionary dictionaryWithObjectsAndKeys:
-                              productID,                                                        @"productID",
-                              [parserResult objectForKey:kCollectionParserResultTitle],           @"productTitle", 
-                              [parserResult objectForKey:kCollectionParserResultDetailsPath],           @"productDetailPath", 
-                              [parserResult objectForKey:kCollectionParserResultImagePath],      @"remoteImagePath", 
-                              [parserResult objectForKey:kCollectionParserResultThumbNailPath],  @"remoteThumbnailPath",
-                              [parserResult objectForKey:kCollectionParserResultDescription], @"productDescription",
-                              [parserResult objectForKey:kCollectionParserResultLanguage],           @"productLanguage",
-                              [parserResult objectForKey:kCollectionParserResultCountry],           @"productCountry",
-                              [parserResult objectForKey:kCollectionParserResultClassID],           @"productClassID",
-                              [parserResult objectForKey:kCollectionParserResultSubClassID],           @"productSubClassID",
-                              [parserResult objectForKey:kCollectionParserResultPriceUnit],           @"productPriceUnit",
-                              [parserResult objectForKey:kCollectionParserResultPriceAmount],           @"productPriceAmount",
-                              [parserResult objectForKey:kCollectionParserResultBrand],           @"productBrand",
-                              [parserResult objectForKey:kCollectionParserResultCondition],           @"productCondition",
-                              [parserResult objectForKey:kCollectionParserResultAvailability],           @"productAvailability",
-                              nil
-                              ];
-                assert(properties != nil);
+                // productIDs to update
+                updateParserIDs = [NSMutableSet setWithSet:newParserIDs];
+                assert(updateParserIDs != nil);
+                [updateParserIDs intersectSet:oldParserIDs];
                 
-                  //Create a new ProductItem with the specified properties.
+                // productIDs to delete
+                deleteParserIDs = [NSMutableSet setWithSet:oldParserIDs];
+                assert(deleteParserIDs != nil);
+                [deleteParserIDs minusSet:newParserIDs];
+                
+                // productIDs to insert
+                [newParserIDs minusSet:oldParserIDs];
+                
+                // Iterate through the productItems
+                for (MzProductItem *productItem in retrievedProducts ) {
+                    assert([productItem isKindOfClass:[MzProductItem class]]);
                     
-                    [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Create  ProductItem: %@ for Collection Cache with URL: %@", productID, self.collectionURLString];
-                    newProduct = [MzProductItem insertNewMzProductItemWithProperties:properties inManagedObjectContext:self.productCollectionContext];
+                    if ( [deleteParserIDs containsObject:productItem.productID] ) {
+                        [self.managedObjectContext deleteObject:productItem];
+                        
+                    } else if ([updateParserIDs containsObject:productItem.productID] ) {
+                        
+                        // Get the NSDictionary that corresponds to this productID
+                       NSUInteger dictMatch = [parserResults indexOfObjectPassingTest:^(NSDictionary *parseResult, NSUInteger idx, BOOL *stop) {                          
+                                       if ([productItem.productID isEqualToString:[parseResult objectForKey:kCollectionParserResultProductID]]) {
+                                           *stop = YES;
+                                           return YES;
+                                       } else {
+                                           return NO;
+                                       }
+                                   }];
+                        if (dictMatch != NSNotFound) {
+                            //Update productItem with new incoming properties.
+                            
+                            [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Update ProductItem: %@ for Collection Cache with URL: %@", productItem.productID, self.collectionCachePath];
+                            [productItem updateWithProperties:[parserResults objectAtIndex:dictMatch]];
+                        } else {
+                            // Unexpected scenario
+                            [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Failed to find expected ProductItem: %@ for Collection Cache with URL: %@", productItem.productID, self.collectionCachePath];                        
+                        }
+                    }                    
+                }
+                
+                // Insert the new products (Ignores duplicates)
+                [newParserIDs enumerateObjectsUsingBlock:^(NSString *productId, BOOL *stop) {
+                    
+                    // Get the NSDictionary that corresponds to this productID
+                    NSUInteger dictMatch = [parserResults indexOfObjectPassingTest:^(NSDictionary *parseResult, NSUInteger idx, BOOL *stop) {                          
+                        if ([productId isEqualToString:[parseResult objectForKey:kCollectionParserResultProductID]]) {
+                            *stop = YES;
+                            return YES;
+                        } else {
+                            return NO;
+                        }
+                    }];
+                    
+                    // Insert the new product
+                    if (dictMatch != NSNotFound) {
+                        [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Created a ProductItem: %@ for Collection Cache with URL: %@", productId, self.collectionCachePath];
+                        MzProductItem *newProduct = [MzProductItem insertNewMzProductItemWithProperties:[parserResults objectAtIndex:dictMatch] inManagedObjectContext:self.managedObjectContext];
+                        assert(newProduct != nil);
+                        assert(newProduct.productID != nil);
+                        assert(newProduct.localImagePath == nil);
+                        assert(newProduct.thumbnail == nil);
+                        assert(newProduct.productTimestamp != nil);
+                    }
+                }];
+                
+            } else {
+                
+                // insert all the new productItems
+                for (NSDictionary *result in parserResults) {
+                    
+                    [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Creating %d ProductItems: %@ for Collection Cache with URL: %@", [parserResults count], self.collectionCachePath];
+                    MzProductItem *newProduct = [MzProductItem insertNewMzProductItemWithProperties:result inManagedObjectContext:self.managedObjectContext];
                     assert(newProduct != nil);
                     assert(newProduct.productID != nil);
                     assert(newProduct.localImagePath == nil);
                     assert(newProduct.thumbnail == nil);
                     assert(newProduct.productTimestamp != nil);
                 }
-                
-        }
-
-    }
-     
+            }         
+       }             
                    
 #if ! defined(NDEBUG)
    // [self checkDatabase];
