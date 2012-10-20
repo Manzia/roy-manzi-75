@@ -62,7 +62,7 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
 @property (nonatomic, retain, readwrite) NSString *productCondition;
 @property (nonatomic, retain, readwrite) NSString *productAvailability;
 @property (nonatomic, retain, readwrite) MzProductThumbNail *thumbnail;
-@property (nonatomic, copy, readwrite) NSError *errorGettingImage;
+//@property (nonatomic, copy, readwrite) NSError *errorGettingImage;
 
 // The thumbnailImages dictionary keeps the "newest" thumbnailImages for our
 // MzProductItem with keys that indicate the thumbnail Size. The dictionary also
@@ -74,10 +74,10 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
 
 // private properties
 
-@property (nonatomic, retain, readonly ) MzProductCollectionContext *      productCollectionContext;
+//@property (nonatomic, retain, readonly ) MzProductCollectionContext *      productCollectionContext;
 @property (nonatomic, retain, readwrite) RetryingHTTPOperation *getThumbnailOperation;
-@property (nonatomic, retain, readwrite) RetryingHTTPOperation *getPhotoOperation;
-@property (nonatomic, copy,   readwrite) NSString *getPhotoFilePath;
+//@property (nonatomic, retain, readwrite) RetryingHTTPOperation *getPhotoOperation;
+//@property (nonatomic, copy,   readwrite) NSString *getPhotoFilePath;
 @property (nonatomic, assign, readwrite) BOOL thumbnailImageIsPlaceholder;
 
 
@@ -112,12 +112,12 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
 
 // Synthesized getters/setters
 @synthesize getThumbnailOperation;
-@synthesize getPhotoOperation;
+//@synthesize getPhotoOperation;
 @synthesize thumbnailImageIsPlaceholder;
-@synthesize getPhotoFilePath;
-@synthesize productCollectionContext;
+//@synthesize getPhotoFilePath;
+//@synthesize productCollectionContext;
 @synthesize thumbnailImages;
-@synthesize errorGettingImage;
+//@synthesize errorGettingImage;
 
 #pragma mark * Insert & Update Product Items
 // Creates a MzProductItem object with the specified properties in the specified context. 
@@ -261,11 +261,14 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
     if (productThumbnailNeedsUpdate) {
         [self updateProductThumbnail];
     }
+    
+    // For now we do not need to download full-size product images but the functionality
+    // will be left in place in case we need this feature in the future.
     if (productImageNeedsUpdate) {
-        [self updateProductImage];
+        //[self updateProductImage];
     }
 }
-// Getter for our ManagedObjectContext
+/* Getter for our ManagedObjectContext
 - (MzProductCollectionContext *)productCollectionContext
 {
     MzProductCollectionContext *result;
@@ -273,7 +276,7 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
     assert( [result isKindOfClass:[MzProductCollectionContext class]] );
     
     return result;
-}
+} */
 
 // Method to stop the getThumbnailOperation, return BOOL value = YES indicates that either
 // the getThumbnailOperation or the resizeThumbnailOperation have been stopped
@@ -310,7 +313,7 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
         [[QLog log] logWithFormat:@"Cancelled thumbnail fetch for Product Item %@", self.productID];
     }
     
-    // Cancel the fetching of the product Image if in progress
+    /* Cancel the fetching of the product Image if in progress
     if (self.getPhotoOperation != nil) {
         [[NetworkManager sharedManager] cancelOperation:self.getPhotoOperation];
         self.getPhotoOperation = nil;
@@ -319,14 +322,14 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
             self.getPhotoFilePath = nil;
         }
         [[QLog log] logWithFormat:@"Cancelled product Image fetch for Product Item %@", self.productID];
-    }
+    }*/
 }
 
 // Override prepareForDeletion in order to get rid of the product Image file. Also
 // stop all network-based operations
-- (void)prepareForDeletion
+/*- (void)prepareForDeletion
 {
-    BOOL success;
+    //BOOL success;
     
     [[QLog log] logWithFormat:@"Product Image for Product Item %@ deleted", self.productID];
     
@@ -337,10 +340,10 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
     if (self.localImagePath != nil) {
         success = [[NSFileManager defaultManager] removeItemAtPath:[self.productCollectionContext.productImagesDirectoryPath stringByAppendingPathComponent:self.localImagePath] error:NULL];
         assert(success);
-    }
+    } 
     
     [super prepareForDeletion];
-}
+} */
 
 // There are three common reasons for turning into a fault:
 // 
@@ -539,7 +542,7 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
             assert(returnImage != nil);
         } break;
         case kMediumThumbnailImage: {
-            returnImage = [thumbnailImages objectForKey:kThumbNailSizeMedium];
+           /* returnImage = [thumbnailImages objectForKey:kThumbNailSizeMedium];
             
             // hit the database if we don't have the thumbnail in the dictionary
             if (returnImage == nil && self.thumbnail.imageDataMedium != nil) {
@@ -562,11 +565,12 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
                 returnImage = [self.thumbnailImages objectForKey:kThumbnailPlaceHolder];
                 self.thumbnailImageIsPlaceholder = YES;
             }
-            assert(returnImage != nil);
+            assert(returnImage != nil); */
+            returnImage = nil;
 
         }break;
         case kLargeThumbnailImage: {
-            returnImage = [thumbnailImages objectForKey:kThumbNailSizeLarge];
+           /* returnImage = [thumbnailImages objectForKey:kThumbNailSizeLarge];
             
             // hit the database if we don't have the thumbnail in the dictionary
             if (returnImage == nil && self.thumbnail.imageDataLarge != nil) {
@@ -589,8 +593,8 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
                 returnImage = [self.thumbnailImages objectForKey:kThumbnailPlaceHolder];
                 self.thumbnailImageIsPlaceholder = YES;
             }
-            assert(returnImage != nil);
-
+            assert(returnImage != nil); */
+            returnImage = nil;
         }
         default:
             break;
@@ -627,7 +631,7 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
 
 #pragma mark * Product Image
 
-- (void)startGetPhoto
+/*- (void)startGetPhoto
 // Starts the HTTP operation to GET the photo itself.
 {
     NSURLRequest *request;
@@ -706,7 +710,7 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
         /* Move the file to the gallery's photo directory, and if that's successful, set localPhotoPath to point to it.  We automatically rename the file to avoid conflicts.  Conflicts do happen in day-to-day operations (specifically, in the case where we update a photo while actually displaying that photo)
         */
         
-        fileCounter = 0;
+      /*  fileCounter = 0;
         do {
             fileName = [NSString stringWithFormat:@"ProductImage-%@-%zu.%@", self.productID, (size_t) fileCounter, extension];
             assert(fileName != nil);
@@ -776,8 +780,9 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
             [[QLog log] logWithFormat:@"Bad Image file for Product Item %@", self.productID];
         }
     }
-    return result;
-}
+    return result; 
+    return  nil;
+} */
 
 // Register the gettingProductImage property as a dependent key for KVO notifications
 + (NSSet *)keyPathsForValuesAffectingGettingProductImage
@@ -785,7 +790,7 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
     return [NSSet setWithObject:@"getPhotoOperation"];
 }
 
-- (BOOL)gettingProductImage
+/*- (BOOL)gettingProductImage
 {
     return (self.getPhotoOperation != nil);
 }
@@ -802,9 +807,9 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
 {
     assert(self->photoNeededAssertions != 0);
     self->photoNeededAssertions -= 1;
-}
+} */
 
-// Updates the product Image is response to a change in the Product Item's XML entity.
+/* Updates the product Image is response to a change in the Product Item's XML entity.
 - (void)updateProductImage
 {
     [[QLog log] logWithFormat:@"Update Product Image for Product Item %@", self.productID];
@@ -837,7 +842,7 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
         
         [self startGetPhoto];
     }
-}
+} */
 
 
 @end

@@ -166,7 +166,7 @@ static NSPersistentStoreCoordinator *storeCoordinator;
             // Ensure we complete this task even if we are moved back to BACKGROUND for example the user
             // immediately starts and closes the app
             self.taskCollectionSync = [[UIApplication sharedApplication] beginBackgroundTaskWithExpirationHandler:^{
-                [self startSynchronization];
+                [self startSynchronization:nil];
             }];
         }
         
@@ -188,8 +188,10 @@ static NSPersistentStoreCoordinator *storeCoordinator;
 */
 - (void)applicationHasLaunched {
     if (self.tasksURLString ) {
-            // we can now start the Task Collection
-        [self startCollection];
+            // we can now start the Task Collection if we do not already have an existing Task Collection
+        if(self.tasksCachePath == nil) {
+            [self startCollection];
+        }        
     } 
 }
 
@@ -381,7 +383,7 @@ static NSPersistentStoreCoordinator *storeCoordinator;
     if (success) {
         NSManagedObjectContext *collectionContext;
         
-        collectionContext = [[NSManagedObjectContext alloc] init];
+        collectionContext = [[NSManagedObjectContext alloc] initWithConcurrencyType:NSMainQueueConcurrencyType];
         assert(collectionContext != nil);
         
         [collectionContext setPersistentStoreCoordinator:persistentCoordinator];

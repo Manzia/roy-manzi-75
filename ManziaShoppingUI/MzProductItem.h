@@ -19,13 +19,13 @@
 
 @interface MzProductItem : NSManagedObject
 {
-    NSMutableDictionary *thumbnailImages;
-    BOOL thumbnailImageIsPlaceholder;
-    RetryingHTTPOperation *getThumbnailOperation;
-    RetryingHTTPOperation *getPhotoperation;
-    NSString *getPhotoFilePath;
-    NSUInteger photoNeededAssertions;
-    NSError *errorGettingImage;
+    //NSMutableDictionary *thumbnailImages;
+    //BOOL thumbnailImageIsPlaceholder;
+    //RetryingHTTPOperation *getThumbnailOperation;
+    //RetryingHTTPOperation *getPhotoperation;
+    //NSString *getPhotoFilePath;
+    //NSUInteger photoNeededAssertions;
+    //NSError *errorGettingImage;
 }
 
 // Creates a MzProductItem object with the specified properties in the specified context. 
@@ -63,7 +63,7 @@
 @property (nonatomic, retain, readonly) NSString * productDescription;
 
 // path of the photo file on disk, relative to the ProductCollectionContext pathToPhotosDirectory, or nil if not downloaded, is KVO observable
-@property (nonatomic, retain, readonly) NSString * localImagePath;
+//@property (nonatomic, retain, readonly) NSString * localImagePath;
 
 // Datetime the productItem was inserted into the Core Data database
 @property (nonatomic, retain, readonly) NSDate * productTimestamp;
@@ -102,7 +102,7 @@
 @property (nonatomic, retain, readonly) MzProductThumbNail *thumbnail;
 
 // KVO observable, returns nil if the photo isn't available yet
-@property (nonatomic, retain, readonly ) UIImage * productImage;  
+//@property (nonatomic, retain, readonly ) UIImage * productImage;  
 
 // Property that returns getThumbnailOperation
 @property(nonatomic, retain, readonly) RetryingHTTPOperation *getThumbnailOperation;
@@ -112,16 +112,16 @@
 // with the full size image. Only if a view controller has explicitly registered will
 // an actual photo be downloaded by the MzProductItem object.
 
-- (void)needPhotoToDisplay;
-- (void)removeFromPhotoToDisplay;
+//- (void)needPhotoToDisplay;
+//- (void)removeFromPhotoToDisplay;
 
 // The following properties capture the status of the product image download operation
 // errorGettingImage will have a value if the photoImage is nil, i.e was not
 // downloaded. gettingProductImage indicates whether or not the productImage is in
 // the process of being downloaded.
 
-@property (nonatomic, assign, readonly ) BOOL gettingProductImage;    
-@property (nonatomic, copy,   readonly ) NSError *errorGettingImage; 
+//@property (nonatomic, assign, readonly ) BOOL gettingProductImage;    
+//@property (nonatomic, copy,   readonly ) NSError *errorGettingImage; 
 
 
 @end

@@ -14,6 +14,7 @@
 #import "NetworkManager.h"
 
 // Available Thumbnail Sizes
+// NOTE: This implementation was modified on 10/19/2012 so as to generate only one thumbnail Size.
 NSString *const kThumbNailSizeSmall = @"60.0";
 NSString *const kThumbNailSizeMedium = @"75.0";
 NSString *const kThumbNailSizeLarge = @"90.0";
@@ -60,6 +61,10 @@ NSString *const kThumbNailSizeLarge = @"90.0";
     assert(self.resizeOperations == nil);
     
     // Start the resize Operations
+    /*
+     Code modified on Oct 19, 2012 to only handle a single resizeOperation!
+     By: Roy Manzi Tumubweinee, Manzia Corporation
+     */
     [[QLog log] logWithFormat:@"Starting Resize for Product Item %@", self.productItem.productID];
     MakeThumbnailOperation *resizeOperationSmall;
     MakeThumbnailOperation *resizeOperationMedium;
@@ -71,7 +76,7 @@ NSString *const kThumbNailSizeLarge = @"90.0";
     
     resizeOperationSmall.thumbnailSize = kThumbNailSizeSmall.floatValue;
     
-    // medium resize Operation
+    /* medium resize Operation
     resizeOperationMedium = [[MakeThumbnailOperation alloc] initWithImageData:operation.responseContent MIMEType:operation.responseMIMEType];
     assert(resizeOperationMedium != nil);
     
@@ -81,10 +86,11 @@ NSString *const kThumbNailSizeLarge = @"90.0";
     resizeOperationLarge = [[MakeThumbnailOperation alloc] initWithImageData:operation.responseContent MIMEType:operation.responseMIMEType];
     assert(resizeOperationLarge != nil);
     
-    resizeOperationLarge.thumbnailSize = kThumbNailSizeLarge.floatValue;
+    resizeOperationLarge.thumbnailSize = kThumbNailSizeLarge.floatValue; */
     
     // store
-    self.resizeOperations = [NSArray arrayWithObjects:resizeOperationSmall, resizeOperationMedium, resizeOperationLarge, nil];
+    //self.resizeOperations = [NSArray arrayWithObjects:resizeOperationSmall, resizeOperationMedium, resizeOperationLarge, nil];
+    self.resizeOperations = [NSArray arrayWithObject:resizeOperationSmall];
     assert(self.resizeOperations != nil);
     
     // We want thumbnails resizes to soak up unused CPU time, but the main thread should 
