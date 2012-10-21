@@ -33,6 +33,13 @@
 // URL String for the TaskCollection pointing to the Manzia Servers
 static NSString *kTaskURLString = @"http://192.168.1.102:8080/ManziaWebServices/service/interface";
 
+// Override Getter
+-(NSString *)uniqueDeviceId
+{
+    // For testing purposes
+    return @"415-309-7418";
+}
+
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
 #pragma unused(application)
@@ -43,13 +50,24 @@ static NSString *kTaskURLString = @"http://192.168.1.102:8080/ManziaWebServices/
     UITabBarController *tabBarController = (UITabBarController *)self.window.rootViewController;
     UITabBarItem *searchesItem = [[UITabBarItem alloc] initWithTitle:@"Searches" image:nil tag:0];
     UITabBarItem *resultsItem = [[UITabBarItem alloc] initWithTitle:@"Results" image:nil tag:1];
-    UIOffset upTitle = UIOffsetMake(0.0, 10.0);
-    [searchesItem setTitlePositionAdjustment:upTitle];
-    [resultsItem setTitlePositionAdjustment:upTitle];
+    //UIOffset upTitle = UIOffsetMake(0.0, 10.0);
+    //[searchesItem setTitlePositionAdjustment:upTitle];
+    //[resultsItem setTitlePositionAdjustment:upTitle];
     [[[tabBarController viewControllers] objectAtIndex:0] setTabBarItem:searchesItem];
     [[[tabBarController viewControllers] objectAtIndex:1] setTabBarItem:resultsItem];
     
-	//[self.window addSubview:tabBarController.view];
+	// Start the MzSearchCollection
+    self.searchCollection = [[MzSearchCollection alloc] init];
+    assert(self.searchCollection != nil);
+    BOOL success = false;
+    success = [self.searchCollection addSearchCollection];
+    if (success) {
+        [[QLog log] logWithFormat:@"Successfully initialized Search Collection"];
+    } else {
+        [[QLog log] logWithFormat:@"Failed to initialize Search Collection"];
+    }
+    
+    //[self.window addSubview:tabBarController.view];
     [self.window makeKeyAndVisible];
     
     NSUserDefaults *userDefaults;
@@ -79,17 +97,7 @@ static NSString *kTaskURLString = @"http://192.168.1.102:8080/ManziaWebServices/
        // [userDefaults removeObjectForKey:@"galleryURLString"];
     }
     
-    // Start the MzSearchCollection
-    self.searchCollection = [[MzSearchCollection alloc] init];
-    assert(self.searchCollection != nil);
-    BOOL success = false;
-    success = [self.searchCollection addSearchCollection];
-    if (success) {
-        [[QLog log] logWithFormat:@"Successfully initialized Search Collection"];
-    } else {
-        [[QLog log] logWithFormat:@"Failed to initialize Search Collection"];
-    }
-
+    
          
     return YES;
 }
