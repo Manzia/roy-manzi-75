@@ -31,6 +31,7 @@
 @synthesize searchCollection;
 @synthesize searchItems;
 @synthesize displaySearchItem;
+@synthesize delegate;
 
 // Segue Identifiers
 static NSString *kAddSearchSegue = @"addSearchSegue";   // to Add Search VC 
@@ -104,8 +105,10 @@ static NSString *kSearchTitleTemplate = @"Search %d: %@";
     self.navigationItem.rightBarButtonItem = self.editButtonItem;
     
     //Initialize the MzSearchCollection
-    self.searchCollection = [(MzAppDelegate *)[[UIApplication sharedApplication] delegate] searchCollection];
-    assert(searchCollection != nil);
+    MzAppDelegate *appDelegate = (MzAppDelegate *)[[UIApplication sharedApplication] delegate];
+    assert(appDelegate != nil);
+    self.searchCollection = appDelegate.searchCollection;
+    assert(self.searchCollection != nil);
         
     // Display the tableViewHeader across the top of the tableView
     CGRect headerFrame = CGRectMake(0, 0, 320, 60);
@@ -279,7 +282,7 @@ static NSString *kSearchTitleTemplate = @"Search %d: %@";
     // If User taps the Add a Search button we push the MzAddSearchViewController
     assert(self.tableView.tableHeaderView == sectionHeaderView);
     if (isTapped) {
-        [self performSegueWithIdentifier:kAddSearchSegue sender:nil];
+        [self performSegueWithIdentifier:kAddSearchSegue sender:self];
     }
 }
 

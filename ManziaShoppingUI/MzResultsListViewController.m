@@ -36,6 +36,9 @@
 // Sorted Sections
 @property(nonatomic, strong) NSArray *sortedSections;
 
+// Device Identifier
+@property (nonatomic, copy) NSString *deviceIdentifier;
+
 // BOOLs that capture various possible scenarios
 @property(nonatomic, assign) BOOL noSearchesFound;
 @property(nonatomic, assign) BOOL noProductItemsFound;
@@ -51,6 +54,7 @@
 @synthesize sortedSections;
 @synthesize noProductItemsFound;
 @synthesize noSearchesFound;
+@synthesize deviceIdentifier;
 
 
 // Base URL for Search URLs
@@ -63,6 +67,10 @@ static NSString *kSearchTitleSeparator = @" ";
 static NSString *kSearchCategoryKey = @"Category";
 static NSString *KSearchPriceKey = @"Regular Price";
 static NSString *KSearchProfileKey = @"Profile";
+
+// Default User Profile - this value is assigned to the MzSearchItems whose KSearchProfileKey
+// returns nil
+static NSString *defaultUserProfile = @"average";
 
 // Extension for the ProductCollection Cache directory
 static NSString * kCollectionExtension    = @"collection";
@@ -102,29 +110,45 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
     // Display an Edit button in the navigation bar for this view controller.
     self.navigationItem.rightBarButtonItem = self.editButtonItem;
     
+    // Set our DeviceId
+    self.deviceIdentifier = [(MzAppDelegate *)[[UIApplication sharedApplication] delegate] uniqueDeviceId];
+    
     // Setup the Model Dictionaries. Note that the entries in these dictionaries can change
     // at any time during the lifetime of the ViewController. ProductItems can be removed or
     // added after ProductCollection synchronizations, SearchItems can be added or deleted at
     // any time by the user which also triggers deletions or insertions of associated
     // Product Collections.
+    self->productSearchMap = [NSMutableDictionary dictionary];
+    assert(self.productSearchMap != nil);
+    self->activeCollections = [NSMutableArray array];
+    assert(self.activeCollections != nil);
+    self->allProductItems = [NSMutableDictionary dictionary];
+    assert(self.allProductItems != nil);
+    self->allSearches = [NSMutableDictionary dictionary];
+    assert(self.allSearches != nil);
+    
     
     // Search Dictionary
-    [self.allSearches addEntriesFromDictionary:[self generateSearchItemDictionary]];
-    NSArray *searchArray =[self.allSearches allKeys];
+    NSDictionary *searchDict = [self generateSearchItemDictionary];
+    if (searchDict != nil && [searchDict count] > 0) {
+        [self.allSearches addEntriesFromDictionary:searchDict];
+    } else {
+        [[QLog log] logWithFormat:@"Could not create SearchItemDictionary of Search URLs!"];    }
+    
+    NSArray *searchArray = [self.allSearches allKeys];
     assert(searchArray != nil);
     if ([searchArray count] > 0) {
         self.noSearchesFound = NO;
         // Sets up all the other dictionaries
-        [self updateProductCollectionCaches:searchArray];        
+            [self updateProductCollectionCaches:searchArray];        
     } else {
         self.noSearchesFound = YES;
+        [[QLog log] logWithFormat:@"Zero Search URLs were created..No SearchItems Found!"];
     }
 }
 
 - (void)viewDidUnload
 {
-    [super viewDidUnload];
-    
     // Release all observers
     if ([self.activeCollections count] > 0) {
         for (MzProductCollection *collection in self.activeCollections) {
@@ -134,11 +158,24 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
              NewProductCollectionContext];
         }
     }
-    // Release the Dictionaries
+    // Release the Collections
     self->allSearches = nil;
     self->activeCollections = nil;
     self->allProductItems = nil;
-    self->productSearchMap = nil;    
+    self->productSearchMap = nil;
+    self.sortedSections = nil;
+    
+    [super viewDidUnload];
+}
+
+-(void) viewWillAppear:(BOOL)animated
+{
+    [super viewWillAppear:animated];
+}
+
+-(void) viewWillDisappear:(BOOL)animated
+{
+    [super viewWillDisappear:animated];
 }
 
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
@@ -154,13 +191,16 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
     if (aSearchItem == nil) { return nil;   }
     
     // Create the Path Parameters
-    NSString *deviceId = [(MzAppDelegate *)[[UIApplication sharedApplication] delegate] uniqueDeviceId];
+    NSString *deviceId = self.deviceIdentifier;
     assert(deviceId != nil);
     NSString *deviceDays = [aSearchItem.daysToSearch stringValue];
     assert(deviceDays != nil);
     NSString *deviceStatus = [[NSNumber numberWithInt:aSearchItem.searchStatus] stringValue];
     assert(deviceStatus != nil);
     NSString *deviceProfile = [aSearchItem.searchOptions objectForKey:KSearchProfileKey];
+    if (deviceProfile == nil) {
+        deviceProfile = defaultUserProfile;
+    }
     assert(deviceProfile != nil);
     NSString *pathString = [NSString stringWithFormat:@"/%@/%@/%@/%@", deviceId, deviceDays, deviceStatus, deviceProfile];
     assert(pathString != nil);
@@ -188,7 +228,10 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
     // Create URL
     NSString *urlString = [NSString stringWithFormat:@"%@?%@", pathString, queryString];
     assert(urlString != nil);
-    NSURL *searchURL = [NSURL URLWithString:urlString relativeToURL:[NSURL URLWithString:manziBaseURL]];
+    NSString *encodedURLString = [urlString stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+    assert(encodedURLString != nil);
+    NSLog(@"Path & Query String: %@\n", encodedURLString);
+    NSURL *searchURL = [NSURL URLWithString:encodedURLString relativeToURL:[NSURL URLWithString:manziBaseURL]];
     assert(searchURL != nil);
     
     //Log
@@ -293,29 +336,30 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
         assert(possibleCollections != nil);
                 
         searchResult = nil;
-        for (NSString *collectionName in possibleCollections) {
-            if ([collectionName hasSuffix:kCollectionExtension]) {
-                
-                NSDictionary *collectionInfo;
-                NSString *collectionInfoURLString;
-                
-                collectionInfo = [NSDictionary dictionaryWithContentsOfFile:[[productCachesDir stringByAppendingPathComponent:collectionName] stringByAppendingPathComponent:kCollectionFileName]];
-                if (collectionInfo != nil) {
-                    collectionInfoURLString = [collectionInfo objectForKey:kCollectionKeyCollectionURLString];
-                                        
-                    // Iterate over the array of Search URLs
-                    for (NSString *searchURL in searchArray) {
-                        if ( [searchURL isEqual:collectionInfoURLString] ) {
-                            searchResult = [productCachesDir stringByAppendingPathComponent:collectionName];
-                            [self.productSearchMap setObject:searchResult forKey:searchURL];
-                            break;
-                        }                    
-                    }
+        if ([possibleCollections count] > 0) {
+            for (NSString *collectionName in possibleCollections) {
+                if ([collectionName hasSuffix:kCollectionExtension]) {
                     
+                    NSDictionary *collectionInfo;
+                    NSString *collectionInfoURLString;
+                    
+                    collectionInfo = [NSDictionary dictionaryWithContentsOfFile:[[productCachesDir stringByAppendingPathComponent:collectionName] stringByAppendingPathComponent:kCollectionFileName]];
+                    if (collectionInfo != nil) {
+                        collectionInfoURLString = [collectionInfo objectForKey:kCollectionKeyCollectionURLString];
+                        
+                        // Iterate over the array of Search URLs
+                        for (NSString *searchURL in searchArray) {
+                            if ( [searchURL isEqual:collectionInfoURLString] ) {
+                                searchResult = [productCachesDir stringByAppendingPathComponent:collectionName];
+                                [self.productSearchMap setObject:searchResult forKey:searchURL];
+                                break;
+                            }                    
+                        }                        
+                    }
                 }
             }
         }
-        
+                
         // Log
         [[QLog log] logWithFormat:@"Found %d existing Product Collections with KNOWN Search URLs", [self.productSearchMap count]];
         
@@ -334,8 +378,10 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
         assert(existingCollections != nil);
         
         // Update
-        [addSearches minusSet:existingSearches];
-        [deleteCollections minusSet:existingCollections];
+        if ([self.productSearchMap count] > 0) {
+            [addSearches minusSet:existingSearches];
+            [deleteCollections minusSet:existingCollections];
+        }        
         
         // Mark for deletion by deleting the Collection pList file which causes the Collection Cache
         // to be deleted when the App goes into background
@@ -406,14 +452,14 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
         
         // We are dealing with a newly created ProductCollection
         if ([keyPath isEqualToString:@"cachePath"]) {
-            assert(object == self);
+            assert([object isKindOfClass:[MzProductCollection class]]);
             if ((change != nil) && ([[change objectForKey:NSKeyValueChangeKindKey] intValue] == NSKeyValueChangeSetting)) {
                 
                 // Assign the newly created ProductCollection
                 NSDictionary *cacheDict = [change objectForKey:NSKeyValueChangeNewKey];
                 assert([cacheDict count] > 0);
-                [productSearchMap addEntriesFromDictionary:cacheDict];
-                [[QLog log] logWithFormat:@"Success adding new Product Collection Cache to MzResultListViewController at Path: %@", [[cacheDict allValues] objectAtIndex:0]];
+                [self.productSearchMap addEntriesFromDictionary:cacheDict];
+                [[QLog log] logWithFormat:@"Success adding Product Collection Cache Name to MzResultListViewController at Path: %@", [[cacheDict allValues] objectAtIndex:0]];
             }                
         }
                 
@@ -421,7 +467,7 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
         
         // We are dealing with a existing ProductCollection
         if ([keyPath isEqualToString:@"productItems"]) {
-            assert(object == self);
+            assert([object isKindOfClass:[MzProductCollection class]]);
             if ((change != nil) && ([[change objectForKey:NSKeyValueChangeKindKey] intValue] == NSKeyValueChangeSetting)) {
                 
                 // Assign the new dictionary
@@ -437,7 +483,8 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
         // In this case, an existing ProductCollection was refreshed/re-synchronized in which case
         // if the sync succeeded we re-fetch its productItems else we mark for deletion.
         if ([keyPath isEqualToString:@"cacheSyncStatus"]) {
-            assert(object == self);
+            assert([object isKindOfClass:[MzProductCollection class]]);
+            
             if ((change != nil) && ([[change objectForKey:NSKeyValueChangeKindKey] intValue] == NSKeyValueChangeSetting)) {
                 
                 NSDictionary *statusDict = [change objectForKey:NSKeyValueChangeNewKey];
@@ -451,20 +498,19 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
                     [[QLog log] logWithFormat:@"Marked for deletion after Update Failed/Cancelled for Product Collection Cache at Path: %@", collectionName];
                     [MzProductCollection markForRemoveCollectionCacheAtPath:collectionName];
                     
-                } else if ([statusValue hasPrefix:@"Updated:"]) {
-                    
-                    // Synchronization succeeded so we re-fetch the ProductItems, we poll each
-                    // of the active collections and find the one that "called" us
+                    // Remove from activeCollections array
                     if ([self.activeCollections count] > 0) {
                         
-                        NSUInteger colIndex = [self.activeCollections indexOfObjectPassingTest:^(MzProductCollection *collection, NSUInteger idx, BOOL *stop){
-                            if ([collection.collectionCachePath isEqualToString:collectionName]) {
-                                *stop = YES;
-                                return YES;
-                            } else {
-                                return NO;
-                            }                            
-                        }];
+                        [[QLog log] logWithFormat:@"Deleting MzProductCollection object after Update Failed/Cancelled at Path: %@", collectionName];
+                        [self.activeCollections removeObjectIdenticalTo:object];
+                    }               
+                    
+                } else if ([statusValue hasPrefix:@"Updated:"]) {
+                    
+                    // Synchronization succeeded so we re-fetch the ProductItems
+                    if ([self.activeCollections count] > 0) {
+                        
+                        NSUInteger colIndex = [self.activeCollections indexOfObjectIdenticalTo:object];
                         if (colIndex != NSNotFound) {
                             [[QLog log] logWithFormat:@"Re-fetching ProductItems after re-synchronization for existing Product Collection Cache at Path: %@", collectionName];
                             [[self.activeCollections objectAtIndex:colIndex] fetchProductsInCollection];
@@ -483,8 +529,20 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
     // Return the number of sections.
     if (self.noSearchesFound) {
         return 1;
-    } else {        
-        return [self.allSearches count];
+    } else {
+        if ([self.allSearches count] > 1) {
+            self.sortedSections = [self.allSearches keysSortedByValueUsingComparator:^(MzSearchItem *searchOne, MzSearchItem *searchTwo) {
+                return [searchOne.searchTimestamp compare:searchTwo.searchTimestamp];
+            }];
+            self.noSearchesFound = NO;
+        } else {
+            self.sortedSections = [self.allSearches allKeys];
+            if ([self.sortedSections count] == 0) {
+                self.noSearchesFound = YES;
+                return 1;
+            }            
+        }
+        return [self.sortedSections count];
     }    
 }
 
@@ -492,17 +550,8 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
 {
     // Return the number of rows in the section. First we sort by timestamp
     // Sort the array of sections (i.e, one section per SearchItem)
-    if ([self.allSearches count] > 1) {
-        self.sortedSections = [self.allSearches keysSortedByValueUsingComparator:^(MzSearchItem *searchOne, MzSearchItem *searchTwo) {
-            return [searchOne.searchTimestamp compare:searchTwo.searchTimestamp];
-        }];
-        self.noSearchesFound = NO;
-    } else {
-        self.sortedSections = [self.allSearches allKeys];
-        if ([self.sortedSections count] == 0) {
-            self.noSearchesFound = YES;
-            return 1;
-        }
+    if (self.noSearchesFound) {
+        return 1;
     }
     assert(self.sortedSections != nil);
     NSString *collectionName = [self.productSearchMap objectForKey:[self.sortedSections objectAtIndex:section]];
@@ -535,27 +584,40 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
         
         // we have 1 section and 1 row in tableView and no SearchItems to display
         cell.productTitle.text = @"No Searches to Display";
-        cell.productTitle.textAlignment = UITextAlignmentCenter;
+        cell.productTitle.textColor = [UIColor redColor];
+        cell.productTitle.textAlignment = UITextAlignmentLeft;
         cell.productPrice.text = nil;
-        cell.productTitle.font = [UIFont systemFontOfSize:21.0];
-    } else if (self.noProductItemsFound) {
-        
-        // we may have 1 or more sections with no ProductItems to display
-        cell.productTitle.text = @"No Products Found";
-        cell.productTitle.textAlignment = UITextAlignmentCenter;
-        cell.productPrice.text = nil;
-        cell.productTitle.font = [UIFont systemFontOfSize:21.0];
+        cell.priceLabel.text = nil;
+        cell.productTitle.font = [UIFont systemFontOfSize:15.0];
     } else {
         
-        // we have Searches and Products to display
+        // we have Searches to display
+        assert(self.sortedSections != nil);
+        NSArray *productsInSection;
         NSString *collectionName = [self.productSearchMap objectForKey:[self.sortedSections objectAtIndex:indexPath.section]];
-        NSArray *productsInSection = [self.allProductItems objectForKey:collectionName];
-        MzProductItem *productItem = [productsInSection objectAtIndex:indexPath.row];
-        cell.productItem = productItem;
-        cell.productTitle.text = productItem.productTitle;
-        cell.productTitle.textAlignment = UITextAlignmentCenter;
-        cell.productPrice.text = productItem.productPriceAmount;
-        cell.productImage.image = [productItem getthumbnailImage:kSmallThumbnailImage];
+        self.noProductItemsFound = collectionName == nil ? YES : NO;
+        if (collectionName != nil) {
+            productsInSection = [self.allProductItems objectForKey:collectionName];
+            self.noProductItemsFound = productsInSection == nil ? YES : NO;
+            self.noProductItemsFound = [productsInSection count] > 0 ? NO : YES;
+        }      
+        
+        if (self.noProductItemsFound) {
+            // we may have a section with no ProductItems to display
+            cell.productTitle.text = @"No Products Found";
+            cell.productTitle.textColor = [UIColor redColor];
+            cell.productTitle.textAlignment = UITextAlignmentLeft;
+            cell.productPrice.text = nil;
+            cell.priceLabel.text = nil;
+            cell.productTitle.font = [UIFont systemFontOfSize:15.0];
+        } else {
+            MzProductItem *productItem = [productsInSection objectAtIndex:indexPath.row];
+            cell.productItem = productItem;
+            cell.productTitle.text = productItem.productTitle;
+            cell.productTitle.textAlignment = UITextAlignmentCenter;
+            cell.productPrice.text = productItem.productPriceAmount;
+            cell.productImage.image = [productItem getthumbnailImage:kSmallThumbnailImage];
+        }        
     }
     return cell;
 }
@@ -581,16 +643,11 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
         // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
     }   
 }
-*/
 
-/*
 // Override to support rearranging the table view.
 - (void)tableView:(UITableView *)tableView moveRowAtIndexPath:(NSIndexPath *)fromIndexPath toIndexPath:(NSIndexPath *)toIndexPath
 {
 }
-*/
-
-/*
 // Override to support conditional rearranging of the table view.
 - (BOOL)tableView:(UITableView *)tableView canMoveRowAtIndexPath:(NSIndexPath *)indexPath
 {
@@ -610,6 +667,22 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
      // Pass the selected object to the new view controller.
      [self.navigationController pushViewController:detailViewController animated:YES];
      */
+}
+
+// Generate Section Headers
+-(NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section
+{
+    // Check if we have any Searches
+    if (self.noSearchesFound) {
+        return @"No Search:";
+    } else {
+        assert(self.sortedSections != nil);
+        MzSearchItem *item = [self.allSearches objectForKey:[self.sortedSections objectAtIndex:section]];
+        assert(item != nil);
+        assert([item.searchTitle length] > 0);
+        NSString *title = [NSString stringWithFormat:@"Search %d: %@", section+1, item.searchTitle];
+        return title;
+    }
 }
 
 @end

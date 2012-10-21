@@ -8,6 +8,8 @@
 
 #import <UIKit/UIKit.h>
 
-@interface MzResultsListViewController : UITableViewController
+@interface MzResultsListViewController : UITableViewController {
+    
+}
 
 @end
