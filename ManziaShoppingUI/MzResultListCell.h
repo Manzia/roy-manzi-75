@@ -15,6 +15,7 @@
 @property (nonatomic, strong) IBOutlet UIImageView *productImage;
 @property (nonatomic, strong) IBOutlet UILabel *productTitle;
 @property (nonatomic, strong) IBOutlet UILabel *productPrice;
+@property (nonatomic, strong) IBOutlet UILabel *priceLabel;
 
 // The Product Item that cell displays
 @property (nonatomic, strong) MzProductItem *productItem;

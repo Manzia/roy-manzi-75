@@ -16,6 +16,7 @@
 @synthesize productItem;
 @synthesize productPrice;
 @synthesize productTitle;
+@synthesize priceLabel;
 
 // USD
 static NSString *kUSDollarSymbol = @"$";
