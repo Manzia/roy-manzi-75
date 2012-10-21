@@ -63,7 +63,7 @@
 @property (nonatomic, retain, readonly) NSString * productDescription;
 
 // path of the photo file on disk, relative to the ProductCollectionContext pathToPhotosDirectory, or nil if not downloaded, is KVO observable
-//@property (nonatomic, retain, readonly) NSString * localImagePath;
+@property (nonatomic, retain, readonly) NSString * localImagePath;
 
 // Datetime the productItem was inserted into the Core Data database
 @property (nonatomic, retain, readonly) NSDate * productTimestamp;

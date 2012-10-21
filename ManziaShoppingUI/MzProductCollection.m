@@ -869,7 +869,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
 // Override setter in order to log error
 - (void)setErrorFromLastSync:(NSError *)newError
 {
-    assert([NSThread isMainThread]);
+    //assert([NSThread isMainThread]);
     
     if (newError != nil) {
         [[QLog log] logWithFormat:@"Collection Cache with URL: %@ got sync error: %@", self.collectionURLString, newError];
@@ -889,7 +889,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     NSMutableURLRequest *urlRequest;
     NSURL *url;
     
-    assert([NSThread isMainThread]);
+    //assert([NSThread isMainThread]);
     assert(self.collectionURLString != nil);
     
     urlRequest = nil;
