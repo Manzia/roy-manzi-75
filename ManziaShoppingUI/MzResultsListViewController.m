@@ -17,13 +17,28 @@
 
 // Dictionary with Search URLs as Keys and associated Product Collection cache directories
 // as Values
-@property (nonatomic, strong, readwrite) NSMutableDictionary *productSearchMap;
+@property (nonatomic, strong, readonly) NSMutableDictionary *productSearchMap;
+
+//Dictionary with Search URLs as Keys and associated MzSearchItem as Value
+@property (nonatomic, strong, readonly) NSMutableDictionary *allSearches;
+
+//Dictionary with Product Collection cache names as Keys and an NSArray of fetched productItems
+// as the Value
+@property (nonatomic, strong, readonly) NSMutableDictionary *allProductItems;
+
+// Array that keeps track of all the active Collections for this View Controller
+// and also keeps them alive for the lifetime of this View Controller and also ensure
+// a Product Collection does not get released while its still syncing etc.
+@property (nonatomic, strong, readonly) NSMutableArray *activeCollections;
 
 @end
 
 @implementation MzResultsListViewController
 
 @synthesize productSearchMap;
+@synthesize allSearches;
+@synthesize allProductItems;
+@synthesize activeCollections;
 
 // Base URL for Search URLs
 static NSString *manziBaseURL = @"http://192.168.1.102:8080/ManziaWebServices/searches";
@@ -41,11 +56,25 @@ static NSString * kCollectionExtension    = @"collection";
 static NSString * kCollectionFileName = @"ProductCollectionInfo.plist";
 static NSString * kCollectionKeyCollectionURLString = @"collectionURLString";
 
+// KVO contexts - for each Product Collection cache we observe the "collectionCachePath"
+// & "statusOfSync" properties
+static void *NewProductCollectionContext = &NewProductCollectionContext;
+static void *ExistingProductCollectionContext = &ExistingProductCollectionContext;
+
+
 - (id)initWithStyle:(UITableViewStyle)style
 {
     self = [super initWithStyle:style];
     if (self) {
         // Custom initialization
+        self->productSearchMap = [NSMutableDictionary dictionary];
+        assert(self.productSearchMap != nil);
+        self->activeCollections = [NSMutableArray array];
+        assert(self.activeCollections != nil);
+        self->allProductItems = [NSMutableDictionary dictionary];
+        assert(self.allProductItems != nil);
+        self->allSearches = [NSMutableDictionary dictionary];
+        assert(self.allSearches != nil);
     }
     return self;
 }
@@ -64,8 +93,16 @@ static NSString * kCollectionKeyCollectionURLString = @"collectionURLString";
 - (void)viewDidUnload
 {
     [super viewDidUnload];
-    // Release any retained subviews of the main view.
-    // e.g. self.myOutlet = nil;
+    
+    // Release all observers
+    if ([self.activeCollections count] > 0) {
+        for (MzProductCollection *collection in self.activeCollections) {
+            [collection removeObserver:self forKeyPath:@"productItems" context:ExistingProductCollectionContext];
+            [collection removeObserver:self forKeyPath:@"cacheSyncStatus" context:ExistingProductCollectionContext];
+            [collection removeObserver:self forKeyPath:@"cachePath" context:
+             NewProductCollectionContext];
+        }
+    }
 }
 
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
@@ -126,23 +163,27 @@ static NSString * kCollectionKeyCollectionURLString = @"collectionURLString";
 #pragma mark - Generate Product Collection
 
 /*
- This method operates asynchronously so as not to block the main thread and does the
- following
+ The methods in this section operate asynchronously so as not to block the main thread and do the
+ following using KVO mostly:
  1- retrieve all the MzSearchItems in the MzSearchCollection
  2- For all active MzSearchItems, generate a Search URL for each
  3- Iterate through the Product Collection caches, and the compare the collection's URL string
  stored in the cache .pList file to the Search URL
  4- If there is no match for a Search URL, instantiate a new Product Collection and start 
  Synchronizing (i.e hit the network to retrieve ProductItems asynchrounously)
- 5- If a collection's URL string has no associated Search URL, mark that collection for
+ 5- If synchronization succeeds, then fetch the Product Collection's productItems else mark
+ the new ProductCollection for deletion. This means we'll get a chance to re-sync when the viewDidLoad
+ method of this viewController gets called the next time (i.e App moves from background)
+ 6- If a collection's URL string has no associated Search URL, mark that collection for
  deletion
- 6- Generate a Dictionary whose Keys are the Search URLs and Values are the associated Product
- Collection cache Path
- 7- Add the Product Collection caches and associated Search URLs to the dictonary in 6 above
- 8- Assign the dictionary to an ivar - since the MzResultListViewController is "alive" throughout
- the app lifetime becoz its child of a NavgiationController that a child of TabBarController
- that's loaded automatically by the app from the storyboard, we'll always have access to this
- dictionary
+ 7- If there is a match for the Search URL, then instantiate the associated ProductCollection and
+ fetch its ProductItems
+ 8- Populate the required Dictionaries that will be used as our tableView datasources
+ 
+ The dictionaries are all ivars - since the MzResultListViewController is "alive" throughout
+ the app's lifetime becoz its a child of a NavgiationController that's a child of the TabBarController
+ that's loaded automatically by the app from the storyboard, we'll always have access to these
+ dictionaries and associated ProductCollection objects
  
  NOTE: The first time the App is launched and MzSearchItems are created this method will actually
  result in the creation of new Product Collections and their synchronization but afterwards its
@@ -152,7 +193,7 @@ static NSString * kCollectionKeyCollectionURLString = @"collectionURLString";
  whenever a MzSearchItem is created or deleted so as to keep the Product Collection caches up to
  date
  */
--(NSDictionary *)generateProductCollections
+-(NSDictionary *)generateSearchItemDictionary
 {
     // Retrieve all the MzSearchItems
     MzSearchCollection *scollection = [(MzAppDelegate *)[[UIApplication sharedApplication] delegate] searchCollection];
@@ -196,9 +237,8 @@ static NSString * kCollectionKeyCollectionURLString = @"collectionURLString";
         
         NSFileManager *fileManager;
         NSArray *possibleCollections;
-        NSString *searchResult;
-        NSMutableArray *collectionsToDelete;
-        
+        NSString *searchResult;        
+               
         // Iterate through the Caches Directory and sub-Directories and check each plist
         // file encountered
         fileManager = [NSFileManager defaultManager];
@@ -255,15 +295,139 @@ static NSString * kCollectionKeyCollectionURLString = @"collectionURLString";
         // Mark for deletion by deleting the Collection pList file which causes the Collection Cache
         // to be deleted when the App goes into background
         [[QLog log] logWithFormat:@"Deleting %d Product Collections with UNKNOWN Search URLs", [deleteCollections count]];
-        [deleteCollections enumerateObjectsUsingBlock:^(NSString *cachePath, BOOL *stop) {
-            [MzProductCollection markForRemoveCollectionCacheAtPath:cachePath];
-        }];
+        
+        if ([deleteCollections count] > 0) {
+            [deleteCollections enumerateObjectsUsingBlock:^(NSString *cachePath, BOOL *stop) {
+                [MzProductCollection markForRemoveCollectionCacheAtPath:cachePath];
+            }];        
+        }        
         
         // Asynchrouously instantiate and synchronize new Product Collections, then add them to our
         // productSearchMap
         [[QLog log] logWithFormat:@"Creating %d Product Collections for NEW Search URLs", [addSearches count]];
+        if ([addSearches count] > 0) {
+            
+            // Create serial Queue
+            dispatch_queue_t collectionQueue = dispatch_queue_create("CollectionStarter", DISPATCH_QUEUE_SERIAL);
+            assert(collectionQueue != nil);
+            
+            // Enumerate
+            [addSearches enumerateObjectsUsingBlock:^(NSString *sURL, BOOL *stop) {
+                MzProductCollection *collection = [[MzProductCollection alloc] initWithCollectionURLString:sURL];
+                assert(collection != nil);
+                
+                // Start observing the new collections
+                [collection addObserver:self forKeyPath:@"cachePath" options:NSKeyValueObservingOptionNew context:NewProductCollectionContext];
+                [collection addObserver:self forKeyPath:@"cacheSyncStatus" options:NSKeyValueObservingOptionNew context:ExistingProductCollectionContext];
+                [collection addObserver:self forKeyPath:@"productItems" options:NSKeyValueObservingOptionNew context:ExistingProductCollectionContext];
+                
+                // Start the collections asychronously
+                dispatch_async(collectionQueue, ^{
+                    [collection startCollection];
+                });              
+                
+                [self.activeCollections addObject:collection]; 
+            }];
+            // Release the Queue (will actually release when queue is empty)
+            dispatch_release(collectionQueue);
+        }
         
+        // Retrieve the ProductItems for the existing Product Collections
+        if ([existingSearches count] > 0) {
+            [[QLog log] logWithFormat:@"Fetching from %d Product Collections with KNOWN Search URLs", [existingSearches count]];
+            
+            [existingSearches enumerateObjectsUsingBlock:^(NSString *sURL, BOOL *stop) {
+                MzProductCollection *collection = [[MzProductCollection alloc] initWithCollectionURLString:sURL];
+                assert(collection != nil);
+                
+                // We only observe the "productItems" and "statusOfSync" properties
+                [collection addObserver:self forKeyPath:@"productItems" options:NSKeyValueObservingOptionNew context:ExistingProductCollectionContext];
+                [collection addObserver:self forKeyPath:@"cacheSyncStatus" options:NSKeyValueObservingOptionNew context:ExistingProductCollectionContext];
+                
+                // Get the ProductItems (method below is asynchronous as well)
+                [collection fetchProductsInCollection];
+                [self.activeCollections addObject:collection];
+            }];
+        }        
+    }
+    // Log
+    [[QLog log] logWithFormat:@"Number of Active Collections instantiated: %d", [self.activeCollections count]];
+}
 
+// KVO implementation
+-(void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context
+{
+    if (context == NewProductCollectionContext) {
+        
+        // We are dealing with a newly created ProductCollection
+        if ([keyPath isEqualToString:@"cachePath"]) {
+            assert(object == self);
+            if ((change != nil) && ([[change objectForKey:NSKeyValueChangeKindKey] intValue] == NSKeyValueChangeSetting)) {
+                
+                // Assign the newly created ProductCollection
+                NSDictionary *cacheDict = [change objectForKey:NSKeyValueChangeNewKey];
+                assert([cacheDict count] > 0);
+                [productSearchMap addEntriesFromDictionary:cacheDict];
+                [[QLog log] logWithFormat:@"Success adding new Product Collection Cache to MzResultListViewController at Path: %@", [[cacheDict allValues] objectAtIndex:0]];
+            }                
+        }
+                
+    } else if (context == ExistingProductCollectionContext) {
+        
+        // We are dealing with a existing ProductCollection
+        if ([keyPath isEqualToString:@"productItems"]) {
+            assert(object == self);
+            if ((change != nil) && ([[change objectForKey:NSKeyValueChangeKindKey] intValue] == NSKeyValueChangeSetting)) {
+                
+                // Assign the new dictionary
+                // NOTE: if the key (ProductCollection) already exists in the allProductItems
+                // dictionary the old NSArray will be replaced with the new one.
+                NSDictionary *productDict = [change objectForKey:NSKeyValueChangeNewKey];
+                assert([productDict count] > 0);
+                NSUInteger prodCount = [[[productDict allValues] objectAtIndex:0] count];
+                [allProductItems addEntriesFromDictionary:productDict];
+                [[QLog log] logWithFormat:@"Success adding %d ProductItems from Product Collection Cache at Path: %@", prodCount, [[productDict allKeys] objectAtIndex:0]];
+            }
+        }
+        // In this case, an existing ProductCollection was refreshed/re-synchronized in which case
+        // if the sync succeeded we re-fetch its productItems else we mark for deletion.
+        if ([keyPath isEqualToString:@"cacheSyncStatus"]) {
+            assert(object == self);
+            if ((change != nil) && ([[change objectForKey:NSKeyValueChangeKindKey] intValue] == NSKeyValueChangeSetting)) {
+                
+                NSDictionary *statusDict = [change objectForKey:NSKeyValueChangeNewKey];
+                assert([statusDict count] > 0);
+                NSString *statusValue = [[statusDict allValues] objectAtIndex:0];
+                NSString *collectionName = [[statusDict allKeys] objectAtIndex:0];
+                
+                if ([statusValue isEqualToString:@"Update Failed"] || [statusValue isEqualToString:@"Update cancelled"] ) {
+                    
+                    // Mark the ProductCollection for deletion
+                    [[QLog log] logWithFormat:@"Marked for deletion after Update Failed/Cancelled for Product Collection Cache at Path: %@", collectionName];
+                    [MzProductCollection markForRemoveCollectionCacheAtPath:collectionName];
+                    
+                } else if ([statusValue hasPrefix:@"Updated:"]) {
+                    
+                    // Synchronization succeeded so we re-fetch the ProductItems, we poll each
+                    // of the active collections and find the one that "called" us
+                    if ([self.activeCollections count] > 0) {
+                        
+                        NSUInteger colIndex = [self.activeCollections indexOfObjectPassingTest:^(MzProductCollection *collection, NSUInteger idx, BOOL *stop){
+                            if ([collection.collectionCachePath isEqualToString:collectionName]) {
+                                *stop = YES;
+                                return YES;
+                            } else {
+                                return NO;
+                            }                            
+                        }];
+                        if (colIndex != NSNotFound) {
+                            [[QLog log] logWithFormat:@"Re-fetching ProductItems after re-synchronization for existing Product Collection Cache at Path: %@", collectionName];
+                            [[self.activeCollections objectAtIndex:colIndex] fetchProductsInCollection];
+                        }
+                    }                    
+                }                
+            }
+        }
     }
 }
 
