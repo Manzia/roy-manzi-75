@@ -78,6 +78,12 @@ typedef enum ProductCollectionSyncState ProductCollectionSyncState;
 @property(nonatomic, copy, readonly) NSString *collectionURLString;
 @property(nonatomic, strong, readonly)NSManagedObjectContext *managedObjectContext;
 @property(nonatomic, strong, readonly)NSEntityDescription *productItemEntity;
+@property(nonatomic, copy, readonly) NSString *collectionCachePath;
+
+// KVO properties
+@property(nonatomic, strong, readonly) NSDictionary *productItems;
+@property(nonatomic, strong, readonly) NSDictionary *cacheSyncStatus;
+@property(nonatomic, strong, readonly) NSDictionary *cachePath;
 
 // Properties that enable the control of the syncing process
 @property (nonatomic, assign, readonly, getter=isSynchronizing) BOOL synchronizing;
@@ -98,7 +104,7 @@ typedef enum ProductCollectionSyncState ProductCollectionSyncState;
 -(id)initWithCollectionURLString:(NSString *)collectionURLString;
 
 // Retrieve all Products in Collection
--(NSArray *)fetchProductsInCollection;
+-(void)fetchProductsInCollection;
 
 // methods to manage the product collection startup, stop and save processes
 -(void)startCollection;

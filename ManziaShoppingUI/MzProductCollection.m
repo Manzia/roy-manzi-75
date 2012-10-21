@@ -25,24 +25,24 @@
 // private properties
 @property (nonatomic, copy, readwrite) NSString *collectionURLString;
 @property (nonatomic, strong, readwrite)NSEntityDescription *productItemEntity;
-//@property (nonatomic, retain, readwrite)MzProductCollectionContext* productCollectionContext;
 @property (nonatomic, strong, readwrite) NSManagedObjectContext *managedObjectContext;
-@property (nonatomic, copy, readonly) NSString *collectionCachePath;
+@property (nonatomic, copy, readwrite) NSString *collectionCachePath;
 @property (nonatomic, assign, readwrite) ProductCollectionSyncState stateOfSync;
 @property (nonatomic, strong, readwrite) NSTimer *timeToSave;
-//@property (nonatomic, strong, readwrite) NSTimer *timeToRefresh;
 @property (nonatomic, copy, readwrite) NSDate *dateLastSynced;
 @property (nonatomic, copy, readwrite) NSError *errorFromLastSync;
 @property (nonatomic, strong, readwrite) RetryingHTTPOperation *getCollectionOperation;
 @property (nonatomic, strong, readwrite) MzCollectionParserOperation *parserOperation;
 
-// This property will hold the value of the relativePath that was appended to
-// the collectionURLString to create the NSURLRequest for the HTTP GET
-//@property (nonatomic, copy, readwrite) NSString * variableRelativePath;
+// Property that holds all the MzProductItems associated with this MzProductCollection
+// in an NSDictinary whose Key is the collectionCacheName
+@property (nonatomic, strong, readwrite) NSDictionary *productItems;
 
-// Keys are relativePaths and values are an array of old parserResults
-// and time parseOperation completed
-//@property (retain, readonly) NSMutableDictionary *pathsOldResults;
+// Dictionary whose Key is the collectionCacheName and Value is the statusOfSync string
+@property(nonatomic, strong, readwrite) NSDictionary *cacheSyncStatus;
+
+// Dictionary whose Key is the Search URL and Value is the collectionCacheName
+@property(nonatomic, strong, readwrite) NSDictionary *cachePath;
 
 // forward declarations
 
@@ -71,6 +71,9 @@
 @synthesize synchronizing;
 @synthesize statusOfSync;
 @synthesize managedObjectContext;
+@synthesize productItems;
+@synthesize cacheSyncStatus;
+@synthesize cachePath;
 
 
 /* Other Getters
@@ -354,11 +357,12 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
 }
 
 // Retrieve all the ProductItems in the Collection asynchronously. This method will return immediately
-//so the caller is expected to use KVO on the returned NSArray to get notified when the productItems 
-// have been fetched
--(NSArray *)fetchProductsInCollection
+//so the caller is expected to use KVO on the productItems property to get notified when the 
+// productItems have been fetched
+-(void)fetchProductsInCollection
 {
     assert(self.collectionURLString != nil);
+    NSMutableDictionary *productDict = [NSMutableDictionary dictionary];
     BOOL success;
     __block NSArray *products = nil;
     // Check if we have already set up our NSManagedObjectContext and Cache
@@ -367,6 +371,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
         if (success) {
             // we can now fetch the products
             assert(self.managedObjectContext != nil);
+            assert(self.collectionCachePath != nil);
             
             [self.managedObjectContext performBlock:^{
                 NSError *error = nil;
@@ -382,7 +387,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
         } else {
             [[QLog log] logWithFormat:@"Failed to instantiate ProductCollectionContext for Cache database at Path: '%@'", self.collectionCachePath];        }
     } else {
-        
+        assert(self.collectionCachePath != nil);
         // we already have our NSManagedObjectContext setup
         [self.managedObjectContext performBlock:^{
             NSError *error = nil;
@@ -396,7 +401,11 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
             }
         }];
     }
-    return products;
+    if (products != nil) {
+        [productDict setObject:products forKey:[self.collectionCachePath copy]];
+        self.productItems = productDict;
+    }
+    
 }
 
 // Finds the associated CollectionCache(Path) given a collectionURLString and
@@ -509,10 +518,16 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     fileManager = [NSFileManager defaultManager];
     assert(fileManager != nil);
     
-    // Find the Collection Cache directory for this ProductCollection.
-    
+    // Find and set the Collection Cache directory for this ProductCollection and notify
+    // observers of the "cachePath" property
     collectionPath = [self findCacheForCollectionURLString];
     success = (collectionPath != nil);
+    if (success) {
+        self.collectionCachePath = collectionPath;
+        NSMutableDictionary *cacheDict = [NSMutableDictionary dictionaryWithObject:collectionPath forKey:self.collectionURLString];
+        assert(cacheDict != nil);
+        self.cachePath = cacheDict;
+    }
     
     // Create the ProductImages directory if it doesn't already exist.
     
@@ -530,7 +545,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     
     if (success) {
         NSString *collectionModelPath;
-        
+                
         collectionModelPath = [[NSBundle bundleForClass:[self class]] pathForResource:@"MzProductItems" ofType:@"momd"]; // should be @"momd" or @"mom"
         assert(collectionModelPath != nil);
         
@@ -538,9 +553,21 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
         success = (collectionModel != nil);
     }
     if (success) {
+        
         collectionDbURL = [NSURL fileURLWithPath:[collectionPath stringByAppendingPathComponent:kCollectionDataFileName]];
         assert(collectionDbURL != nil);
         
+        // Set our dateLastSynced property to the last modified date of the database file if it already
+        // exists
+        if ([fileManager fileExistsAtPath:[collectionDbURL path]]) {
+                        
+            NSDate *modifiedDate = [[fileManager attributesOfItemAtPath:[collectionDbURL path] error:NULL] objectForKey:NSFileModificationDate];
+            if (modifiedDate != nil) {
+                self.dateLastSynced = modifiedDate;
+            }
+        }
+        
+        // Set up the Persistent Store
         persistentCoordinator = [[NSPersistentStoreCoordinator alloc] initWithManagedObjectModel:collectionModel];
         success = (persistentCoordinator != nil);
     }
@@ -582,10 +609,6 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
         
         [[QLog log] logWithFormat:@"Collection started successfully at Path: '%@' for URL: %@", [self.collectionCachePath lastPathComponent], self.collectionURLString];
         
-        // Set our dateLastSynced property
-        if (self.dateLastSynced == nil) {
-            self.dateLastSynced = [NSDate date];
-        }
     } else {
         
         // Log the error and return NO.
@@ -750,11 +773,33 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     return [NSSet setWithObjects:@"stateOfSync", @"errorFromLastSync", @"dateFormatter", @"dateLastSynced", @"getCollectionOperation.retryStateClient", nil];
 }
 
+// The observable "cacheSyncStatus" is dependent on the statusOfSync property but we disable
+// automatic notifications and do a manual notification after synchronization in the 
+// -parserOperationDone: method 
++(BOOL)automaticallyNotifiesObserversOfCacheSyncStatus
+{
+    return NO;
+}
+
+ //Manually notify observers of the "cacheSyncStatus" property
+-(void)notifyCacheSyncStatus{
+    
+    NSString *status = self.statusOfSync;
+    NSString *cacheName = self.collectionCachePath;
+    if (status != nil && cacheName != nil) {
+        NSMutableDictionary *statusDict = [NSMutableDictionary dictionaryWithObject:status forKey:cacheName];
+        assert(statusDict != nil);
+        [self willChangeValueForKey:@"cacheSyncStatus"];
+        self.cacheSyncStatus = statusDict;
+        [self didChangeValueForKey:@"cacheSyncStatus"];
+    }
+}
+
 // Override getter for the KVO-observable and User-Visible StatusOfSync property
 - (NSString *)statusOfSync
 {
     NSString *  syncResult;
-    
+   
     if (self.errorFromLastSync == nil) {
         switch (self.stateOfSync) {
             case ProductCollectionSyncStateStopped: {
@@ -902,8 +947,8 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     
     self.stateOfSync = ProductCollectionSyncStateGetting;
     
-    // Set the variableRelativePath property to keep track of the relativePaths
-    //self.variableRelativePath = relativePath;
+    // Notify observers of sync status
+    [self notifyCacheSyncStatus];
 }
 
 // Starts an operation to parse the product collection's XML when the HTTP GET
@@ -930,6 +975,8 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     }
     
     self.getCollectionOperation = nil;
+    
+    [self notifyCacheSyncStatus];
 }
 
 - (void)startParserOperationWithData:(NSData *)data
@@ -948,6 +995,8 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     [[NetworkManager sharedManager] addCPUOperation:self.parserOperation finishedTarget:self action:@selector(parserOperationDone:)];
     
     self.stateOfSync = ProductCollectionSyncStateParsing;
+    
+    [self notifyCacheSyncStatus];
 }
 
 // Method is called when the Collection ParserOperation completes and if successful
@@ -973,12 +1022,12 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
         assert(self.errorFromLastSync == nil);
         self.dateLastSynced = [NSDate date];
         self.stateOfSync = ProductCollectionSyncStateStopped;
-        [[QLog log] logWithFormat:@"Successfully synced Collection Cache with URL: %@", self.collectionURLString];
+        [[QLog log] logWithFormat:@"Successfully synced Collection Cache with URL: %@", self.collectionURLString];       
         
-                      
-    }
-    
+    }        
     self.parserOperation = nil;
+    
+    [self notifyCacheSyncStatus];
 }
 
 /*
