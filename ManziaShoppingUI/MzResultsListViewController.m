@@ -12,6 +12,8 @@
 #import "Logging.h"
 #import "MzSearchCollection.h"
 #import "MzProductCollection.h"
+#import "MzResultListCell.h"
+#import "MzProductItem.h"
 
 @interface MzResultsListViewController ()
 
@@ -31,6 +33,13 @@
 // a Product Collection does not get released while its still syncing etc.
 @property (nonatomic, strong, readonly) NSMutableArray *activeCollections;
 
+// Sorted Sections
+@property(nonatomic, strong) NSArray *sortedSections;
+
+// BOOLs that capture various possible scenarios
+@property(nonatomic, assign) BOOL noSearchesFound;
+@property(nonatomic, assign) BOOL noProductItemsFound;
+
 @end
 
 @implementation MzResultsListViewController
@@ -39,6 +48,10 @@
 @synthesize allSearches;
 @synthesize allProductItems;
 @synthesize activeCollections;
+@synthesize sortedSections;
+@synthesize noProductItemsFound;
+@synthesize noSearchesFound;
+
 
 // Base URL for Search URLs
 static NSString *manziBaseURL = @"http://192.168.1.102:8080/ManziaWebServices/searches";
@@ -86,8 +99,26 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
     // Uncomment the following line to preserve selection between presentations.
     // self.clearsSelectionOnViewWillAppear = NO;
  
-    // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
+    // Display an Edit button in the navigation bar for this view controller.
     self.navigationItem.rightBarButtonItem = self.editButtonItem;
+    
+    // Setup the Model Dictionaries. Note that the entries in these dictionaries can change
+    // at any time during the lifetime of the ViewController. ProductItems can be removed or
+    // added after ProductCollection synchronizations, SearchItems can be added or deleted at
+    // any time by the user which also triggers deletions or insertions of associated
+    // Product Collections.
+    
+    // Search Dictionary
+    [self.allSearches addEntriesFromDictionary:[self generateSearchItemDictionary]];
+    NSArray *searchArray =[self.allSearches allKeys];
+    assert(searchArray != nil);
+    if ([searchArray count] > 0) {
+        self.noSearchesFound = NO;
+        // Sets up all the other dictionaries
+        [self updateProductCollectionCaches:searchArray];        
+    } else {
+        self.noSearchesFound = YES;
+    }
 }
 
 - (void)viewDidUnload
@@ -103,6 +134,11 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
              NewProductCollectionContext];
         }
     }
+    // Release the Dictionaries
+    self->allSearches = nil;
+    self->activeCollections = nil;
+    self->allProductItems = nil;
+    self->productSearchMap = nil;    
 }
 
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
@@ -196,14 +232,23 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
 -(NSDictionary *)generateSearchItemDictionary
 {
     // Retrieve all the MzSearchItems
+    NSMutableDictionary *searchDict;
     MzSearchCollection *scollection = [(MzAppDelegate *)[[UIApplication sharedApplication] delegate] searchCollection];
     assert(scollection != nil);
     NSArray *searchItems = [scollection allSearchItems];
     assert(searchItems != nil);
     
     if ([searchItems count] > 0) {
-        
+        searchDict = [NSMutableDictionary dictionary];
+        for (MzSearchItem *searchItem in searchItems) {
+            NSURL *sURL = [self createURLFromSearchItem:searchItem];
+            assert(sURL != nil);
+            [searchDict setObject:searchItem forKey:[sURL absoluteString]];
+        }
+        // Log
+        [[QLog log] logWithFormat:@"Created %d Search URLs for SearchItems", [searchDict count]];
     }
+    return searchDict;
 }
 
 // Returns a path to the CachesDirectory
@@ -435,25 +480,83 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView
 {
-#warning Potentially incomplete method implementation.
     // Return the number of sections.
-    return 0;
+    if (self.noSearchesFound) {
+        return 1;
+    } else {        
+        return [self.allSearches count];
+    }    
 }
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
-#warning Incomplete method implementation.
-    // Return the number of rows in the section.
-    return 0;
+    // Return the number of rows in the section. First we sort by timestamp
+    // Sort the array of sections (i.e, one section per SearchItem)
+    if ([self.allSearches count] > 1) {
+        self.sortedSections = [self.allSearches keysSortedByValueUsingComparator:^(MzSearchItem *searchOne, MzSearchItem *searchTwo) {
+            return [searchOne.searchTimestamp compare:searchTwo.searchTimestamp];
+        }];
+        self.noSearchesFound = NO;
+    } else {
+        self.sortedSections = [self.allSearches allKeys];
+        if ([self.sortedSections count] == 0) {
+            self.noSearchesFound = YES;
+            return 1;
+        }
+    }
+    assert(self.sortedSections != nil);
+    NSString *collectionName = [self.productSearchMap objectForKey:[self.sortedSections objectAtIndex:section]];
+    if (collectionName == nil) {
+        self.noProductItemsFound = YES;
+        return 1;
+    } else {
+        self.noProductItemsFound = NO;
+    }
+    
+    // Get the array of ProductItems
+    NSArray *productsInSection = [self.allProductItems objectForKey:collectionName];
+    if(productsInSection == nil) {
+        self.noProductItemsFound = YES;
+        return 1;
+    } else {
+        self.noProductItemsFound = NO;
+        return [productsInSection count];
+    }    
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    static NSString *CellIdentifier = @"Cell";
-    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellIdentifier];
+    static NSString *CellIdentifier = @"KResultProductCellId";
+    MzResultListCell *cell = (MzResultListCell *)[tableView dequeueReusableCellWithIdentifier:CellIdentifier];
+    assert(cell != nil);
     
     // Configure the cell...
-    
+    if (self.noSearchesFound) {
+        
+        // we have 1 section and 1 row in tableView and no SearchItems to display
+        cell.productTitle.text = @"No Searches to Display";
+        cell.productTitle.textAlignment = UITextAlignmentCenter;
+        cell.productPrice.text = nil;
+        cell.productTitle.font = [UIFont systemFontOfSize:21.0];
+    } else if (self.noProductItemsFound) {
+        
+        // we may have 1 or more sections with no ProductItems to display
+        cell.productTitle.text = @"No Products Found";
+        cell.productTitle.textAlignment = UITextAlignmentCenter;
+        cell.productPrice.text = nil;
+        cell.productTitle.font = [UIFont systemFontOfSize:21.0];
+    } else {
+        
+        // we have Searches and Products to display
+        NSString *collectionName = [self.productSearchMap objectForKey:[self.sortedSections objectAtIndex:indexPath.section]];
+        NSArray *productsInSection = [self.allProductItems objectForKey:collectionName];
+        MzProductItem *productItem = [productsInSection objectAtIndex:indexPath.row];
+        cell.productItem = productItem;
+        cell.productTitle.text = productItem.productTitle;
+        cell.productTitle.textAlignment = UITextAlignmentCenter;
+        cell.productPrice.text = productItem.productPriceAmount;
+        cell.productImage.image = [productItem getthumbnailImage:kSmallThumbnailImage];
+    }
     return cell;
 }
 
