@@ -56,7 +56,6 @@
 @synthesize noSearchesFound;
 @synthesize deviceIdentifier;
 
-
 // Base URL for Search URLs
 static NSString *manziBaseURL = @"http://192.168.1.102:8080/ManziaWebServices/searches";
 
@@ -127,13 +126,13 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
     self->allSearches = [NSMutableDictionary dictionary];
     assert(self.allSearches != nil);
     
-    
     // Search Dictionary
     NSDictionary *searchDict = [self generateSearchItemDictionary];
     if (searchDict != nil && [searchDict count] > 0) {
         [self.allSearches addEntriesFromDictionary:searchDict];
     } else {
-        [[QLog log] logWithFormat:@"Could not create SearchItemDictionary of Search URLs!"];    }
+        [[QLog log] logWithFormat:@"Could not create SearchItemDictionary of Search URLs!"];    
+    }
     
     NSArray *searchArray = [self.allSearches allKeys];
     assert(searchArray != nil);
@@ -158,6 +157,7 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
              NewProductCollectionContext];
         }
     }
+    
     // Release the Collections
     self->allSearches = nil;
     self->activeCollections = nil;
@@ -171,6 +171,9 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
 -(void) viewWillAppear:(BOOL)animated
 {
     [super viewWillAppear:animated];
+    
+    // Reload our tableView
+    [self.tableView reloadData];
 }
 
 -(void) viewWillDisappear:(BOOL)animated
@@ -192,6 +195,10 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
     
     // Create the Path Parameters
     NSString *deviceId = self.deviceIdentifier;
+    // self.deviceIdentifier will be nil if we are called from the MzSearchListViewControllerDelegate
+    // methods since our view has not loaded and viewDidLoad has not yet been called.
+    if (deviceId == nil)
+        deviceId = [(MzAppDelegate *)[[UIApplication sharedApplication] delegate] uniqueDeviceId];
     assert(deviceId != nil);
     NSString *deviceDays = [aSearchItem.daysToSearch stringValue];
     assert(deviceDays != nil);
@@ -295,17 +302,20 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
 }
 
 // Returns a path to the CachesDirectory
--(NSString *)pathToCachesDirectory
+-(NSURL *)pathToCachesDirectory
 {
-    NSString *cacheDir;
+    NSURL *cacheDir;
     NSArray *cachesPaths;
+    NSFileManager *fileMgr;
+    fileMgr = [NSFileManager defaultManager];
+    assert(fileMgr != nil);
     
-    cacheDir = nil;
-    cachesPaths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
+    cachesPaths = [fileMgr URLsForDirectory:NSCachesDirectory inDomains:NSUserDomainMask];
     if ( (cachesPaths != nil) && ([cachesPaths count] != 0) ) {
-        assert([[cachesPaths objectAtIndex:0] isKindOfClass:[NSString class]]);
+        assert([[cachesPaths objectAtIndex:0] isKindOfClass:[NSURL class]]);
         cacheDir = [cachesPaths objectAtIndex:0];
     }
+    
     return cacheDir;
 }
 
@@ -320,37 +330,37 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
     assert(searchArray != nil);
     if ([searchArray count] > 0) {
         
-        NSString *productCachesDir = [self pathToCachesDirectory];
+        NSURL *productCachesDir = [self pathToCachesDirectory];
         assert(productCachesDir != nil);
         
         NSFileManager *fileManager;
         NSArray *possibleCollections;
-        NSString *searchResult;        
+        NSURL *searchResult;        
                
         // Iterate through the Caches Directory and sub-Directories and check each plist
         // file encountered
         fileManager = [NSFileManager defaultManager];
         assert(fileManager != nil);
         
-        possibleCollections = [fileManager contentsOfDirectoryAtPath:productCachesDir error:NULL];
+        possibleCollections = [fileManager contentsOfDirectoryAtURL:productCachesDir includingPropertiesForKeys:nil options:NSDirectoryEnumerationSkipsHiddenFiles | NSDirectoryEnumerationSkipsSubdirectoryDescendants error:nil];
         assert(possibleCollections != nil);
                 
         searchResult = nil;
         if ([possibleCollections count] > 0) {
-            for (NSString *collectionName in possibleCollections) {
-                if ([collectionName hasSuffix:kCollectionExtension]) {
+            for (NSURL *collectionName in possibleCollections) {
+                if ([[collectionName lastPathComponent] hasSuffix:kCollectionExtension]) {
                     
                     NSDictionary *collectionInfo;
                     NSString *collectionInfoURLString;
                     
-                    collectionInfo = [NSDictionary dictionaryWithContentsOfFile:[[productCachesDir stringByAppendingPathComponent:collectionName] stringByAppendingPathComponent:kCollectionFileName]];
+                    collectionInfo = [NSDictionary dictionaryWithContentsOfURL:[collectionName URLByAppendingPathComponent:kCollectionFileName]];
                     if (collectionInfo != nil) {
                         collectionInfoURLString = [collectionInfo objectForKey:kCollectionKeyCollectionURLString];
                         
                         // Iterate over the array of Search URLs
                         for (NSString *searchURL in searchArray) {
                             if ( [searchURL isEqual:collectionInfoURLString] ) {
-                                searchResult = [productCachesDir stringByAppendingPathComponent:collectionName];
+                                searchResult = collectionName;
                                 [self.productSearchMap setObject:searchResult forKey:searchURL];
                                 break;
                             }                    
@@ -388,7 +398,7 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
         [[QLog log] logWithFormat:@"Deleting %d Product Collections with UNKNOWN Search URLs", [deleteCollections count]];
         
         if ([deleteCollections count] > 0) {
-            [deleteCollections enumerateObjectsUsingBlock:^(NSString *cachePath, BOOL *stop) {
+            [deleteCollections enumerateObjectsUsingBlock:^(NSURL *cachePath, BOOL *stop) {
                 [MzProductCollection markForRemoveCollectionCacheAtPath:cachePath];
             }];        
         }        
@@ -428,21 +438,45 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
             [[QLog log] logWithFormat:@"Fetching from %d Product Collections with KNOWN Search URLs", [existingSearches count]];
             
             [existingSearches enumerateObjectsUsingBlock:^(NSString *sURL, BOOL *stop) {
-                MzProductCollection *collection = [[MzProductCollection alloc] initWithCollectionURLString:sURL];
-                assert(collection != nil);
-                
-                // We only observe the "productItems" and "statusOfSync" properties
-                [collection addObserver:self forKeyPath:@"productItems" options:NSKeyValueObservingOptionNew context:ExistingProductCollectionContext];
-                [collection addObserver:self forKeyPath:@"cacheSyncStatus" options:NSKeyValueObservingOptionNew context:ExistingProductCollectionContext];
-                
-                // Get the ProductItems (method below is asynchronous as well)
-                [collection fetchProductsInCollection];
-                [self.activeCollections addObject:collection];
+                if (![self searchURLHasActiveCollection:sURL]) {
+                    
+                    MzProductCollection *collection = [[MzProductCollection alloc] initWithCollectionURLString:sURL];
+                    assert(collection != nil);
+                    
+                    // We only observe the "productItems" and "statusOfSync" properties
+                    [collection addObserver:self forKeyPath:@"productItems" options:NSKeyValueObservingOptionNew context:ExistingProductCollectionContext];
+                    [collection addObserver:self forKeyPath:@"cacheSyncStatus" options:NSKeyValueObservingOptionNew context:ExistingProductCollectionContext];
+                    
+                    // Get the ProductItems (method below is asynchronous as well)
+                    [collection fetchProductsInCollection];
+                    [self.activeCollections addObject:collection];
+                }
             }];
         }        
     }
     // Log
     [[QLog log] logWithFormat:@"Number of Active Collections instantiated: %d", [self.activeCollections count]];
+}
+
+// Helper method to determine if we already have an active ProductCollection object for a given Search URL
+// string. Returns YES if we do and NO if we dont.
+-(BOOL)searchURLHasActiveCollection:(NSString *)searchURL
+{
+    assert(searchURL != nil);
+    assert(self.activeCollections != nil);
+    if ([self.activeCollections count] == 0) {
+        return NO;
+    }
+    NSUInteger searchIndex = [self.activeCollections indexOfObjectPassingTest:
+                              ^(MzProductCollection *collection, NSUInteger idx, BOOL *stop) {
+                                  if([collection.collectionURLString isEqualToString:searchURL]) {
+                                      *stop = YES;
+                                      return YES;
+                                  } else { return NO; }
+                              }];
+    if (searchIndex != NSNotFound) {
+        return YES;
+    } else { return NO; }
 }
 
 // KVO implementation
@@ -459,7 +493,7 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
                 NSDictionary *cacheDict = [change objectForKey:NSKeyValueChangeNewKey];
                 assert([cacheDict count] > 0);
                 [self.productSearchMap addEntriesFromDictionary:cacheDict];
-                [[QLog log] logWithFormat:@"Success adding Product Collection Cache Name to MzResultListViewController at Path: %@", [[cacheDict allValues] objectAtIndex:0]];
+                [[QLog log] logWithFormat:@"Success adding Product Collection Cache Name to MzResultListViewController at Path: %@", [[[cacheDict allValues] objectAtIndex:0] path ]];
             }                
         }
                 
@@ -478,6 +512,11 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
                 NSUInteger prodCount = [[[productDict allValues] objectAtIndex:0] count];
                 [allProductItems addEntriesFromDictionary:productDict];
                 [[QLog log] logWithFormat:@"Success adding %d ProductItems from Product Collection Cache at Path: %@", prodCount, [[productDict allKeys] objectAtIndex:0]];
+                
+                // We also reload our tableView since we have new ProductItems
+                if (prodCount > 0) {
+                    [self.tableView reloadData];
+                }
             }
         }
         // In this case, an existing ProductCollection was refreshed/re-synchronized in which case
@@ -490,18 +529,18 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
                 NSDictionary *statusDict = [change objectForKey:NSKeyValueChangeNewKey];
                 assert([statusDict count] > 0);
                 NSString *statusValue = [[statusDict allValues] objectAtIndex:0];
-                NSString *collectionName = [[statusDict allKeys] objectAtIndex:0];
+                NSURL *collectionName = [[statusDict allKeys] objectAtIndex:0];
                 
                 if ([statusValue isEqualToString:@"Update Failed"] || [statusValue isEqualToString:@"Update cancelled"] ) {
                     
                     // Mark the ProductCollection for deletion
-                    [[QLog log] logWithFormat:@"Marked for deletion after Update Failed/Cancelled for Product Collection Cache at Path: %@", collectionName];
+                    [[QLog log] logWithFormat:@"Marked for deletion after Update Failed/Cancelled for Product Collection Cache at Path: %@", [collectionName path ]];
                     [MzProductCollection markForRemoveCollectionCacheAtPath:collectionName];
                     
                     // Remove from activeCollections array
                     if ([self.activeCollections count] > 0) {
                         
-                        [[QLog log] logWithFormat:@"Deleting MzProductCollection object after Update Failed/Cancelled at Path: %@", collectionName];
+                        [[QLog log] logWithFormat:@"Deleting MzProductCollection object after Update Failed/Cancelled at Path: %@", [collectionName path ]];
                         [self.activeCollections removeObjectIdenticalTo:object];
                     }               
                     
@@ -512,7 +551,7 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
                         
                         NSUInteger colIndex = [self.activeCollections indexOfObjectIdenticalTo:object];
                         if (colIndex != NSNotFound) {
-                            [[QLog log] logWithFormat:@"Re-fetching ProductItems after re-synchronization for existing Product Collection Cache at Path: %@", collectionName];
+                            [[QLog log] logWithFormat:@"Re-fetching ProductItems after re-synchronization for existing Product Collection Cache at Path: %@", [collectionName path ]];
                             [[self.activeCollections objectAtIndex:colIndex] fetchProductsInCollection];
                         }
                     }                    
@@ -554,7 +593,7 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
         return 1;
     }
     assert(self.sortedSections != nil);
-    NSString *collectionName = [self.productSearchMap objectForKey:[self.sortedSections objectAtIndex:section]];
+    NSURL *collectionName = [self.productSearchMap objectForKey:[self.sortedSections objectAtIndex:section]];
     if (collectionName == nil) {
         self.noProductItemsFound = YES;
         return 1;
@@ -563,7 +602,7 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
     }
     
     // Get the array of ProductItems
-    NSArray *productsInSection = [self.allProductItems objectForKey:collectionName];
+    NSArray *productsInSection = [self.allProductItems objectForKey:[collectionName path]];
     if(productsInSection == nil || [productsInSection count] == 0) {
         self.noProductItemsFound = YES;
         return 1;
@@ -594,10 +633,10 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
         // we have Searches to display
         assert(self.sortedSections != nil);
         NSArray *productsInSection;
-        NSString *collectionName = [self.productSearchMap objectForKey:[self.sortedSections objectAtIndex:indexPath.section]];
+        NSURL *collectionName = [self.productSearchMap objectForKey:[self.sortedSections objectAtIndex:indexPath.section]];
         self.noProductItemsFound = collectionName == nil ? YES : NO;
         if (collectionName != nil) {
-            productsInSection = [self.allProductItems objectForKey:collectionName];
+            productsInSection = [self.allProductItems objectForKey:[collectionName path]];
             self.noProductItemsFound = productsInSection == nil ? YES : NO;
             self.noProductItemsFound = [productsInSection count] > 0 ? NO : YES;
         }      
@@ -688,47 +727,77 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
 #pragma mark - Search Item Delegate Methods
 
 // Delegate Methods that deal with deletions and insertions of MzSearchItems by the User
+/*
+ NOTE: When our view is loaded, this viewController has the state to process deletions and 
+ insertions of MzSearchItems, however the first time app starts (i.e becomes Active), the view
+ is not loaded and we cannot process these delegate since alot of the state is setup in the 
+ viewDidLoad method
+ 
+ NOTE: we reload the tableView after KVO observing the additions to the allProductItems dictionary
+ // via the "productItems" property we observe on each ProductCollection
+ */
 -(void)controller:(MzSearchListViewController *)searchController addedSearchItem:(MzSearchItem *)searchItem
 {
-    
+    if (self.isViewLoaded == YES) {
+    // Update the Model
+        assert(searchItem != nil);
+        NSURL *insertURL = [self createURLFromSearchItem:searchItem];
+        assert(insertURL != nil);
+        NSString *insertKey = [insertURL absoluteString];
+        assert(insertKey != nil);
+        NSArray *insertItems = [NSArray arrayWithObject:insertKey];
+        assert(insertItems != nil);
+        [self.allSearches setObject:searchItem forKey:insertKey];
+        [self updateProductCollectionCaches:insertItems]; 
+    } else {
+        // Attempt to load our View which will update all the relevant Collections
+        // and also because the User is likely to be coming to this screen next!
+        [self view];
+    }
 }
 
 -(void)controller:(MzSearchListViewController *)searchController deletedSearchItem:(MzSearchItem *)searchItem
 {
-    // Delete the MzSearchItem for our Model, the corresponding ProductCollection if any will
-    // deleted next time the App moves into background
-    NSURL *deleteURL = [self createURLFromSearchItem:searchItem];
-    assert(deleteURL != nil);
-    NSString *deleteKey = [deleteURL absoluteString];
-    assert(deleteKey != nil);
-    if ([self.allSearches count] > 0) {
-        [self.allSearches removeObjectForKey:deleteKey];
-        [[QLog log] logWithFormat:@"Deleted Search Item as per User Request with Title:", searchItem.searchTitle];
-    } else {
-        [[QLog log] logWithFormat:@"User Requested delete unknown Search Item with Title:", searchItem.searchTitle];    
-    }
-    // Mark the ProductCollection for deletion
-    if ([self.productSearchMap count] > 0) {
-        NSString *collectionName = [self.productSearchMap objectForKey:deleteKey];
-        if (collectionName != nil) {
-            [MzProductCollection markForRemoveCollectionCacheAtPath:collectionName];
-            [self.allProductItems removeObjectForKey:collectionName];
-            [[QLog log] logWithFormat:@"Deleted Search Item from Product Collection per User Request with Title:", searchItem.searchTitle];
+    if (self.isViewLoaded == YES) {
+        // Delete the MzSearchItem for our Model, the corresponding ProductCollection if any will
+        // deleted next time the App moves into background
+        NSURL *deleteURL = [self createURLFromSearchItem:searchItem];
+        assert(deleteURL != nil);
+        NSString *deleteKey = [deleteURL absoluteString];
+        assert(deleteKey != nil);
+        if ([self.allSearches count] > 0) {
+            [self.allSearches removeObjectForKey:deleteKey];
+            [[QLog log] logWithFormat:@"Deleted Search Item as per User Request with Title:", searchItem.searchTitle];
+        } else {
+            [[QLog log] logWithFormat:@"User Requested delete unknown Search Item with Title:", searchItem.searchTitle];    
         }
+        // Mark the ProductCollection for deletion
+        if ([self.productSearchMap count] > 0) {
+            NSURL *collectionName = [self.productSearchMap objectForKey:deleteKey];
+            if (collectionName != nil) {
+                [MzProductCollection markForRemoveCollectionCacheAtPath:collectionName];
+                [self.allProductItems removeObjectForKey:[collectionName path]];
+                [[QLog log] logWithFormat:@"Deleted Search Item from Product Collection per User Request with Title:", searchItem.searchTitle];
+            }
+        }
+        
+        // Delete the MzSearchItem (section) from the tableView
+        if (!noSearchesFound && [self.sortedSections count] > 0) {
+            NSUInteger deleteIndex = [self.sortedSections indexOfObjectPassingTest:^(NSString *sURL, NSUInteger idx, BOOL *stop) {
+                if ([sURL isEqualToString:deleteKey]) {
+                    *stop = YES;
+                    return YES;
+                } else { return NO; }
+            }];
+            if (deleteIndex != NSNotFound) {
+                [self.tableView deleteSections:[NSIndexSet indexSetWithIndex:deleteIndex] withRowAnimation:UITableViewRowAnimationNone];
+            }        
+        }    
+    } else {
+        // Attempt to load our View which will update all the relevant Collections
+        // and also because the User is likely to be coming to this screen next!
+        [self view];
     }
-    
-    // Delete the MzSearchItem (section) from the tableView
-    if (!noSearchesFound && [self.sortedSections count] > 0) {
-        NSUInteger deleteIndex = [self.sortedSections indexOfObjectPassingTest:^(NSString *sURL, NSUInteger idx, BOOL *stop) {
-            if ([sURL isEqualToString:deleteKey]) {
-                *stop = YES;
-                return YES;
-            } else { return NO; }
-        }];
-        if (deleteIndex != NSNotFound) {
-            [self.tableView deleteSections:[NSIndexSet indexSetWithIndex:deleteIndex] withRowAnimation:UITableViewRowAnimationNone];
-        }        
-    }    
 }
 
 // Helper to compare 2 SearchItems and return YES if they are the same

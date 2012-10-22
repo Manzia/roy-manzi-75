@@ -170,8 +170,19 @@ static NSString *kSearchTitleTemplate = @"Search %d: %@";
     [super viewWillAppear:animated];
     
     // get all the MzSearchItems we need to display
-    self.searchItems = [NSMutableArray arrayWithArray:[self.searchCollection allSearchItems]];
-    assert(self.searchItems != nil);
+    NSArray *items = [self.searchCollection allSearchItems];
+    assert(items != nil);
+    if ([items count] > 1) {
+        // we sort the array of searchItems
+        NSArray *sortedArray = [items sortedArrayUsingComparator:^(MzSearchItem *first, MzSearchItem *second) {
+            return [first.searchTimestamp compare:second.searchTimestamp]; 
+        }];
+        self.searchItems = [NSMutableArray arrayWithArray:sortedArray];
+        assert(self.searchItems != nil);
+    } else {
+        self.searchItems = [NSMutableArray arrayWithArray:items];
+        assert(self.searchItems != nil);    
+    }    
 }
 
 - (void)viewWillDisappear:(BOOL)animated
@@ -200,7 +211,7 @@ static NSString *kSearchTitleTemplate = @"Search %d: %@";
 {
     // Return the number of rows in the section.
     
-    return searchItems != nil ? [searchItems count] : 0;
+    return self.searchItems != nil ? [self.searchItems count] : 0;
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
@@ -234,7 +245,7 @@ static NSString *kSearchTitleTemplate = @"Search %d: %@";
         assert(tempSearchItem != nil);
         NSString *oldTitle = tempSearchItem.searchTitle;
         assert(oldTitle != nil);
-        NSString *newTitle = [NSString stringWithFormat:kSearchTitleTemplate, indexPath.row, oldTitle];
+        NSString *newTitle = [NSString stringWithFormat:kSearchTitleTemplate, indexPath.row + 1, oldTitle];
         assert(newTitle != nil);
         tempSearchItem.searchTitle = newTitle;
         [cell setSearchItem:tempSearchItem];        
@@ -270,6 +281,9 @@ static NSString *kSearchTitleTemplate = @"Search %d: %@";
         
         // Delete the row from the data source
         [tableView deleteRowsAtIndexPaths:[NSArray arrayWithObject:indexPath] withRowAnimation:UITableViewRowAnimationAutomatic];
+        
+        // Reload the tableView so titles for the Searches match up
+        [self.tableView reloadRowsAtIndexPaths:[self.tableView indexPathsForVisibleRows] withRowAnimation:UITableViewRowAnimationAutomatic];
     }   
     else if (editingStyle == UITableViewCellEditingStyleInsert) {
         // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
