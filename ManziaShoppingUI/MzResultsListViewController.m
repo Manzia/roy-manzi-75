@@ -564,7 +564,7 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
     
     // Get the array of ProductItems
     NSArray *productsInSection = [self.allProductItems objectForKey:collectionName];
-    if(productsInSection == nil) {
+    if(productsInSection == nil || [productsInSection count] == 0) {
         self.noProductItemsFound = YES;
         return 1;
     } else {
@@ -683,6 +683,64 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
         NSString *title = [NSString stringWithFormat:@"Search %d: %@", section+1, item.searchTitle];
         return title;
     }
+}
+
+#pragma mark - Search Item Delegate Methods
+
+// Delegate Methods that deal with deletions and insertions of MzSearchItems by the User
+-(void)controller:(MzSearchListViewController *)searchController addedSearchItem:(MzSearchItem *)searchItem
+{
+    
+}
+
+-(void)controller:(MzSearchListViewController *)searchController deletedSearchItem:(MzSearchItem *)searchItem
+{
+    // Delete the MzSearchItem for our Model, the corresponding ProductCollection if any will
+    // deleted next time the App moves into background
+    NSURL *deleteURL = [self createURLFromSearchItem:searchItem];
+    assert(deleteURL != nil);
+    NSString *deleteKey = [deleteURL absoluteString];
+    assert(deleteKey != nil);
+    if ([self.allSearches count] > 0) {
+        [self.allSearches removeObjectForKey:deleteKey];
+        [[QLog log] logWithFormat:@"Deleted Search Item as per User Request with Title:", searchItem.searchTitle];
+    } else {
+        [[QLog log] logWithFormat:@"User Requested delete unknown Search Item with Title:", searchItem.searchTitle];    
+    }
+    // Mark the ProductCollection for deletion
+    if ([self.productSearchMap count] > 0) {
+        NSString *collectionName = [self.productSearchMap objectForKey:deleteKey];
+        if (collectionName != nil) {
+            [MzProductCollection markForRemoveCollectionCacheAtPath:collectionName];
+            [self.allProductItems removeObjectForKey:collectionName];
+            [[QLog log] logWithFormat:@"Deleted Search Item from Product Collection per User Request with Title:", searchItem.searchTitle];
+        }
+    }
+    
+    // Delete the MzSearchItem (section) from the tableView
+    if (!noSearchesFound && [self.sortedSections count] > 0) {
+        NSUInteger deleteIndex = [self.sortedSections indexOfObjectPassingTest:^(NSString *sURL, NSUInteger idx, BOOL *stop) {
+            if ([sURL isEqualToString:deleteKey]) {
+                *stop = YES;
+                return YES;
+            } else { return NO; }
+        }];
+        if (deleteIndex != NSNotFound) {
+            [self.tableView deleteSections:[NSIndexSet indexSetWithIndex:deleteIndex] withRowAnimation:UITableViewRowAnimationNone];
+        }        
+    }    
+}
+
+// Helper to compare 2 SearchItems and return YES if they are the same
+-(BOOL)compareSearchItems:(MzSearchItem *)first secondItem:(MzSearchItem *)second
+{
+    assert(first != nil);
+    assert(second != nil);
+    if( [first.searchTitle isEqualToString:second.searchTitle] && [first.searchTimestamp compare:second.searchTimestamp] == NSOrderedSame) {
+        return  YES;
+    } else {
+        return NO;
+    }    
 }
 
 @end

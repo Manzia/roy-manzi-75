@@ -14,6 +14,7 @@
 #import "MzSearchItem.h"
 #import "MzSearchDetailViewController.h"
 #import "MzAppDelegate.h"
+#import "MzResultsListViewController.h"
 
 #define NUMBER_SECTIONS 1
 #define kAddSearchButtonTag 1
@@ -119,8 +120,36 @@ static NSString *kSearchTitleTemplate = @"Search %d: %@";
     headerView.addSearchButton.tag = kAddSearchButtonTag;
     //[headerView.addSearchButton addTarget:self action:@selector(addSearchSelected) forControlEvents:UIControlEventTouchUpInside];
     
-    self.tableView.tableHeaderView = headerView;    
-        
+    self.tableView.tableHeaderView = headerView;
+    
+    // Set up the MzResultsListViewController as the delegate for insertions and deletions of
+    // MzSearchItems.
+    // 1- Get the delegate's Navigation Controller
+    UINavigationController *delegateNavController = [[self.tabBarController viewControllers] objectAtIndex:1];
+    assert(delegateNavController != nil);
+    
+    // 2- Find out whichever conforms to our protocol and set them as our delegate
+    if ([delegateNavController.viewControllers count] > 0 ) {
+        NSUInteger delegateIndex = [delegateNavController.viewControllers indexOfObjectPassingTest:
+                ^(id viewController, NSUInteger idx, BOOL *stop) {
+                    if( [viewController isKindOfClass:[MzResultsListViewController class]] && 
+                       [MzResultsListViewController conformsToProtocol:@protocol(MzSearchListViewControllerDelegate)]) {
+                        *stop = YES;
+                        return YES;
+                    } else {
+                        return  NO;
+                    }
+                }];
+        if (delegateIndex != NSNotFound) {
+            self.delegate = [delegateNavController.viewControllers objectAtIndex:delegateIndex];
+        } else {
+            //Log
+            [[QLog log] logWithFormat:@"WARNING: No ViewController was found to set as Delegate to the MzSearchListViewController!!"];
+        }
+    } else {
+        //Log
+        [[QLog log] logWithFormat:@"MzSearchListViewController delegate's NavigationViewController has zero ViewControllers!!"];
+    }        
 }
 
 
@@ -236,6 +265,9 @@ static NSString *kSearchTitleTemplate = @"Search %d: %@";
         [self.searchCollection removeSearchItem:itemToDelete];
         [self.searchItems removeObjectAtIndex:indexPath.row];
         
+        // Inform our delegate
+        [self.delegate controller:self deletedSearchItem:itemToDelete];
+        
         // Delete the row from the data source
         [tableView deleteRowsAtIndexPaths:[NSArray arrayWithObject:indexPath] withRowAnimation:UITableViewRowAnimationAutomatic];
     }   
@@ -296,11 +328,15 @@ static NSString *kSearchTitleTemplate = @"Search %d: %@";
     // add the new Search Item
     [self.searchCollection addSearchItem:searchItem];
     
+    // Inform our delegate
+    [self.delegate controller:self addedSearchItem:searchItem];
+    
     // Remove the AddSearchViewController from screen
     [self.navigationController popViewControllerAnimated:YES];
     
     // Reload our table
-    [self.tableView reloadData];
+    [self.tableView reloadData];    
+    
 }
 
 @end

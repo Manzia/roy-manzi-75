@@ -7,8 +7,10 @@
 //
 
 #import <UIKit/UIKit.h>
+#import "MzSearchListViewController.h"
 
-@interface MzResultsListViewController : UITableViewController {
+
+@interface MzResultsListViewController : UITableViewController <MzSearchListViewControllerDelegate> {
     
 }
 
