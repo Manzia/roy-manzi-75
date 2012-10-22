@@ -15,6 +15,7 @@
 #import "MzAttributeOptionViewController.h"
 #import "MzSearchItem.h"
 #import <QuartzCore/QuartzCore.h>
+#import "MzTaskType.h"
 
 // Constants
 #define kSearchButtonsPerCell 3
@@ -25,7 +26,7 @@
 @property (nonatomic, strong) NSManagedObjectContext *managedContext;
 @property (nonatomic, strong) NSFetchedResultsController *fetchController;
 @property (nonatomic, assign) BOOL fetchSucceeded;
-@property (nonatomic, assign) BOOL categoryDidChange;
+//@property (nonatomic, assign) BOOL categoryDidChange;
 @property(nonatomic, strong) id <NSFetchedResultsSectionInfo> currentSection;
 //@property (nonatomic, strong) MzAddSearchHeaderView *searchHeaderView;
 
@@ -47,7 +48,7 @@
 // Property below represents the sub-category that is presently selected
 // in the tableViewHeader. The value of this property determines which
 // search options are displayed on the buttons in the tableView
-@property (nonatomic, strong) NSString *currentSectionName;
+//@property (nonatomic, strong) NSString *currentSectionName;
 
 //Property below represents the search criteria selected by the user
 @property (nonatomic, strong) MzSearchItem *searchItem;
@@ -66,7 +67,7 @@
 @synthesize fetchController;
 @synthesize currentButton;
 @synthesize fetchSucceeded;
-@synthesize currentSectionName;
+//@synthesize currentSectionName;
 @synthesize delegate;
 @synthesize addSearchCell;
 @synthesize currentSection;
@@ -74,10 +75,11 @@
 @synthesize searchItem;
 @synthesize buttonIndex;
 @synthesize selectedOptions;
-@synthesize categoryDidChange;
+//@synthesize categoryDidChange;
 
 // Database entity that we fetch from
 static NSString *kTaskAttributeEntity = @"MzTaskAttribute";
+static NSString *kTaskTypeEntity = @"MzTaskType";
 
 // Modal segue to the attributeOptions
 static NSString *kAttributeOptionSegue = @"kAttributeOptionSegue";
@@ -91,8 +93,7 @@ static NSString *kAllBrandsAttribute = @"All";
 
 /*
  When the "Add Search" button in the tableHeaderView of the
- MzSearchListViewController is tapped, a Segue is fired that then instantiates
- an instance of MzAddSearchViewController which is then pushed on screen via a 
+ MzSearchListViewController is tapped, a Segue is fired that pushes us on screen via a 
  Navigation Controller.
  */
 
@@ -105,6 +106,40 @@ static NSString *kAllBrandsAttribute = @"All";
     }
     return self;
 }
+
+/* Method that returns the section name we shall initially display on startup
+-(NSString *)initialSectionName
+{
+    assert(self.managedContext != nil);
+    NSArray *retrievedSections;
+    NSError *sectionError;
+    NSString *sectionName;
+    
+    NSFetchRequest *sectionRequest = [NSFetchRequest fetchRequestWithEntityName:kTaskTypeEntity];
+    assert(sectionRequest != nil);
+    retrievedSections = [self.managedContext executeFetchRequest:sectionRequest error:&sectionError];
+    assert(retrievedSections != nil);
+    
+    // Log errors
+    if (sectionError) {
+        [[QLog log] logWithFormat:
+         @"Encountered error: %@ during sectionName fetch from Task Collection",[sectionError localizedDescription]];
+    } else {
+        
+        // get a sectionName
+        if ([retrievedSections count] > 0) {
+            MzTaskType *sectionType = [retrievedSections objectAtIndex:0];
+            sectionName = sectionType.taskTypeName;
+            assert(sectionName != nil);
+            [[QLog log] logWithFormat:@"Retrieved initial Section Name: %@", sectionName];
+        } else {
+            // we return a default value and hope its valid
+            sectionName = @"Phones";
+            [[QLog log] logWithFormat:@"WARNING: Returned default section name instead of section from database"];
+        }
+    }
+    return sectionName;
+}*/
 
 - (void)viewDidLoad
 {
@@ -146,13 +181,7 @@ static NSString *kAllBrandsAttribute = @"All";
     if (self.fetchSucceeded) {
         [[QLog log] logWithFormat:@"Success: Fetched %d objects from the Task Collection data store", [[self.fetchController fetchedObjects] count]];
         
-        //Initialize boolean that tracks whenever the Category button is tapped by the user which signals 
-        // that we need to reload all the tableView data
-        self.categoryDidChange = true;
-        
-        // Set the default values for the initial view
-        self.currentSectionName = @"Phones";        
-        
+               
         // Initialize the currentSection property
         NSArray *tempSections = [self.fetchController sections];
         assert(tempSections != nil);
@@ -160,19 +189,22 @@ static NSString *kAllBrandsAttribute = @"All";
         NSLog(@"Created tempSections array with size: %d", [tempSections count]);
         
         if ([tempSections count] > 0) {
-            for (id <NSFetchedResultsSectionInfo> sectionItem in tempSections) {
+            self.currentSection = [tempSections objectAtIndex:0];
+            /*for (id <NSFetchedResultsSectionInfo> sectionItem in tempSections) {
                 NSLog(@"Section name: %@", [sectionItem name]);
-                if ([[sectionItem name] isEqualToString:self.currentSectionName]) {
+                if ([[sectionItem name] isEqualToString:[self initialSectionName]]) {
                     self.currentSection = sectionItem;
                 }
-            }
+            }*/
         } else {
-            [[QLog log] logWithFormat:@" Zero sections retrieved from Task Collection"];
-        }
+            // If we have no sections we have nothing to display so we just return and let
+            // the framework deal with it
+            [[QLog log] logWithFormat:@" Zero sections retrieved from Task Collection...No sections to display!"];
+            return;
+        }        
         assert(self.currentSection != nil);
         
         // Initialize the NSMutableOrderedSet that keeps track of all the user's choices
-        
         NSMutableArray *taskAttributes;
         taskAttributes = [NSMutableArray array];
         assert(taskAttributes != nil);
@@ -182,14 +214,14 @@ static NSString *kAllBrandsAttribute = @"All";
         
         if ([taskAttributes count] > 0) {
             self.selectedOptions = [NSMutableOrderedSet orderedSetWithArray:taskAttributes];
-            assert(self.selectedOptions != nil);
-            self.categoryDidChange = false;
+            assert(self.selectedOptions != nil);            
         }
     }
         
     //Log error
     if (error) {
         [[QLog log] logWithFormat:@"Error fetching from TaskAttribute Entity with error: %@", error.localizedDescription];
+        return;     // Return since we likely have nothing to display
     }
     
     // initialize our tableView HeaderView
@@ -197,6 +229,7 @@ static NSString *kAllBrandsAttribute = @"All";
     MzAddSearchHeaderView *searchHeaderView = [[MzAddSearchHeaderView alloc] initWithFrame:headerViewRect delegate:self];
     assert(searchHeaderView != nil);
     searchHeaderView.backgroundColor = [UIColor lightGrayColor];
+    [searchHeaderView.productCategory setTitle:[self.currentSection name] forState:UIControlStateNormal];
     
     // Set self as delegate for the Preferred Price UITextField
     searchHeaderView.priceField.delegate = self;
@@ -227,48 +260,13 @@ static NSString *kAllBrandsAttribute = @"All";
     
     // Release the section info
     self.selectedOptions = nil;
-    self.currentSectionName = nil;
     self.currentSection = nil;
 }
 
 - (void)viewWillAppear:(BOOL)animated
 {
-    [super viewWillAppear:animated];
-    
-      
+    [super viewWillAppear:animated];      
         
-    // Reload the NSMutableOrderedSet that keeps track of all the user's choices if the Category has changed
-    if (self.categoryDidChange) {
-        
-        NSArray *tempSections = [NSArray arrayWithArray:[self.fetchController sections]];
-        assert(tempSections != nil);
-        assert([tempSections count] > 0);
-        
-        if ([tempSections count] > 0) {
-            for (id <NSFetchedResultsSectionInfo> sectionItem in tempSections) {
-                NSLog(@"Section name: %@", [sectionItem name]);
-                if ([[sectionItem name] isEqualToString:self.currentSectionName]) {
-                    self.currentSection = sectionItem;
-                }
-            }
-        } else {
-            [[QLog log] logWithFormat:@" Zero sections retrieved from Task Collection"];
-        }
-        assert(self.currentSection != nil);
-
-        NSMutableArray *taskAttributes;
-        taskAttributes = [NSMutableArray array];
-        assert(taskAttributes != nil);
-        [[self.currentSection objects] enumerateObjectsUsingBlock:^(MzTaskAttribute *attribute, NSUInteger idx, BOOL *stop) {
-            [taskAttributes addObject:attribute.taskAttributeName];
-        }];
-        
-        if ([taskAttributes count] > 0) {
-            self.selectedOptions = [NSMutableOrderedSet orderedSetWithArray:taskAttributes];
-            assert(self.selectedOptions != nil);
-            self.categoryDidChange = false;
-        }
-    }        
 }
 
 -(void)viewWillDisappear:(BOOL)animated
@@ -307,24 +305,6 @@ static NSString *kAllBrandsAttribute = @"All";
         
         assert(self.selectedOptions != nil);
         NSInteger maxSectionCount = [self.selectedOptions count];
-        /* NSArray *tempSections = [self.fetchController sections];
-        [[QLog log] logWithFormat:@" %d sections retrieved from Task Collection", [tempSections count]];
-        
-        assert(tempSections != nil);
-        NSUInteger maxSectionCount = 0;
-        NSUInteger sectionCount = 0;
-        
-        // Find the section with most number of items
-        if ([tempSections count] > 0) {
-            for (id <NSFetchedResultsSectionInfo> sectionItem in tempSections) {
-                sectionCount = [sectionItem numberOfObjects];
-                maxSectionCount = sectionCount > maxSectionCount ? sectionCount : maxSectionCount;
-            }
-        } else {
-            
-            [[QLog log] logWithFormat:@"Zero rows from Task Collection returned for TableView"];
-            return 0;
-        } */
         assert(maxSectionCount > 0);    // prevent zero division
         [[QLog log] logWithFormat:@"%d mod 3 rows from Task Collection returned for TableView", maxSectionCount];
         
@@ -503,41 +483,6 @@ static NSString *kAllBrandsAttribute = @"All";
     self.buttonIndex = tempButton.tag;
     NSLog(@"Button number: %d in tableView was tapped", self.buttonIndex );
     
-    // Determine the position(index) of the button that was tapped
-    /*Adjust the y-coordinate of the tempButton center to take into account the tableHeaderView
-    assert(tempButton.superview != nil);
-    CGPoint buttonPoint = [self.tableView convertPoint:tempButton.center fromView:tempButton.superview];
-    NSIndexPath *senderIndexPath = [self.tableView indexPathForRowAtPoint:buttonPoint];
-    assert(senderIndexPath != nil);
-    NSLog(@"%d row was tapped", senderIndexPath.row);
-    MzAddSearchCell *tempCell = (MzAddSearchCell *)[self.tableView cellForRowAtIndexPath:senderIndexPath];
-    assert(tempCell != nil);
-    
-    buttonPosition = CGRectContainsPoint(tempCell.leftOptionButton.frame, tempButton.center);
-    if (buttonPosition) {
-        self.buttonIndex = (senderIndexPath.row * kSearchButtonsPerCell) + SearchOptionButtonLeft;
-        NSLog(@"Left button tapped...");
-        continueCheckButton = NO;
-    }
-    
-    if (continueCheckButton) {
-        buttonPosition = CGRectContainsPoint(tempCell.middleOptionButton.frame, tempButton.center);
-        if (buttonPosition) {
-            self.buttonIndex = (senderIndexPath.row * kSearchButtonsPerCell) + SearchOptionButtonMiddle;
-            NSLog(@"Middle button tapped...");
-            continueCheckButton = NO;
-        }
-    }
-    
-    if (continueCheckButton) {
-        buttonPosition = CGRectContainsPoint(tempCell.rightOptionButton.frame, tempButton.center);
-        if (buttonPosition) {
-            self.buttonIndex = (senderIndexPath.row * kSearchButtonsPerCell) + SearchOptionButtonRight;
-            NSLog(@"Right button tapped...");
-            continueCheckButton = NO;
-        }
-    } */
-        
     // ignore the buttons with the "..." filler string
     if (![self.currentButton.titleLabel.text isEqualToString:kAttributeFillerString]) {
         
@@ -596,13 +541,47 @@ static NSString *kAllBrandsAttribute = @"All";
         [headerView.productCategory setTitle:selectedString forState:UIControlStateNormal];
         
         // set the currentSectionName before we appear on screen
-        self.currentSectionName = selectedString;
-        self.categoryDidChange = true;
+        [self updateSelectionOptionsForCategoryChange:selectedString];
         [self.tableView reloadData];
         
         // dismiss the modal Controller
         [self dismissModalViewControllerAnimated:YES];
     }    
+}
+
+// Helper method that update selectedOptions NSOrderedSet when the category changes
+-(void)updateSelectionOptionsForCategoryChange:(NSString *)newCategory
+{
+    assert(newCategory != nil);
+    
+    // Reload the NSMutableOrderedSet that keeps track of all the user's choices if the Category has changed
+            
+        NSArray *tempSections = [self.fetchController sections];
+        assert(tempSections != nil);
+        if ([tempSections count] > 0) {
+            for (id <NSFetchedResultsSectionInfo> sectionItem in tempSections) {
+                if ([[sectionItem name] isEqualToString:newCategory]) {
+                    self.currentSection = sectionItem;
+                    break;
+                }
+            }
+        } else {
+            [[QLog log] logWithFormat:@" Zero sections retrieved from Task Collection..No sections to Display!"];
+            return;
+        }
+        assert(self.currentSection != nil);
+        
+        NSMutableArray *taskAttributes;
+        taskAttributes = [NSMutableArray array];
+        assert(taskAttributes != nil);
+        [[self.currentSection objects] enumerateObjectsUsingBlock:^(MzTaskAttribute *attribute, NSUInteger idx, BOOL *stop) {
+            [taskAttributes addObject:attribute.taskAttributeName];
+        }];
+        
+        if ([taskAttributes count] > 0) {
+            self.selectedOptions = [NSMutableOrderedSet orderedSetWithArray:taskAttributes];
+            assert(self.selectedOptions != nil);            
+        }
 }
 
 #pragma mark - tableView HeaderView Delegate Methods

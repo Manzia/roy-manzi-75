@@ -748,7 +748,8 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
         NSArray *insertItems = [NSArray arrayWithObject:insertKey];
         assert(insertItems != nil);
         [self.allSearches setObject:searchItem forKey:insertKey];
-        [self updateProductCollectionCaches:insertItems]; 
+        [self updateProductCollectionCaches:insertItems];
+        [self.tableView reloadRowsAtIndexPaths:[self.tableView indexPathsForVisibleRows] withRowAnimation:UITableViewRowAnimationNone];
     } else {
         // Attempt to load our View which will update all the relevant Collections
         // and also because the User is likely to be coming to this screen next!
@@ -792,7 +793,8 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
             if (deleteIndex != NSNotFound) {
                 [self.tableView deleteSections:[NSIndexSet indexSetWithIndex:deleteIndex] withRowAnimation:UITableViewRowAnimationNone];
             }        
-        }    
+        }
+        [self.tableView reloadRowsAtIndexPaths:[self.tableView indexPathsForVisibleRows] withRowAnimation:UITableViewRowAnimationNone];
     } else {
         // Attempt to load our View which will update all the relevant Collections
         // and also because the User is likely to be coming to this screen next!
