@@ -78,7 +78,7 @@ typedef enum ProductCollectionSyncState ProductCollectionSyncState;
 @property(nonatomic, copy, readonly) NSString *collectionURLString;
 @property(nonatomic, strong, readonly)NSManagedObjectContext *managedObjectContext;
 @property(nonatomic, strong, readonly)NSEntityDescription *productItemEntity;
-@property(nonatomic, copy, readonly) NSString *collectionCachePath;
+@property(nonatomic, copy, readonly) NSURL *collectionCachePath;
 
 // KVO properties
 @property(nonatomic, strong, readonly) NSDictionary *productItems;
@@ -98,7 +98,7 @@ typedef enum ProductCollectionSyncState ProductCollectionSyncState;
 +(void)applicationInBackground;
 
 // Marks for removal a ProductCollection cache at a given path
-+ (void)markForRemoveCollectionCacheAtPath:(NSString *)collectionPath;
++ (void)markForRemoveCollectionCacheAtPath:(NSURL *)collectionPath;
 
 // initialize
 -(id)initWithCollectionURLString:(NSString *)collectionURLString;

@@ -27,7 +27,7 @@
 @property (nonatomic, copy, readwrite) NSString *tasksURLString;
 @property (nonatomic, retain, readwrite)NSEntityDescription *tasksEntity;
 @property (nonatomic, retain, readwrite) NSManagedObjectContext *managedObjectContext;
-@property (nonatomic, copy, readwrite) NSString *tasksCachePath;
+@property (nonatomic, copy, readwrite) NSURL *tasksCachePath;
 @property (nonatomic, assign, readwrite) TaskCollectionSyncState stateOfSync;
 @property (nonatomic, retain, readwrite) NSTimer *timeToSave;
 @property (nonatomic, copy, readwrite) NSDate *dateLastSynced;
@@ -128,17 +128,20 @@ static NSPersistentStoreCoordinator *storeCoordinator;
 #pragma mark * Collection CacheDirectory Managemnt
 
 // Returns a path to the CachesDirectory
-+ (NSString *)pathToCachesDirectory
++ (NSURL *)pathToCachesDirectory
 {
-    NSString *cacheDir;
+    NSURL *cacheDir;
     NSArray *cachesPaths;
+    NSFileManager *fileMgr;
+    fileMgr = [NSFileManager defaultManager];
+    assert(fileMgr != nil);
     
-    cacheDir = nil;
-    cachesPaths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
+    cachesPaths = [fileMgr URLsForDirectory:NSCachesDirectory inDomains:NSUserDomainMask];
     if ( (cachesPaths != nil) && ([cachesPaths count] != 0) ) {
-        assert([[cachesPaths objectAtIndex:0] isKindOfClass:[NSString class]]);
+        assert([[cachesPaths objectAtIndex:0] isKindOfClass:[NSURL class]]);
         cacheDir = [cachesPaths objectAtIndex:0];
     }
+    
     return cacheDir;
 }
 
@@ -146,9 +149,9 @@ static NSPersistentStoreCoordinator *storeCoordinator;
 // plist file
 //NOTE: We never actually delete the TaskCollection cache, we only update it every time the App changes
 // from the background state to the active state.
-+ (void)markForRemoveCollectionCacheAtPath:(NSString *)collectionPath
++ (void)markForRemoveCollectionCacheAtPath:(NSURL *)collectionPath
 {
-    (void) [[NSFileManager defaultManager] removeItemAtPath:[collectionPath stringByAppendingPathComponent:kTasksFileName] error:NULL];
+    (void) [[NSFileManager defaultManager] removeItemAtURL:[collectionPath URLByAppendingPathComponent:kTasksFileName] error:NULL];
 }
 
 #pragma mark * TaskCollection lifecycle Management
@@ -225,13 +228,13 @@ static NSPersistentStoreCoordinator *storeCoordinator;
 // creates a new TaskCollection Cache if none is found
 // NOTE that we are searching in CachesDirectory that will contain ProductCollection
 // Caches as well.
-- (NSString *)findCacheForTasksURLString
+- (NSURL *)findCacheForTasksURLString
 {
-    NSString *searchResult;
+    NSURL *searchResult;
     NSFileManager *fileManager;
-    NSString *cachesDirectory;
+    NSURL *cachesDirectory;
     NSArray *possibleCollections;
-    NSString *collectionName;
+    NSURL *collectionName;
     
     assert(self.tasksURLString != nil);
     
@@ -244,23 +247,23 @@ static NSPersistentStoreCoordinator *storeCoordinator;
     // Iterate through the Caches Directory and sub-Directories and check each plist
     // file encountered
     
-    possibleCollections = [fileManager contentsOfDirectoryAtPath:cachesDirectory error:NULL];
+    possibleCollections = [fileManager contentsOfDirectoryAtURL:cachesDirectory includingPropertiesForKeys:nil options:NSDirectoryEnumerationSkipsHiddenFiles | NSDirectoryEnumerationSkipsSubdirectoryDescendants error:nil];
     assert(possibleCollections != nil);
     
     searchResult = nil;
     for (collectionName in possibleCollections) {
-        if ([collectionName hasSuffix:kTasksExtension]) {
+        if ([[collectionName lastPathComponent] hasSuffix:kTasksExtension]) {
             
             NSDictionary *collectionInfo;
             NSString *collectionInfoURLString;
             
             // Read the contents of the tasks Collection plist file
-            collectionInfo = [NSDictionary dictionaryWithContentsOfFile:[[cachesDirectory stringByAppendingPathComponent:collectionName] stringByAppendingPathComponent:kTasksFileName]];
+            collectionInfo = [NSDictionary dictionaryWithContentsOfURL:[collectionName URLByAppendingPathComponent:kTasksFileName]];
             
             if (collectionInfo != nil) {
                 collectionInfoURLString = [collectionInfo objectForKey:kTasksKeyTasksURLString];
                 if ( [self.tasksURLString isEqual:collectionInfoURLString] ) {
-                    searchResult = [cachesDirectory stringByAppendingPathComponent:collectionName];
+                    searchResult = collectionName;
                     break;
                 }
             }
@@ -273,12 +276,13 @@ static NSPersistentStoreCoordinator *storeCoordinator;
     if (searchResult == nil) {
         BOOL success;
         
-        collectionName = [NSString stringWithFormat:kTaskNameTemplate, [NSDate timeIntervalSinceReferenceDate], kTasksExtension];
-        assert(collectionName != nil);
+        NSString *newCollectionName = [NSString stringWithFormat:kTaskNameTemplate, [NSDate timeIntervalSinceReferenceDate], kTasksExtension];
+        assert(newCollectionName != nil);
         
         // Create the new Task Collection Cache Directory
-        searchResult = [cachesDirectory stringByAppendingPathComponent:collectionName];
-        success = [fileManager createDirectoryAtPath:searchResult withIntermediateDirectories:NO attributes:NULL error:NULL];
+        searchResult = [cachesDirectory URLByAppendingPathComponent:newCollectionName];
+        assert(searchResult != nil);
+        success = [fileManager createDirectoryAtURL:searchResult withIntermediateDirectories:NO attributes:NULL error:NULL];
         
         // Create the associated plist file
         if (success) {
@@ -287,13 +291,13 @@ static NSPersistentStoreCoordinator *storeCoordinator;
             collectionInfoFile = [NSDictionary dictionaryWithObjectsAndKeys:self.tasksURLString, kTasksKeyTasksURLString, nil];
             assert(collectionInfoFile != nil);
             
-            success = [collectionInfoFile writeToFile:[searchResult stringByAppendingPathComponent:kTasksFileName] atomically:YES];
+            success = [collectionInfoFile writeToURL:[searchResult URLByAppendingPathComponent:kTasksFileName] atomically:YES];
         }
         if (!success) {
             searchResult = nil;
         }
         
-        [[QLog log] logWithFormat:@"New Collection Cache created: '%@'", collectionName];
+        [[QLog log] logWithFormat:@"New Collection Cache created: '%@'", newCollectionName];
     } else {
         assert(collectionName != nil);
         [[QLog log] logWithFormat:@"Found existing Collection Cache '%@'",collectionName];
@@ -307,7 +311,7 @@ static NSPersistentStoreCoordinator *storeCoordinator;
 
 /* Private, instance-specific method version of the markForRemoveCollectionCacheAtPath: class method. The CollectionCache marked for deletion will be deleted when the application is moved to the background
  */
-- (void)markForRemoveCollectionCacheAtPath:(NSString *)collectionPath
+- (void)markForRemoveCollectionCacheAtPath:(NSURL *)collectionPath
 {
     assert(collectionPath != nil);
     
@@ -325,7 +329,7 @@ static NSPersistentStoreCoordinator *storeCoordinator;
     BOOL success;
     NSError *error;
     NSFileManager *fileManager;
-    NSString *collectionPath;
+    NSURL *collectionPath;
     NSURL *collectionDbURL;
     NSManagedObjectModel *collectionModel;
     NSPersistentStoreCoordinator *persistentCoordinator;
@@ -358,8 +362,9 @@ static NSPersistentStoreCoordinator *storeCoordinator;
         success = (collectionModel != nil);
     }
     if (success) {
-        collectionDbURL = [NSURL fileURLWithPath:[collectionPath stringByAppendingPathComponent:kTasksDataFileName]];
+        collectionDbURL = [collectionPath URLByAppendingPathComponent:kTasksDataFileName];
         assert(collectionDbURL != nil);
+        assert(collectionDbURL.isFileURL);
         
         persistentCoordinator = [[NSPersistentStoreCoordinator alloc] initWithManagedObjectModel:collectionModel];
         success = (persistentCoordinator != nil);
@@ -479,7 +484,7 @@ static NSPersistentStoreCoordinator *storeCoordinator;
 - (void)saveCollection
 {
     NSError *error = nil;
-    NSArray *errorObjects;
+    //NSArray *errorObjects;
     
     // Typically this instance method will be called automatically after a preset
     // time interval in response to taskCollectionContext changes, so we disable the 
@@ -502,10 +507,11 @@ static NSPersistentStoreCoordinator *storeCoordinator;
         [[QLog log] logWithFormat:@"Saved Task Collection Cache with URL: %@", self.tasksURLString];
     } else {
         [[QLog log] logWithFormat:@"Task Collection Cache save Error: %@ with URL: %@", [error localizedDescription], self.tasksURLString];
-        errorObjects = [[error userInfo] objectForKey:NSDetailedErrorsKey];
+        
+        /*errorObjects = [[error userInfo] objectForKey:NSDetailedErrorsKey];
         for (NSError *errors in errorObjects) {
             NSLog(@"Error: %@", [errors description]);
-        }
+        }*/
     }
 }
 
@@ -964,7 +970,9 @@ static NSPersistentStoreCoordinator *storeCoordinator;
         if (databaseIsPopulated) {
             
             [self updateMzQueryItemEntity];
-            [self checkDatabase];   // testing purposes only            
+#if ! defined(NDEBUG)
+            [self checkDatabase];   // testing purposes only
+#endif
             [self deleteTaskTypesAndAttributesForResults:parserResults inManagedObjectContext:self.managedObjectContext];
         }       
        

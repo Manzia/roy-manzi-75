@@ -19,11 +19,13 @@
 @synthesize searchTimestamp;
 
 // Method to serialize the SearchItem - we allow for "empty" SearchItems
--(BOOL) writeSearchItemToFile:(NSString *)filename
+-(BOOL) writeSearchItemToFile:(NSURL *)filepath
 {
     NSMutableDictionary *searchItem;
     searchItem = [NSMutableDictionary dictionary];
     assert(searchItem != nil);
+    assert(filepath != nil);
+    assert(filepath.isFileURL);
     
     // Add the price
     if (self.priceToSearch) {
@@ -70,7 +72,7 @@
     [[QLog log] logWithFormat:@"Number of dictionary entries to write to file: %d", [searchItem count]];
     
     BOOL success;
-    success = [searchItem writeToFile:filename atomically:YES];
+    success = [searchItem writeToURL:filepath atomically:YES];
     
     return success;
 }

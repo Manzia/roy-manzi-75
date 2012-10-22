@@ -38,7 +38,7 @@ typedef enum SearchItemState SearchItemState;
 @property (nonatomic, strong, readwrite) NSDate *searchTimestamp;
 
 // Method that serializes the MzSearchItem as a property list
--(BOOL) writeSearchItemToFile:(NSString *)filename;
+-(BOOL) writeSearchItemToFile:(NSURL *)filepath;
 
 // Keys for the MzSearchItem property List
 extern NSString *kSearchItemTitle;

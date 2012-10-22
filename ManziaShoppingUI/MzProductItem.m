@@ -408,7 +408,7 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
     if (context == GetOperationContext) { 
         assert(object == self.getThumbnailOperation);
         assert( [keyPath isEqual:@"hasHadRetryableFailure"] );
-        assert([NSThread isMainThread]);
+        //assert([NSThread isMainThread]);
         
         // If we're currently showing a placeholder and the network operation 
         // indicates that it's had one failure, change the placeholder to the deferred 
@@ -434,7 +434,7 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
     if (context == ThumbnailStatusContext) {
         assert(object == self.thumbnail);
         assert([keyPath isEqual:@"imageDataSmall"] || [keyPath isEqual:@"imageDataMedium"] || [keyPath isEqual:@"imageDataLarge"]);
-        assert([NSThread isMainThread]);
+        //assert([NSThread isMainThread]);
         
         // Make sure our dictionary of thumbnails is available, if it already exists
         // then we remove the old key-value pair before we insert the new key-value pair
@@ -468,7 +468,7 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
 - (void)thumbnailGetDone:(RetryingHTTPOperation *)operation
 
 {
-    assert([NSThread isMainThread]);
+    //assert([NSThread isMainThread]);
     assert([operation isKindOfClass:[RetryingHTTPOperation class]]);
     assert(operation == self.getThumbnailOperation);
     assert([self.getThumbnailOperation isFinished]);
@@ -707,7 +707,7 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
             extension = @"jpg";
         }
         
-        /* Move the file to the gallery's photo directory, and if that's successful, set localPhotoPath to point to it.  We automatically rename the file to avoid conflicts.  Conflicts do happen in day-to-day operations (specifically, in the case where we update a photo while actually displaying that photo)
+         Move the file to the gallery's photo directory, and if that's successful, set localPhotoPath to point to it.  We automatically rename the file to avoid conflicts.  Conflicts do happen in day-to-day operations (specifically, in the case where we update a photo while actually displaying that photo)
         */
         
       /*  fileCounter = 0;

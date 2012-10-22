@@ -26,7 +26,7 @@
 #import "MzSearchItem.h"
 
 @interface MzSearchCollection : NSObject {
-    NSString *searchDirectory;      // directory with serialized MzSearchItems
+    //NSString *searchDirectory;      // directory with serialized MzSearchItems
 }
 
 // Search Directory

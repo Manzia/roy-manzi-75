@@ -57,15 +57,15 @@ enum TaskCollectionSyncState {
 typedef enum TaskCollectionSyncState TaskCollectionSyncState;
 
 @interface MzTaskCollection : NSObject {
-    NSString *tasksURLString;
-    NSEntityDescription *tasksEntity;       // MzTaskCategory entity
-    NSDate *dateLastSynced;
-    TaskCollectionSyncState stateOfSync;
-    NSError *errorFromLastSync;
-    NSTimer *timeToSave;
-    RetryingHTTPOperation *getTasksOperation;
-    MzTaskParserOperation *parserOperation;
-    UIBackgroundTaskIdentifier taskCollectionSync;
+    //NSString *tasksURLString;
+    //NSEntityDescription *tasksEntity;       // MzTaskCategory entity
+    //NSDate *dateLastSynced;
+    //TaskCollectionSyncState stateOfSync;
+    //NSError *errorFromLastSync;
+    //NSTimer *timeToSave;
+    //RetryingHTTPOperation *getTasksOperation;
+    //MzTaskParserOperation *parserOperation;
+    //UIBackgroundTaskIdentifier taskCollectionSync;
 }
 
 // Properties related to Data Management

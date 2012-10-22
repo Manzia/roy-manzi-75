@@ -47,15 +47,16 @@ static NSString *kSearchFilePrefix = @"search-file";
     assert(fileManager != nil);
     
     // Check if we already have a Search Directory
-    collectionCacheNames = [fileManager contentsOfDirectoryAtPath:[self pathToCachesDirectory] error:NULL];
+    //collectionCacheNames = [fileManager contentsOfDirectoryAtPath:[self pathToCachesDirectory] error:NULL];
+    collectionCacheNames = [fileManager contentsOfDirectoryAtURL:[self pathToCachesDirectory] includingPropertiesForKeys:nil options:NSDirectoryEnumerationSkipsHiddenFiles | NSDirectoryEnumerationSkipsSubdirectoryDescendants error:nil];
     assert(collectionCacheNames != nil);
     
     // Enumerate through the Caches
     success = NO;
-    for (NSString *cacheName in collectionCacheNames) {
-        if ([cacheName hasSuffix:kSearchExtension]) {
+    for (NSURL *cacheName in collectionCacheNames) {
+        if ([[cacheName lastPathComponent] hasSuffix:kSearchExtension]) {
             
-            self.searchDirectory = cacheName;
+            self.searchDirectory = [cacheName lastPathComponent];
             success = YES;
             break;      // return
         }
@@ -66,12 +67,13 @@ static NSString *kSearchFilePrefix = @"search-file";
         collectionName = [NSString stringWithFormat:kSearchNameTemplate, [NSDate timeIntervalSinceReferenceDate], kSearchExtension];
         assert(collectionName != nil);
         self.searchDirectory = collectionName;
+        assert(self.searchDirectory != nil);
         
         // create the directory
         NSError *dirError = NULL;
-        NSString *dirPath = [[self pathToCachesDirectory] stringByAppendingPathComponent:self.searchDirectory];
+        NSURL *dirPath = [[self pathToCachesDirectory] URLByAppendingPathComponent:self.searchDirectory isDirectory:YES];
         assert(dirPath != nil);
-        [fileManager createDirectoryAtPath:dirPath withIntermediateDirectories:YES attributes:nil error:&dirError];
+        [fileManager createDirectoryAtURL:dirPath withIntermediateDirectories:YES attributes:nil error:&dirError];
         
         if (!dirError) {
             success = YES;
@@ -90,17 +92,20 @@ static NSString *kSearchFilePrefix = @"search-file";
 
 
 // Returns a path to the CachesDirectory
--(NSString *)pathToCachesDirectory
+-(NSURL *)pathToCachesDirectory
 {
-    NSString *cacheDir;
+    NSURL *cacheDir;
     NSArray *cachesPaths;
+    NSFileManager *fileMgr;
+    fileMgr = [NSFileManager defaultManager];
+    assert(fileMgr != nil);
     
-    cacheDir = nil;
-    cachesPaths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
+    cachesPaths = [fileMgr URLsForDirectory:NSCachesDirectory inDomains:NSUserDomainMask];
     if ( (cachesPaths != nil) && ([cachesPaths count] != 0) ) {
-        assert([[cachesPaths objectAtIndex:0] isKindOfClass:[NSString class]]);
+        assert([[cachesPaths objectAtIndex:0] isKindOfClass:[NSURL class]]);
         cacheDir = [cachesPaths objectAtIndex:0];
     }
+    
     return cacheDir;
 }
 
@@ -127,9 +132,9 @@ static NSString *kSearchFilePrefix = @"search-file";
     success = NO;
     
     // write to Search Directory
-    NSString *dirPath = [[self pathToCachesDirectory] stringByAppendingPathComponent:self.searchDirectory];
+    NSURL *dirPath = [[self pathToCachesDirectory] URLByAppendingPathComponent:self.searchDirectory isDirectory:YES];
     assert(dirPath != nil);
-    success = [searchItem writeSearchItemToFile:[dirPath stringByAppendingPathComponent:filename]];
+    success = [searchItem writeSearchItemToFile:[dirPath URLByAppendingPathComponent:filename]];
     
     // Log success
     if (success) {
@@ -158,9 +163,9 @@ static NSString *kSearchFilePrefix = @"search-file";
     NSArray *searchFiles;
     NSDictionary *searchItem;
     
-    NSString *dirPath = [[self pathToCachesDirectory] stringByAppendingPathComponent:self.searchDirectory];
+    NSURL *dirPath = [[self pathToCachesDirectory] URLByAppendingPathComponent:self.searchDirectory isDirectory:YES];
     assert(dirPath != nil);
-    searchFiles = [fileManager contentsOfDirectoryAtPath:dirPath error:NULL];
+    searchFiles = [fileManager contentsOfDirectoryAtURL:dirPath includingPropertiesForKeys:nil options:NSDirectoryEnumerationSkipsHiddenFiles | NSDirectoryEnumerationSkipsSubdirectoryDescendants error:nil];
     if (!searchFiles) {
         return NO;         // return if we have an empty Search Directory
     }
@@ -169,21 +174,20 @@ static NSString *kSearchFilePrefix = @"search-file";
     success = NO;
     
     // Enumerate and delete the search file if found
-    NSString *completeFileName;
-    for (NSString *fileName in searchFiles) {
-        if ([fileName hasPrefix:kSearchFilePrefix]) {
-            completeFileName = [dirPath stringByAppendingPathComponent:fileName];
-            assert(completeFileName != nil);
-            searchItem = [NSDictionary dictionaryWithContentsOfFile:completeFileName]; 
+    //NSString *completeFileName;
+    for (NSURL *fileName in searchFiles) {
+        if ([[fileName lastPathComponent] hasPrefix:kSearchFilePrefix] && fileName.isFileURL) {
+            //completeFileName = [dirPath URLByAppendingPathComponent:fi isDirectory:<#(BOOL)#>:fileName];
+            //assert(completeFileName != nil);
+            searchItem = [NSDictionary dictionaryWithContentsOfURL:fileName]; 
             assert(searchItem != nil);
             
             // check the searchTitle and the Timestamp            
             if ([searchTitle hasSuffix:[searchItem objectForKey:kSearchItemTitle]] && [timestamp isEqualToDate:[searchItem objectForKey:kSearchItemTimestamp]]) {
                 
-                success = [fileManager removeItemAtPath:completeFileName error:NULL];
+                success = [fileManager removeItemAtURL:fileName error:nil];
                 break;
-            }
-            
+            }            
         }
     }
     
@@ -233,25 +237,25 @@ static NSString *kSearchFilePrefix = @"search-file";
     NSArray *searchFiles;
     NSDictionary *searchItem;
     
-    NSString *dirPath = [[self pathToCachesDirectory] stringByAppendingPathComponent:self.searchDirectory];
+    NSURL *dirPath = [[self pathToCachesDirectory] URLByAppendingPathComponent:self.searchDirectory isDirectory:YES];
     assert(dirPath != nil);
-    searchFiles = [fileManager contentsOfDirectoryAtPath:dirPath error:NULL];
+    searchFiles = [fileManager contentsOfDirectoryAtURL:dirPath includingPropertiesForKeys:nil options:NSDirectoryEnumerationSkipsHiddenFiles | NSDirectoryEnumerationSkipsSubdirectoryDescendants error:nil];
     if (!searchFiles) {
         return NO;         // return if we have an empty Search Directory
     }
 
     assert(searchFiles != nil);
     success = NO;
-    NSString *completeFileName;
-    for (NSString *fileName in searchFiles) {
-        if ([fileName hasPrefix:kSearchFilePrefix]) {
-            completeFileName = [dirPath stringByAppendingPathComponent:fileName];
-            assert(completeFileName != nil);
-            searchItem = [NSDictionary dictionaryWithContentsOfFile:completeFileName]; 
+    //NSString *completeFileName;
+    for (NSURL *fileName in searchFiles) {
+        if ([[fileName lastPathComponent] hasPrefix:kSearchFilePrefix] && fileName.isFileURL) {
+            //completeFileName = [dirPath stringByAppendingPathComponent:fileName];
+            //assert(completeFileName != nil);
+            searchItem = [NSDictionary dictionaryWithContentsOfURL:fileName]; 
             assert(searchItem != nil);
             
             if (searchStatus == [[searchItem objectForKey:kSearchItemState] intValue]) {
-                success = [fileManager removeItemAtPath:completeFileName error:&error];
+                success = [fileManager removeItemAtURL:fileName error:&error];
                 
                 if (error) count++;     // Just keep a count of any errors
             }
@@ -285,9 +289,9 @@ static NSString *kSearchFilePrefix = @"search-file";
     NSError *error = NULL;
     
     // get all the files
-    NSString *dirPath = [[self pathToCachesDirectory] stringByAppendingPathComponent:self.searchDirectory];
+    NSURL *dirPath = [[self pathToCachesDirectory] URLByAppendingPathComponent:self.searchDirectory isDirectory:YES];
     assert(dirPath != nil);
-    searchFiles = [fileManager contentsOfDirectoryAtPath:dirPath error:&error];
+    searchFiles = [fileManager contentsOfDirectoryAtURL:dirPath includingPropertiesForKeys:nil options:NSDirectoryEnumerationSkipsHiddenFiles | NSDirectoryEnumerationSkipsSubdirectoryDescendants error:nil];
     if (!searchFiles) {
         return nil;         // return if we have an empty Search Directory
     }
@@ -302,12 +306,12 @@ static NSString *kSearchFilePrefix = @"search-file";
     assert(items != nil);
     
     // initialize the MzSearchItem objects
-    NSString *completeFileName;
-    for (NSString *fileName in searchFiles) {
-        if ([fileName hasPrefix:kSearchFilePrefix]) {
-            completeFileName = [dirPath stringByAppendingPathComponent:fileName];
-            assert(completeFileName != nil);
-            searchItem = [NSDictionary dictionaryWithContentsOfFile:completeFileName]; 
+    //NSString *completeFileName;
+    for (NSURL *fileName in searchFiles) {
+        if ([[fileName lastPathComponent] hasPrefix:kSearchFilePrefix] && fileName.isFileURL) {
+            //completeFileName = [dirPath stringByAppendingPathComponent:fileName];
+            //assert(completeFileName != nil);
+            searchItem = [NSDictionary dictionaryWithContentsOfURL:fileName]; 
             assert(searchItem != nil);
             serializedItem = [[MzSearchItem alloc] init];
             assert(serializedItem != nil);

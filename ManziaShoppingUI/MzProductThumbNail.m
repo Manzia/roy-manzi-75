@@ -67,6 +67,7 @@ NSString *const kThumbNailSizeLarge = @"90.0";
      */
     [[QLog log] logWithFormat:@"Starting Resize for Product Item %@", self.productItem.productID];
     MakeThumbnailOperation *resizeOperationSmall;
+
     MakeThumbnailOperation *resizeOperationMedium;
     MakeThumbnailOperation *resizeOperationLarge;
     

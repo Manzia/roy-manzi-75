@@ -95,8 +95,8 @@
     assert(fileManager != nil);
     
     success = YES;  // necessary when self.paths is empty, which is a wacky corner case but I decided to allow it
-    for (NSString * path in self.paths) {
-        success = [fileManager removeItemAtPath:path error:&error];
+    for (NSURL * path in self.paths) {
+        success = [fileManager removeItemAtURL:path error:&error];
         if ( ! success ) {
             break;
         }

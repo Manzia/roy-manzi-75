@@ -26,7 +26,7 @@
 @property (nonatomic, copy, readwrite) NSString *collectionURLString;
 @property (nonatomic, strong, readwrite)NSEntityDescription *productItemEntity;
 @property (nonatomic, strong, readwrite) NSManagedObjectContext *managedObjectContext;
-@property (nonatomic, copy, readwrite) NSString *collectionCachePath;
+@property (nonatomic, copy, readwrite) NSURL *collectionCachePath;
 @property (nonatomic, assign, readwrite) ProductCollectionSyncState stateOfSync;
 @property (nonatomic, strong, readwrite) NSTimer *timeToSave;
 @property (nonatomic, copy, readwrite) NSDate *dateLastSynced;
@@ -159,24 +159,27 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
 #pragma mark * Collection CacheDirectory Managemnt
 
 // Returns a path to the CachesDirectory
-+ (NSString *)pathToCachesDirectory
++ (NSURL *)pathToCachesDirectory
 {
-    NSString *cacheDir;
+    NSURL *cacheDir;
     NSArray *cachesPaths;
+    NSFileManager *fileMgr;
+    fileMgr = [NSFileManager defaultManager];
+    assert(fileMgr != nil);
     
-    cacheDir = nil;
-    cachesPaths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
+    cachesPaths = [fileMgr URLsForDirectory:NSCachesDirectory inDomains:NSUserDomainMask];
     if ( (cachesPaths != nil) && ([cachesPaths count] != 0) ) {
-        assert([[cachesPaths objectAtIndex:0] isKindOfClass:[NSString class]]);
+        assert([[cachesPaths objectAtIndex:0] isKindOfClass:[NSURL class]]);
         cacheDir = [cachesPaths objectAtIndex:0];
     }
+    
     return cacheDir;
 }
 
 // Marks for removal a ProductCollection cache at a given path
-+ (void)markForRemoveCollectionCacheAtPath:(NSString *)collectionPath
++ (void)markForRemoveCollectionCacheAtPath:(NSURL *)collectionPath
 {
-    (void) [[NSFileManager defaultManager] removeItemAtPath:[collectionPath stringByAppendingPathComponent:kCollectionFileName] error:NULL];
+    (void) [[NSFileManager defaultManager] removeItemAtURL:[collectionPath URLByAppendingPathComponent:kCollectionFileName] error:NULL];
 }
 
 // Method called in the App Delegate's applicationDidEnterBackground method
@@ -185,12 +188,12 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
 // extra time from the system via the beginBackgroundTaskWithExpirationHandler method
 +(void)applicationInBackground
 {
-    NSUserDefaults *    userDefaults;
-    NSFileManager *     fileManager;
-    BOOL                clearCollectionCaches;
-    NSString *          cachesDirectoryPath;
-    NSArray *           possibleCollectionCacheNames;
-    NSMutableArray *    collectionCachePathsToDelete;
+    NSUserDefaults *userDefaults;
+    NSFileManager *fileManager;
+    BOOL clearCollectionCaches;
+    NSURL *cachesDirectoryPath;
+    NSArray *possibleCollectionCacheNames;
+    NSMutableArray *collectionCachePathsToDelete;
     //NSMutableArray *    activeCollectionCachePathsAndDates;
     
     fileManager = [NSFileManager defaultManager];
@@ -227,7 +230,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     collectionCachePathsToDelete = [NSMutableArray array];
     assert(collectionCachePathsToDelete != nil);
     
-    possibleCollectionCacheNames = [fileManager contentsOfDirectoryAtPath:cachesDirectoryPath error:NULL];
+    possibleCollectionCacheNames = [fileManager contentsOfDirectoryAtURL:cachesDirectoryPath includingPropertiesForKeys:nil options:NSDirectoryEnumerationSkipsHiddenFiles | NSDirectoryEnumerationSkipsSubdirectoryDescendants error:nil];
     assert(possibleCollectionCacheNames != nil);
     
     //activeCollectionCachePathsAndDates = [NSMutableArray array];
@@ -235,28 +238,30 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     
     // Enumerate through all the ProductCollection Cache directories
     
-    for (NSString * collectionCacheName in possibleCollectionCacheNames) {
-        if ([collectionCacheName hasSuffix:kCollectionExtension]) {
-            NSString *collectionPath;      // ProductCollection cache directory name
-            NSString *collectionInfoFilePath;   // associated plist file
-            NSString *collectionDataFilePath;   // associated Core data file
+    for (NSURL *collectionCacheName in possibleCollectionCacheNames) {
+        if ([[collectionCacheName lastPathComponent] hasSuffix:kCollectionExtension]) {
+            //NSString *collectionPath;      // ProductCollection cache directory name
+            NSURL *collectionInfoFilePath;   // associated plist file
+            NSURL *collectionDataFilePath;   // associated Core data file
             
-            collectionPath = [cachesDirectoryPath stringByAppendingPathComponent:collectionCacheName];
-            assert(collectionPath != nil);
+            //collectionPath = [cachesDirectoryPath stringByAppendingPathComponent:collectionCacheName];
+            //assert(collectionPath != nil);
             
-            collectionInfoFilePath = [collectionPath stringByAppendingPathComponent:kCollectionFileName];
+            collectionInfoFilePath = [collectionCacheName URLByAppendingPathComponent:kCollectionFileName isDirectory:NO];
             assert(collectionInfoFilePath != nil);
+            assert(collectionInfoFilePath.isFileURL);
             
-            collectionDataFilePath = [collectionPath stringByAppendingPathComponent:kCollectionDataFileName];
+            collectionDataFilePath = [collectionCacheName URLByAppendingPathComponent:kCollectionDataFileName isDirectory:NO];
             assert(collectionDataFilePath != nil);
+            assert(collectionDataFilePath.isFileURL);
             
             if (clearCollectionCaches) {
-                [[QLog log] logWithFormat:@"Clear Collection Cache: '%@'", collectionCacheName];
-                (void) [fileManager removeItemAtPath:collectionInfoFilePath error:NULL];
-                [collectionCachePathsToDelete addObject:collectionPath];
-            } else if ( ! [fileManager fileExistsAtPath:collectionInfoFilePath]) {
-                [[QLog log] logWithFormat:@"Collection cache already marked for delete: '%@'", collectionCacheName];
-                [collectionCachePathsToDelete addObject:collectionPath];
+                [[QLog log] logWithFormat:@"Clear Collection Cache: '%@'", [collectionCacheName absoluteString]];
+                (void) [fileManager removeItemAtURL:collectionInfoFilePath error:NULL];
+                [collectionCachePathsToDelete addObject:collectionCacheName];
+            } else if ( ! [fileManager fileExistsAtPath:[collectionInfoFilePath path]]) {
+                [[QLog log] logWithFormat:@"Collection cache already marked for delete: '%@'", [collectionCacheName absoluteString]];
+                [collectionCachePathsToDelete addObject:collectionCacheName];
             } else {
                 
                 /*
@@ -267,15 +272,15 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
                  */
                 NSDate *modifiedDate;
                 
-                modifiedDate = [[fileManager attributesOfItemAtPath:collectionDataFilePath error:NULL] objectForKey:NSFileModificationDate];
+                modifiedDate = [[fileManager attributesOfItemAtPath:[collectionDataFilePath path] error:NULL] objectForKey:NSFileModificationDate];
                 if (modifiedDate == nil) {
-                    [[QLog log] logWithFormat:@"Collection Cache database invalid: '%@'", collectionCacheName];
-                    [collectionCachePathsToDelete addObject:collectionPath];
+                    [[QLog log] logWithFormat:@"Collection Cache database invalid: '%@'", [collectionCacheName absoluteString]];
+                    [collectionCachePathsToDelete addObject:collectionCacheName];
                 } else {
                     assert([modifiedDate isKindOfClass:[NSDate class]]);
                     if ([modifiedDate timeIntervalSinceNow] >= -kMAX_COLLECTION_DURATION) {
-                        [[QLog log] logWithFormat:@"Database in Collection Cache: %@ exceeds Max Duration: %d, will be deleted!", collectionCacheName, kMAX_COLLECTION_DURATION];
-                        [collectionCachePathsToDelete addObject:collectionPath];
+                        [[QLog log] logWithFormat:@"Database in Collection Cache: %@ exceeds Max Duration: %d, will be deleted!", [collectionCacheName absoluteString], kMAX_COLLECTION_DURATION];
+                        [collectionCachePathsToDelete addObject:collectionCacheName];
                     }                    
                 }
             }
@@ -402,7 +407,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
         }];
     }
     if (products != nil) {
-        [productDict setObject:products forKey:[self.collectionCachePath copy]];
+        [productDict setObject:products forKey:[[self.collectionCachePath path] copy]];
         self.productItems = productDict;
     }
     
@@ -410,13 +415,13 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
 
 // Finds the associated CollectionCache(Path) given a collectionURLString and
 // creates a new CollectionCache if none is found
-- (NSString *)findCacheForCollectionURLString
+- (NSURL *)findCacheForCollectionURLString
 {
-    NSString *searchResult;
+    NSURL *searchResult;
     NSFileManager *fileManager;
-    NSString *cachesDirectory;
+    NSURL *cachesDirectory;
     NSArray *possibleCollections;
-    NSString *collectionName;
+    NSURL *collectionName;
     
     assert(self.collectionURLString != nil);
     
@@ -429,21 +434,21 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     // Iterate through the Caches Directory and sub-Directories and check each plist
     // file encountered
         
-    possibleCollections = [fileManager contentsOfDirectoryAtPath:cachesDirectory error:NULL];
+    possibleCollections = [fileManager contentsOfDirectoryAtURL:cachesDirectory includingPropertiesForKeys:nil options:NSDirectoryEnumerationSkipsHiddenFiles | NSDirectoryEnumerationSkipsSubdirectoryDescendants error:nil];
     assert(possibleCollections != nil);
     
     searchResult = nil;
     for (collectionName in possibleCollections) {
-        if ([collectionName hasSuffix:kCollectionExtension]) {
+        if ([[collectionName lastPathComponent] hasSuffix:kCollectionExtension]) {
             
             NSDictionary *collectionInfo;
             NSString *collectionInfoURLString;
             
-            collectionInfo = [NSDictionary dictionaryWithContentsOfFile:[[cachesDirectory stringByAppendingPathComponent:collectionName] stringByAppendingPathComponent:kCollectionFileName]];
+            collectionInfo = [NSDictionary dictionaryWithContentsOfURL:[collectionName URLByAppendingPathComponent:kCollectionFileName]];
             if (collectionInfo != nil) {
                 collectionInfoURLString = [collectionInfo objectForKey:kCollectionKeyCollectionURLString];
                 if ( [self.collectionURLString isEqual:collectionInfoURLString] ) {
-                    searchResult = [cachesDirectory stringByAppendingPathComponent:collectionName];
+                    searchResult = collectionName;
                     break;
                 }
             }
@@ -456,27 +461,27 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     if (searchResult == nil) {
         BOOL success;
         
-        collectionName = [NSString stringWithFormat:kCollectionNameTemplate, [NSDate timeIntervalSinceReferenceDate], kCollectionExtension];
-        assert(collectionName != nil);
+        NSString *newCollectionName = [NSString stringWithFormat:kCollectionNameTemplate, [NSDate timeIntervalSinceReferenceDate], kCollectionExtension];
+        assert(newCollectionName != nil);
         
-        searchResult = [cachesDirectory stringByAppendingPathComponent:collectionName];
-        success = [fileManager createDirectoryAtPath:searchResult withIntermediateDirectories:NO attributes:NULL error:NULL];
+        searchResult = [cachesDirectory URLByAppendingPathComponent:newCollectionName isDirectory:YES];
+        success = [fileManager createDirectoryAtURL:searchResult withIntermediateDirectories:NO attributes:NULL error:NULL];
         if (success) {
             NSDictionary *collectionInfoFile;
             
             collectionInfoFile = [NSDictionary dictionaryWithObjectsAndKeys:self.collectionURLString, kCollectionKeyCollectionURLString, nil];
             assert(collectionInfoFile != nil);
             
-            success = [collectionInfoFile writeToFile:[searchResult stringByAppendingPathComponent:kCollectionFileName] atomically:YES];
+            success = [collectionInfoFile writeToURL:[searchResult URLByAppendingPathComponent:kCollectionFileName] atomically:YES];
         }
         if (!success) {
             searchResult = nil;
         }
         
-        [[QLog log] logWithFormat:@"New Collection Cache created: '%@'", collectionName];
+        [[QLog log] logWithFormat:@"New Collection Cache created: '%@'", newCollectionName];
     } else {
         assert(collectionName != nil);
-        [[QLog log] logWithFormat:@"Found existing Collection Cache '%@'",collectionName];
+        [[QLog log] logWithFormat:@"Found existing Collection Cache '%@'",[collectionName absoluteString]];
     }
     
     return searchResult;
@@ -484,13 +489,13 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
 
 /* Private, instance-specific method version of the markForRemoveCollectionCacheAtPath: class method. The CollectionCache marked for deletion will be deleted when the application is moved to the background
  */
-- (void)markForRemoveCollectionCacheAtPath:(NSString *)collectionPath
+- (void)markForRemoveCollectionCacheAtPath:(NSURL *)collectPath
 {
-    assert(collectionPath != nil);
+    assert(collectPath != nil);
     
-    [[QLog log] logWithFormat:@"Mark Collection Cache for deletion '%@'", [collectionPath lastPathComponent]];
+    [[QLog log] logWithFormat:@"Mark Collection Cache for deletion '%@'", [collectPath lastPathComponent]];
     
-    [[self class] markForRemoveCollectionCacheAtPath:collectionPath];
+    [[self class] markForRemoveCollectionCacheAtPath:collectPath];
 }
 
 /*
@@ -502,8 +507,8 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     BOOL success;
     NSError *error;
     NSFileManager *fileManager;
-    NSString *collectionPath;
-    NSString *productImagesDirectoryPath;
+    NSURL *collectionPath;
+    NSURL *productImagesDirectoryPath;
     BOOL isDir;
     NSURL *collectionDbURL;
     NSManagedObjectModel *collectionModel;
@@ -532,12 +537,12 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     // Create the ProductImages directory if it doesn't already exist.
     
     if (success) {
-        productImagesDirectoryPath = [collectionPath stringByAppendingPathComponent:kProductImagesDirectoryName];
+        productImagesDirectoryPath = [collectionPath URLByAppendingPathComponent:kProductImagesDirectoryName isDirectory:YES];
         assert(productImagesDirectoryPath != nil);
         
-        success = [fileManager fileExistsAtPath:productImagesDirectoryPath isDirectory:&isDir] && isDir;
+        success = [fileManager fileExistsAtPath:[productImagesDirectoryPath path] isDirectory:&isDir] && isDir;
         if (!success) {
-            success = [fileManager createDirectoryAtPath:productImagesDirectoryPath withIntermediateDirectories:NO attributes:NULL error:NULL];
+            success = [fileManager createDirectoryAtURL:productImagesDirectoryPath withIntermediateDirectories:NO attributes:NULL error:NULL];
         }
     }
     
@@ -554,8 +559,9 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     }
     if (success) {
         
-        collectionDbURL = [NSURL fileURLWithPath:[collectionPath stringByAppendingPathComponent:kCollectionDataFileName]];
+        collectionDbURL = [collectionPath URLByAppendingPathComponent:kCollectionDataFileName];
         assert(collectionDbURL != nil);
+        assert(collectionDbURL.isFileURL);
         
         // Set our dateLastSynced property to the last modified date of the database file if it already
         // exists
@@ -607,7 +613,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
         
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(collectionContextChanged:) name:NSManagedObjectContextObjectsDidChangeNotification object:self.managedObjectContext];
         
-        [[QLog log] logWithFormat:@"Collection started successfully at Path: '%@' for URL: %@", [self.collectionCachePath lastPathComponent], self.collectionURLString];
+        [[QLog log] logWithFormat:@"Collection started successfully at Path: '%@' for URL: %@", [self.collectionCachePath path], self.collectionURLString];
         
     } else {
         
@@ -673,7 +679,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
         if ([self.dateLastSynced timeIntervalSinceNow] >= -kMAX_REFRESH_INTERVAL) {
             
             // We can now refresh
-            [[QLog log] logWithFormat:@"Start Refresh of Collection Cache with URL: %@", self.collectionCachePath];
+            [[QLog log] logWithFormat:@"Start Refresh of Collection Cache with URL: %@", [self.collectionCachePath path]];
             
             // Introduce a random delay so all the Product Collection caches do not all get
             // synchronizing at the same time
@@ -681,10 +687,10 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
             NSTimeInterval delayTime = delay / 10000;
             [self performSelector:@selector(startSynchronization:) withObject:nil afterDelay:delayTime];            
         } else {
-            [[QLog log] logWithFormat:@"Too soon to Refresh Collection Cache with URL: %@", self.collectionCachePath];
+            [[QLog log] logWithFormat:@"Too soon to Refresh Collection Cache with URL: %@", [self.collectionCachePath path]];
         }
     } else {
-        [[QLog log] logWithFormat:@"Failed to Refresh due to invalid Collection State at Path: %@", self.collectionCachePath];    }
+        [[QLog log] logWithFormat:@"Failed to Refresh due to invalid Collection State at Path: %@", [self.collectionCachePath path]];    }
 }
 
 // Save the Collection Cache
@@ -720,9 +726,9 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     // Log the results.
     
     if (error == nil) {
-        [[QLog log] logWithFormat:@"Saved Collection Cache with URL: %@", self.collectionURLString];
+        [[QLog log] logWithFormat:@"Saved Collection Cache with URL: %@", [self.collectionCachePath path]];
     } else {
-        [[QLog log] logWithFormat:@"Collection Cache save error: %@ with URL: %@", error, self.collectionURLString];
+        [[QLog log] logWithFormat:@"Collection Cache save error: %@ with URL: %@", error, [self.collectionCachePath path ]];
     }
 }
 
@@ -761,7 +767,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
         //[self.timeToRefresh invalidate];
         //self.timeToRefresh = nil;
     }
-    [[QLog log] logWithFormat:@"Stopped Collection Cache with URL: %@", self.collectionURLString];
+    [[QLog log] logWithFormat:@"Stopped Collection Cache with URL: %@", [self.collectionCachePath path ]];
 }
 
 #pragma mark * Main Synchronization methods
@@ -785,7 +791,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
 -(void)notifyCacheSyncStatus{
     
     NSString *status = self.statusOfSync;
-    NSString *cacheName = self.collectionCachePath;
+    NSURL *cacheName = self.collectionCachePath;
     if (status != nil && cacheName != nil) {
         NSMutableDictionary *statusDict = [NSMutableDictionary dictionaryWithObject:status forKey:cacheName];
         assert(statusDict != nil);
@@ -872,7 +878,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     //assert([NSThread isMainThread]);
     
     if (newError != nil) {
-        [[QLog log] logWithFormat:@"Collection Cache with URL: %@ got sync error: %@", self.collectionURLString, newError];
+        [[QLog log] logWithFormat:@"Collection Cache with URL: %@ got sync error: %@", [self.collectionCachePath path ], newError];
     }
     
     if (newError != self->errorFromLastSync) {
@@ -961,7 +967,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     assert(operation == self.getCollectionOperation);
     assert(self.stateOfSync == ProductCollectionSyncStateGetting);
     
-    [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Completed HTTP GET operation for Collection Cache with URL: %@", self.collectionURLString];
+    [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Completed HTTP GET operation for Collection Cache with URL: %@", [self.collectionCachePath path ]];
     
     error = operation.error;
     if (error != nil) {
@@ -984,7 +990,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
 {
     assert(self.stateOfSync == ProductCollectionSyncStateGetting);
     
-    [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Start parse for Collection Cache with URL: %@", self.collectionURLString];
+    [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Start parse for Collection Cache with URL: %@", [self.collectionCachePath path ]];
     
     assert(self.parserOperation == nil);
     self.parserOperation = [[MzCollectionParserOperation alloc] initWithXMLData:data];
@@ -1008,7 +1014,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     assert(operation == self.parserOperation);
     assert(self.stateOfSync == ProductCollectionSyncStateParsing);
     
-    [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Parsing complete for Collection Cache with URL: %@", self.collectionURLString];
+    [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Parsing complete for Collection Cache with URL: %@", [self.collectionCachePath path ]];
     
     if (operation.parseError != nil) {
         self.errorFromLastSync = operation.parseError;
@@ -1022,7 +1028,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
         assert(self.errorFromLastSync == nil);
         self.dateLastSynced = [NSDate date];
         self.stateOfSync = ProductCollectionSyncStateStopped;
-        [[QLog log] logWithFormat:@"Successfully synced Collection Cache with URL: %@", self.collectionURLString];       
+        [[QLog log] logWithFormat:@"Successfully synced Collection Cache with URL: %@", [self.collectionCachePath path ]];       
         
     }        
     self.parserOperation = nil;
@@ -1067,7 +1073,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
             
             // Check for duplicates - the duplicates will be ignored
             if ([newParserIDs count] != [parserResults count]) {
-                [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Duplicates in new product Items for Collection Cache at Path: %@", self.collectionCachePath];
+                [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Duplicates in new product Items for Collection Cache at Path: %@", [self.collectionCachePath path ]];
             }
             
             // Get all the productItems from the database
@@ -1126,11 +1132,11 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
                         if (dictMatch != NSNotFound) {
                             //Update productItem with new incoming properties.
                             
-                            [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Update ProductItem: %@ for Collection Cache with URL: %@", productItem.productID, self.collectionCachePath];
+                            [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Update ProductItem: %@ for Collection Cache with URL: %@", productItem.productID, [self.collectionCachePath path ]];
                             [productItem updateWithProperties:[parserResults objectAtIndex:dictMatch]];
                         } else {
                             // Unexpected scenario
-                            [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Failed to find expected ProductItem: %@ for Collection Cache with URL: %@", productItem.productID, self.collectionCachePath];                        
+                            [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Failed to find expected ProductItem: %@ for Collection Cache with URL: %@", productItem.productID, [self.collectionCachePath path ]];                        
                         }
                     }                    
                 }
@@ -1150,7 +1156,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
                     
                     // Insert the new product
                     if (dictMatch != NSNotFound) {
-                        [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Created a ProductItem: %@ for Collection Cache with URL: %@", productId, self.collectionCachePath];
+                        [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Created a ProductItem: %@ for Collection Cache with URL: %@", productId, [self.collectionCachePath path ]];
                         MzProductItem *newProduct = [MzProductItem insertNewMzProductItemWithProperties:[parserResults objectAtIndex:dictMatch] inManagedObjectContext:self.managedObjectContext];
                         assert(newProduct != nil);
                         assert(newProduct.productID != nil);
@@ -1165,7 +1171,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
                 // insert all the new productItems
                 for (NSDictionary *result in parserResults) {
                     
-                    [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Creating %d ProductItems: %@ for Collection Cache with URL: %@", [parserResults count], self.collectionCachePath];
+                    [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Creating %d ProductItems: %@ for Collection Cache with URL: %@", [parserResults count], [self.collectionCachePath path ]];
                     MzProductItem *newProduct = [MzProductItem insertNewMzProductItemWithProperties:result inManagedObjectContext:self.managedObjectContext];
                     assert(newProduct != nil);
                     assert(newProduct.productID != nil);
@@ -1223,7 +1229,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     if ( !self.isSynchronizing ) {
         if (self.stateOfSync == ProductCollectionSyncStateStopped) {
             [[QLog log] logWithFormat:@"Start synchronization for Collection Cache with URL: %@",
-             self.collectionURLString];
+             [self.collectionCachePath path ]];
             assert(self.getCollectionOperation == nil);
             self.errorFromLastSync = nil;
             [self startGetOperation:relativePath];
@@ -1245,7 +1251,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
         }
         self.errorFromLastSync = [NSError errorWithDomain:NSCocoaErrorDomain code:NSUserCancelledError userInfo:nil];
         self.stateOfSync = ProductCollectionSyncStateStopped;
-        [[QLog log] logWithFormat:@"Stopped synchronization for Collection Cache with URL: %@", self.collectionURLString];
+        [[QLog log] logWithFormat:@"Stopped synchronization for Collection Cache with URL: %@", [self.collectionCachePath path ]];
     }
 }
 
