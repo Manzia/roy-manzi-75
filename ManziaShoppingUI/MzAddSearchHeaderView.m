@@ -113,7 +113,7 @@
         UIButton *categoryButton = [UIButton buttonWithType:UIButtonTypeRoundedRect];
         assert(categoryButton != nil);
         categoryButton.frame = categoryRect;
-        [categoryButton setTitle:@"Phones" forState:UIControlStateNormal];
+        //[categoryButton setTitle:@"Phones" forState:UIControlStateNormal];
         categoryButton.userInteractionEnabled = YES;
         categoryButton.tag = 6;
         self.productCategory = categoryButton;
