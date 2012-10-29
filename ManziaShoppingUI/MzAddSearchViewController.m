@@ -683,6 +683,11 @@ static NSString *kAllBrandsAttribute = @"All";
     // Set the search Timestamp
     self.searchItem.searchTimestamp = [NSDate date];
     
+    // If the user did not select the UIStepper control, set daysToSearch to 0
+    if (self.searchItem.daysToSearch == nil) {
+        self.searchItem.daysToSearch = [NSNumber numberWithInt:0];
+    }    
+    
     // We can now pass the MzSearchItem to our delegate who will also dismiss us
     // from the screen
     [self.delegate controller:self newSearchItem:self.searchItem];

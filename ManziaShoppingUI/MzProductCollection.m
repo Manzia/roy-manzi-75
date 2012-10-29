@@ -179,7 +179,10 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
 // Marks for removal a ProductCollection cache at a given path
 + (void)markForRemoveCollectionCacheAtPath:(NSURL *)collectionPath
 {
+    assert(collectionPath != nil);
+    assert(collectionPath.isFileURL);
     (void) [[NSFileManager defaultManager] removeItemAtURL:[collectionPath URLByAppendingPathComponent:kCollectionFileName] error:NULL];
+    [[QLog log] logWithFormat:@"Marked Collection Cache for deletion '%@'", [collectionPath lastPathComponent]];
 }
 
 // Method called in the App Delegate's applicationDidEnterBackground method
@@ -256,11 +259,11 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
             assert(collectionDataFilePath.isFileURL);
             
             if (clearCollectionCaches) {
-                [[QLog log] logWithFormat:@"Clear Collection Cache: '%@'", [collectionCacheName absoluteString]];
+                [[QLog log] logWithFormat:@"Clear Collection Cache: '%@'", [collectionCacheName path]];
                 (void) [fileManager removeItemAtURL:collectionInfoFilePath error:NULL];
                 [collectionCachePathsToDelete addObject:collectionCacheName];
             } else if ( ! [fileManager fileExistsAtPath:[collectionInfoFilePath path]]) {
-                [[QLog log] logWithFormat:@"Collection cache already marked for delete: '%@'", [collectionCacheName absoluteString]];
+                [[QLog log] logWithFormat:@"Collection cache already marked for delete: '%@'", [collectionCacheName path]];
                 [collectionCachePathsToDelete addObject:collectionCacheName];
             } else {
                 
@@ -274,12 +277,12 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
                 
                 modifiedDate = [[fileManager attributesOfItemAtPath:[collectionDataFilePath path] error:NULL] objectForKey:NSFileModificationDate];
                 if (modifiedDate == nil) {
-                    [[QLog log] logWithFormat:@"Collection Cache database invalid: '%@'", [collectionCacheName absoluteString]];
+                    [[QLog log] logWithFormat:@"Collection Cache database invalid: '%@'", [collectionCacheName path]];
                     [collectionCachePathsToDelete addObject:collectionCacheName];
                 } else {
                     assert([modifiedDate isKindOfClass:[NSDate class]]);
                     if ([modifiedDate timeIntervalSinceNow] >= -kMAX_COLLECTION_DURATION) {
-                        [[QLog log] logWithFormat:@"Database in Collection Cache: %@ exceeds Max Duration: %d, will be deleted!", [collectionCacheName absoluteString], kMAX_COLLECTION_DURATION];
+                        [[QLog log] logWithFormat:@"Database in Collection Cache: %@ exceeds Max Duration: %d, will be deleted!", [collectionCacheName path], kMAX_COLLECTION_DURATION];
                         [collectionCachePathsToDelete addObject:collectionCacheName];
                     }                    
                 }
@@ -301,7 +304,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
      the app is moved into the Background.
      */
     
-    if ( [collectionCachePathsToDelete count] != 0 ) {
+    if ( [collectionCachePathsToDelete count] > 0 ) {
         static NSOperationQueue *collectionDeleteQueue;
         RecursiveDeleteOperation *operation;
         
@@ -361,6 +364,12 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     return fetchRequest;
 }
 
+// Manual KVO notification
++(BOOL)automaticallyNotifiesObserversOfProductItems
+{
+    return NO;
+}
+
 // Retrieve all the ProductItems in the Collection asynchronously. This method will return immediately
 //so the caller is expected to use KVO on the productItems property to get notified when the 
 // productItems have been fetched
@@ -385,12 +394,13 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
                 NSArray *fetchResults = [self.managedObjectContext executeFetchRequest:fetchRequest error:&error];
                 if (fetchResults != nil) {
                     products = [NSArray arrayWithArray:fetchResults];
+                    [[QLog log] logWithFormat:@"Fetched %d Products from Collection Cache database at Path: '%@'", [products count], [self.collectionCachePath path ]];
                 } else {
-                    [[QLog log] logWithFormat:@"Failed to retrieve Products in Collection Cache database at Path: '%@'", self.collectionCachePath];
+                    [[QLog log] logWithFormat:@"Failed to retrieve Products in Collection Cache database at Path: '%@'", [self.collectionCachePath path]];
                 }
             }];
         } else {
-            [[QLog log] logWithFormat:@"Failed to instantiate ProductCollectionContext for Cache database at Path: '%@'", self.collectionCachePath];        }
+            [[QLog log] logWithFormat:@"Failed to instantiate ProductCollectionContext for Cache database at Path: '%@'", [self.collectionCachePath path ]];        }
     } else {
         assert(self.collectionCachePath != nil);
         // we already have our NSManagedObjectContext setup
@@ -401,16 +411,20 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
             NSArray *fetchResults = [self.managedObjectContext executeFetchRequest:fetchRequest error:&error];
             if (fetchResults != nil) {
                 products = [NSArray arrayWithArray:fetchResults];
+                [[QLog log] logWithFormat:@"Fetched %d Products from Collection Cache database at Path: '%@'", [products count], [self.collectionCachePath path ]];
             } else {
-                [[QLog log] logWithFormat:@"Failed to retrieve Products in Collection Cache database at Path: '%@'", self.collectionCachePath];
+                [[QLog log] logWithFormat:@"Failed to retrieve Products in Collection Cache database at Path: '%@'", [self.collectionCachePath path ]];
             }
         }];
     }
     if (products != nil) {
         [productDict setObject:products forKey:[[self.collectionCachePath path] copy]];
+        
+        //KVO notify
+        [self willChangeValueForKey:@"productItems"];
         self.productItems = productDict;
-    }
-    
+        [self didChangeValueForKey:@"productItems"];
+    }    
 }
 
 // Finds the associated CollectionCache(Path) given a collectionURLString and
@@ -492,9 +506,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
 - (void)markForRemoveCollectionCacheAtPath:(NSURL *)collectPath
 {
     assert(collectPath != nil);
-    
-    [[QLog log] logWithFormat:@"Mark Collection Cache for deletion '%@'", [collectPath lastPathComponent]];
-    
+            
     [[self class] markForRemoveCollectionCacheAtPath:collectPath];
 }
 
@@ -975,7 +987,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
         self.stateOfSync = ProductCollectionSyncStateStopped;
     } else {
         if ([QLog log].isEnabled) {
-            [[QLog log] logOption:kLogOptionNetworkData withFormat:@"Receive XML %@", self.getCollectionOperation.responseContent];
+            [[QLog log] logOption:kLogOptionNetworkData withFormat:@"Receive valid XML "];
         }
         [self startParserOperationWithData:self.getCollectionOperation.responseContent];
     }
@@ -1226,6 +1238,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
 // Key method that starts the synchronization process
 - (void)startSynchronization:(NSString *)relativePath
 {
+    assert(self.managedObjectContext != nil);
     if ( !self.isSynchronizing ) {
         if (self.stateOfSync == ProductCollectionSyncStateStopped) {
             [[QLog log] logWithFormat:@"Start synchronization for Collection Cache with URL: %@",

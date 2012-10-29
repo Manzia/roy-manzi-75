@@ -9,6 +9,7 @@
 
 #import "MzCollectionParserOperation.h"
 #import "Logging.h"
+#import "MzProductCollection.h"
 
 
 @interface MzCollectionParserOperation () <NSXMLParserDelegate>
@@ -42,6 +43,9 @@
 @synthesize collectionParser;
 @synthesize currentStringValue;
 @synthesize xmldata;
+
+// Default value for MzProductItems attributes missing values
+static NSString *KDefaultAttributeValue = @"unknown";
 
 // Initialization
 - (id)initWithXMLData:(NSData *)data
@@ -80,6 +84,13 @@
     
     [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"Start XML parsing"];
     
+    // Write to file to test input
+    NSFileManager *fileManager;
+    fileManager = [NSFileManager defaultManager];
+    NSLog(@"Current Directory Path: %@", [fileManager currentDirectoryPath]);
+    [fileManager createFileAtPath:@"/Users/admin/Manzia/testXMLfile" contents:self.xmldata attributes:nil];
+    //[self.xmldata writeToFile:@"testXMLfile" atomically:YES];
+    
     success = [self.collectionParser parse];
     if (!success) {
         
@@ -116,7 +127,7 @@
     if (self.parseError == nil) {
         [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"XML parsing success"];
     } else {
-        [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"XML parsing failed %@", self.parseError];
+        [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"XML parsing failed %@", [self.parseError localizedDescription]];
     }
     
     self.collectionParser = nil;
@@ -194,7 +205,8 @@
                 
         detailPath = [attributeDict objectForKey:@"href"];
         if ( (detailPath == nil) || ([detailPath length] == 0) ) {
-            [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"XML parse skipped, missing 'detailPath'"];
+            //[self.productItemProperties setObject:KDefaultAttributeValue forKey:kCollectionParserResultDetailsPath];
+            [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"XML parse skipped - was missing 'detailPath'"];
         } else {
             [self.productItemProperties setObject:detailPath forKey:kCollectionParserResultDetailsPath];
         }
@@ -242,7 +254,8 @@
         // add the ClassID to the dictionary
         classId = [attributeDict objectForKey:@"classId"];
         if ( (classId == nil) || ([classId length] == 0) ) {
-            [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"XML parse skipped, missing 'classId'"];
+            [self.productItemProperties setObject:KDefaultAttributeValue forKey:kCollectionParserResultClassID];
+            [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"XML parse was missing 'classId'"];
         } else {
             [self.productItemProperties setObject:classId forKey:kCollectionParserResultClassID];
         }
@@ -250,9 +263,10 @@
         // add the subClassID to the dictionary
         subClassId = [attributeDict objectForKey:@"subClassId"];
         if ( (subClassId == nil) || ([subClassId length] == 0) ) {
-            [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"XML parse skipped, missing 'subClassId'"];
+            [self.productItemProperties setObject:KDefaultAttributeValue forKey:kCollectionParserResultSubClassID];
+            [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"XML parse was missing 'subClassId'"];
         } else {
-            [self.productItemProperties setObject:classId forKey:kCollectionParserResultSubClassID];
+            [self.productItemProperties setObject:subClassId forKey:kCollectionParserResultSubClassID];
         }
 
         classId = nil;     
@@ -269,7 +283,8 @@
         // add the price Unit to the dictionary
         priceUnit = [attributeDict objectForKey:@"unit"];
         if ( (priceUnit == nil) || ([priceUnit length] == 0) ) {
-            [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"XML parse skipped, missing 'price unit'"];
+            [self.productItemProperties setObject:KDefaultAttributeValue forKey:kCollectionParserResultPriceUnit];
+            [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"XML parse was missing 'price unit'"];
         } else {
             [self.productItemProperties setObject:priceUnit forKey:kCollectionParserResultPriceUnit];
         }
@@ -311,10 +326,12 @@
     // copy image_link string
     if ([elementName isEqualToString:@"image_link"]) {
         
-        if ( (self.currentStringValue == nil) || ([self.currentStringValue length] == 0) ) {
-            [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"XML parse skipped, missing 'remoteImagePath'"];
+        if ( (self.currentStringValue != nil) && ([self.currentStringValue length] > 0) ) {
+            [self.productItemProperties setObject:self.currentStringValue forKey:kCollectionParserResultImagePath];     
         } else {
-            [self.productItemProperties setObject:self.currentStringValue forKey:kCollectionParserResultImagePath];                     
+            [self.productItemProperties setObject:KDefaultAttributeValue forKey:kCollectionParserResultImagePath];
+            [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"XML parse was missing 'remoteImagePath'"];
+                                
         }
         currentStringValue = nil;
     }
@@ -345,7 +362,8 @@
     if ([elementName isEqualToString:@"description"]) {
         
         if ( (self.currentStringValue == nil) || ([self.currentStringValue length] == 0) ) {
-            [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"XML parse skipped, missing 'productDescription'"];
+            [self.productItemProperties setObject:KDefaultAttributeValue forKey:kCollectionParserResultDescription];
+            [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"XML parse was missing 'productDescription'"];
         } else {
             [self.productItemProperties setObject:self.currentStringValue forKey:kCollectionParserResultDescription];                     
         }
@@ -356,6 +374,7 @@
     if ([elementName isEqualToString:@"content_language"]) {
             
             if ( (self.currentStringValue == nil) || ([self.currentStringValue length] == 0) ) {
+                [self.productItemProperties setObject:KDefaultAttributeValue forKey:kCollectionParserResultLanguage];
                 [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"XML parse skipped, missing 'productLanguage'"];
             } else {
                 [self.productItemProperties setObject:self.currentStringValue forKey:kCollectionParserResultLanguage];                     
@@ -367,7 +386,8 @@
     if ([elementName isEqualToString:@"target_country"]) {
         
         if ( (self.currentStringValue == nil) || ([self.currentStringValue length] == 0) ) {
-            [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"XML parse skipped, missing 'productCountry'"];
+            [self.productItemProperties setObject:KDefaultAttributeValue forKey:kCollectionParserResultCountry];
+            [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"XML parse was missing 'productCountry'"];
         } else {
             [self.productItemProperties setObject:self.currentStringValue forKey:kCollectionParserResultCountry];                     
         }
@@ -390,7 +410,8 @@
     if ([elementName isEqualToString:@"brand"]) {
         
         if ( (self.currentStringValue == nil) || ([self.currentStringValue length] == 0) ) {
-            [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"XML parse skipped, missing 'productBrand'"];
+            [self.productItemProperties setObject:KDefaultAttributeValue forKey:kCollectionParserResultBrand];
+            [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"XML parse was missing 'productBrand'"];
         } else {
             [self.productItemProperties setObject:self.currentStringValue forKey:kCollectionParserResultBrand];                     
         }
@@ -401,6 +422,7 @@
     if ([elementName isEqualToString:@"condition"]) {
         
         if ( (self.currentStringValue == nil) || ([self.currentStringValue length] == 0) ) {
+            [self.productItemProperties setObject:KDefaultAttributeValue forKey:kCollectionParserResultCondition];
             [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"XML parse skipped, missing 'productCondition'"];
         } else {
             [self.productItemProperties setObject:self.currentStringValue forKey:kCollectionParserResultCondition];                     
@@ -412,6 +434,7 @@
     if ([elementName isEqualToString:@"availability"]) {
         
         if ( (self.currentStringValue == nil) || ([self.currentStringValue length] == 0) ) {
+            [self.productItemProperties setObject:KDefaultAttributeValue forKey:kCollectionParserResultAvailability];
             [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"XML parse skipped, missing 'productAvailability'"];
         } else {
             [self.productItemProperties setObject:self.currentStringValue forKey:kCollectionParserResultAvailability];                     
@@ -428,26 +451,58 @@
             if ([self.productItemProperties count] == 0) {
                 [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"XML parse Product Item skipped "];
             } else {
-                if ([self.productItemProperties objectForKey:kCollectionParserResultImagePath] == nil) {
+                /*if ([self.productItemProperties objectForKey:kCollectionParserResultImagePath] == nil) {
                     [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"XML parse Product Item skipped, missing Product Image"];
-                } else if ([self.productItemProperties objectForKey:kCollectionParserResultThumbNailPath] == nil) {
+                } else*/ if ([self.productItemProperties objectForKey:kCollectionParserResultThumbNailPath] == nil) {
                     [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"XML parse Product Item skipped, missing Product Thumbnail"];
                 } else {
                     assert([[self.productItemProperties objectForKey:kCollectionParserResultProductID] isKindOfClass:[NSString class]]);
                     assert([[self.productItemProperties objectForKey:kCollectionParserResultTitle] isKindOfClass:[NSString class]]);
                     assert([[self.productItemProperties objectForKey:kCollectionParserResultDetailsPath] isKindOfClass:[NSString class]]);
-                    assert([[self.productItemProperties objectForKey:kCollectionParserResultImagePath] isKindOfClass:[NSString class]]);
+                    
+                    // In case "image_link" element is missing
+                    if(![[self.productItemProperties objectForKey:kCollectionParserResultImagePath] isKindOfClass:[NSString class]]) {
+                        [self.productItemProperties setObject:KDefaultAttributeValue forKey:kCollectionParserResultImagePath];
+                    }
                     assert([[self.productItemProperties objectForKey:kCollectionParserResultThumbNailPath] isKindOfClass:[NSString class]]);
-                    assert([[self.productItemProperties objectForKey:kCollectionParserResultDescription] isKindOfClass:[NSString class]]);
-                    assert([[self.productItemProperties objectForKey:kCollectionParserResultLanguage] isKindOfClass:[NSString class]]);
-                    assert([[self.productItemProperties objectForKey:kCollectionParserResultCountry] isKindOfClass:[NSString class]]);
-                    assert([[self.productItemProperties objectForKey:kCollectionParserResultClassID] isKindOfClass:[NSString class]]);
-                    assert([[self.productItemProperties objectForKey:kCollectionParserResultSubClassID] isKindOfClass:[NSString class]]);
-                    assert([[self.productItemProperties objectForKey:kCollectionParserResultPriceUnit] isKindOfClass:[NSString class]]);
+                    
+                    if(![[self.productItemProperties objectForKey:kCollectionParserResultDescription] isKindOfClass:[NSString class]]) {
+                        [self.productItemProperties setObject:KDefaultAttributeValue forKey:kCollectionParserResultDescription];
+                    }
+                    
+                    if(![[self.productItemProperties objectForKey:kCollectionParserResultLanguage] isKindOfClass:[NSString class]]) {
+                        [self.productItemProperties setObject:KDefaultAttributeValue forKey:kCollectionParserResultLanguage];
+                    }
+                    
+                    if(![[self.productItemProperties objectForKey:kCollectionParserResultCountry] isKindOfClass:[NSString class]]) {
+                        [self.productItemProperties setObject:KDefaultAttributeValue forKey:kCollectionParserResultCountry];
+                    }
+                    
+                    if(![[self.productItemProperties objectForKey:kCollectionParserResultClassID] isKindOfClass:[NSString class]]) {
+                        [self.productItemProperties setObject:KDefaultAttributeValue forKey:kCollectionParserResultClassID];
+                    }
+                    
+                    if(![[self.productItemProperties objectForKey:kCollectionParserResultSubClassID] isKindOfClass:[NSString class]]) {
+                        [self.productItemProperties setObject:KDefaultAttributeValue forKey:kCollectionParserResultSubClassID];
+                    }
+                    
+                    if(![[self.productItemProperties objectForKey:kCollectionParserResultPriceUnit] isKindOfClass:[NSString class]]) {
+                        [self.productItemProperties setObject:KDefaultAttributeValue forKey:kCollectionParserResultPriceUnit];
+                    }
+                    
                     assert([[self.productItemProperties objectForKey:kCollectionParserResultPriceAmount] isKindOfClass:[NSString class]]);
-                    assert([[self.productItemProperties objectForKey:kCollectionParserResultBrand] isKindOfClass:[NSString class]]);
-                    assert([[self.productItemProperties objectForKey:kCollectionParserResultCondition] isKindOfClass:[NSString class]]);
-                    assert([[self.productItemProperties objectForKey:kCollectionParserResultAvailability] isKindOfClass:[NSString class]]);
+                    
+                    if(![[self.productItemProperties objectForKey:kCollectionParserResultBrand] isKindOfClass:[NSString class]]) {
+                        [self.productItemProperties setObject:KDefaultAttributeValue forKey:kCollectionParserResultBrand];
+                    }
+                    
+                    if(![[self.productItemProperties objectForKey:kCollectionParserResultCondition] isKindOfClass:[NSString class]]) {
+                        [self.productItemProperties setObject:KDefaultAttributeValue forKey:kCollectionParserResultCondition];
+                    }
+                    
+                    if(![[self.productItemProperties objectForKey:kCollectionParserResultAvailability] isKindOfClass:[NSString class]]) {
+                        [self.productItemProperties setObject:KDefaultAttributeValue forKey:kCollectionParserResultAvailability];
+                    }
                     
                     // Log Success!
                     [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"Product XML parse success %@", [self.productItemProperties objectForKey:kCollectionParserResultProductID]];
