@@ -27,4 +27,7 @@
 // the thread-safe [NSFileManager defaultManager]
 @property (nonatomic, strong, readonly) MzSearchCollection *searchCollection;
 
+// Returns the base URL for all Product search requests
+@property (nonatomic, strong, readonly) NSString *baseURL;
+
 @end

@@ -11,6 +11,7 @@
 #import "NetworkManager.h"
 #import "MzSearchCollection.h"
 #import "MzTaskCollection.h"
+#import "MzProductCollection.h"
 
 
 @interface MzAppDelegate ()
@@ -19,6 +20,7 @@
 @property (nonatomic, readwrite, copy) NSString *uniqueDeviceId;
 @property (nonatomic, strong) MzTaskCollection *taskCollection;
 @property (nonatomic, strong, readwrite) MzSearchCollection *searchCollection;
+@property (nonatomic, strong, readwrite) NSString *baseURL;
 
 @end
 
@@ -29,15 +31,22 @@
 @synthesize taskCollection;
 @synthesize uniqueDeviceId;
 @synthesize searchCollection;
+@synthesize baseURL;
 
 // URL String for the TaskCollection pointing to the Manzia Servers
-static NSString *kTaskURLString = @"http://192.168.1.102:8080/ManziaWebServices/service/interface";
+static NSString *kTaskURLString = @"http://192.168.1.100:8080/ManziaWebServices/service/interface";
 
 // Override Getter
 -(NSString *)uniqueDeviceId
 {
     // For testing purposes
     return @"415-309-7418";
+}
+
+// Override Getter
+-(NSString *)baseURL
+{
+    return @"http://192.168.1.100:8080";
 }
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
@@ -135,6 +144,9 @@ static NSString *kTaskURLString = @"http://192.168.1.102:8080/ManziaWebServices/
      */
     
     [[QLog log] logWithFormat:@"application entered background"];
+    
+    // Delete all Product Collection caches that were marked for deletion
+    [MzProductCollection applicationInBackground];
     
     // In case, we have updates after a TaskCollection synchronization that are still unsaved
     // we save..this will also invalidate saveTimer on the TaskCollection
