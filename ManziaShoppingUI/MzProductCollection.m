@@ -15,7 +15,7 @@
 #import "MzCollectionParserOperation.h"
 #import "MzProductItem.h"
 
-#define kAutoSaveContextChangesTimeInterval 5.0     // 5 secs to auto-save
+#define kAutoSaveContextChangesTimeInterval 1.0     // 5 secs to auto-save
 #define kTimeIntervalToRefreshCollection 600        // 10mins to auto-refresh
 #define kMAX_COLLECTION_DURATION 1209600        // 2 weeks or 14 days in Seconds
 #define kMAX_REFRESH_INTERVAL 86400             // 1 day in Seconds
@@ -281,7 +281,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
                     [collectionCachePathsToDelete addObject:collectionCacheName];
                 } else {
                     assert([modifiedDate isKindOfClass:[NSDate class]]);
-                    if ([modifiedDate timeIntervalSinceNow] >= -kMAX_COLLECTION_DURATION) {
+                    if ([modifiedDate timeIntervalSinceNow] <= -kMAX_COLLECTION_DURATION) {
                         [[QLog log] logWithFormat:@"Database in Collection Cache: %@ exceeds Max Duration: %d, will be deleted!", [collectionCacheName path], kMAX_COLLECTION_DURATION];
                         [collectionCachePathsToDelete addObject:collectionCacheName];
                     }                    
@@ -364,11 +364,11 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     return fetchRequest;
 }
 
-// Manual KVO notification
+/* Manual KVO notification
 +(BOOL)automaticallyNotifiesObserversOfProductItems
 {
     return NO;
-}
+}*/
 
 // Retrieve all the ProductItems in the Collection asynchronously. This method will return immediately
 //so the caller is expected to use KVO on the productItems property to get notified when the 
@@ -387,7 +387,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
             assert(self.managedObjectContext != nil);
             assert(self.collectionCachePath != nil);
             
-            [self.managedObjectContext performBlock:^{
+            [self.managedObjectContext performBlockAndWait:^{
                 NSError *error = nil;
                 NSFetchRequest *fetchRequest = [self productItemsFetchRequest];
                 assert(fetchRequest != nil);
@@ -404,7 +404,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     } else {
         assert(self.collectionCachePath != nil);
         // we already have our NSManagedObjectContext setup
-        [self.managedObjectContext performBlock:^{
+        [self.managedObjectContext performBlockAndWait:^{
             NSError *error = nil;
             NSFetchRequest *fetchRequest = [self productItemsFetchRequest];
             assert(fetchRequest != nil);
@@ -421,9 +421,9 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
         [productDict setObject:products forKey:[[self.collectionCachePath path] copy]];
         
         //KVO notify
-        [self willChangeValueForKey:@"productItems"];
+        //[self willChangeValueForKey:@"productItems"];
         self.productItems = productDict;
-        [self didChangeValueForKey:@"productItems"];
+        //[self didChangeValueForKey:@"productItems"];
     }    
 }
 
@@ -1182,8 +1182,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
                 
                 // insert all the new productItems
                 for (NSDictionary *result in parserResults) {
-                    
-                    [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Creating %d ProductItems: %@ for Collection Cache with URL: %@", [parserResults count], [self.collectionCachePath path ]];
+                                        
                     MzProductItem *newProduct = [MzProductItem insertNewMzProductItemWithProperties:result inManagedObjectContext:self.managedObjectContext];
                     assert(newProduct != nil);
                     assert(newProduct.productID != nil);
@@ -1191,6 +1190,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
                     assert(newProduct.thumbnail == nil);
                     assert(newProduct.productTimestamp != nil);
                 }
+                [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Creating %d ProductItems for Collection Cache with URL: %@", [parserResults count], [self.collectionCachePath path ]];
             }         
        }             
                    

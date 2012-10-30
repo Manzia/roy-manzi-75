@@ -64,20 +64,17 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
 @property (nonatomic, retain, readwrite) MzProductThumbNail *thumbnail;
 //@property (nonatomic, copy, readwrite) NSError *errorGettingImage;
 
-// The thumbnailImages dictionary keeps the "newest" thumbnailImages for our
-// MzProductItem with keys that indicate the thumbnail Size. The dictionary also
-// stores the PlaceHolder thumbnails and provides a different one depending on
+// The dictionary stores the PlaceHolder thumbnails and provides a different one depending on
 // whether we are getting a thumbnail from the network or if the GET from
 // the network failed on retry. The thumbnails in this dictionary are updated
 // by KVO observing our thumbnail property's imageData attributes.
 @property (nonatomic, retain, readwrite) NSMutableDictionary * thumbnailImages;
 
-// private properties
+// KVO observable by View Controllers
+@property (nonatomic, retain, readwrite) NSString *thumbnailStatus;
 
-//@property (nonatomic, retain, readonly ) MzProductCollectionContext *      productCollectionContext;
+// private properties
 @property (nonatomic, retain, readwrite) RetryingHTTPOperation *getThumbnailOperation;
-//@property (nonatomic, retain, readwrite) RetryingHTTPOperation *getPhotoOperation;
-//@property (nonatomic, copy,   readwrite) NSString *getPhotoFilePath;
 @property (nonatomic, assign, readwrite) BOOL thumbnailImageIsPlaceholder;
 
 
@@ -85,6 +82,7 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
 
 - (void)updateProductThumbnail;
 - (void)updateProductImage;
+- (void)startGetThumbnail;
 
 @end
 
@@ -117,6 +115,8 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
 //@synthesize getPhotoFilePath;
 //@synthesize productCollectionContext;
 @synthesize thumbnailImages;
+@synthesize thumbnailStatus;
+@synthesize hasObserver;
 //@synthesize errorGettingImage;
 
 #pragma mark * Insert & Update Product Items
@@ -173,6 +173,10 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
         // Add a timestamp
         insertResult.productTimestamp = [NSDate date];
     }
+    
+    // Start out Thumbnail GET
+    //[insertResult startGetThumbnail];
+    
     return insertResult;
 }
 
@@ -294,8 +298,8 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
     if (self.thumbnail != nil) {
         [self.thumbnail stopResizeOperations:self];
         [self.thumbnail removeObserver:self forKeyPath:@"imageDataSmall"];
-        [self.thumbnail removeObserver:self forKeyPath:@"imageDataMedium"];
-        [self.thumbnail removeObserver:self forKeyPath:@"imageDataLarge"];
+        //[self.thumbnail removeObserver:self forKeyPath:@"imageDataMedium"];
+        //[self.thumbnail removeObserver:self forKeyPath:@"imageDataLarge"];
         didSomething = YES;
     }
         
@@ -357,6 +361,14 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
     [super willTurnIntoFault];
 }
 
+-(void)didTurnIntoFault
+{
+    // Clear transient instance variables
+    self.thumbnailImages = nil;
+    self.thumbnailStatus = nil;
+    [super didTurnIntoFault];
+}
+
 #pragma mark * Thumbnails
 
 // start the HTTP GET operation to retrieve the product Item's thumbnail.
@@ -376,6 +388,9 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
     }
     assert(self.thumbnailImages != nil);
     
+    // Notify observers
+    //self.thumbnailStatus = @"PlaceHolder";
+    
     // Create an NSURLRequest from the remoteThumbnailPath
     requestURL = [[NSURL alloc] initWithString:self.remoteThumbnailPath];
     request = [NSURLRequest requestWithURL:requestURL];
@@ -392,7 +407,7 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
         assert(self.getThumbnailOperation != nil);
         
         [self.getThumbnailOperation setQueuePriority:NSOperationQueuePriorityLow];
-        self.getThumbnailOperation.acceptableContentTypes = [NSSet setWithObjects:@"image/jpeg", @"image/png", nil];
+        self.getThumbnailOperation.acceptableContentTypes = [NSSet setWithObjects:@"image/jpeg", @"image/png", @"image/gif", nil];
         
         [[QLog log] logWithFormat:@"Start thumbnail GET %@  for Product Item %@", self.remoteThumbnailPath, self.productID];
         
@@ -422,11 +437,15 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
                 
                 // Init with the deferred Placeholder thumbnail Image
                 self.thumbnailImages = [[NSMutableDictionary alloc] initWithObjectsAndKeys:[UIImage imageNamed:@"Placeholder-Deferred.png"], kThumbnailPlaceHolder, nil];
+                
+                // Notify observers
+                //self.thumbnailStatus = @"Deferred PlaceHolder";
             } else {
                 
                 //// Change the PlaceHolder thumbnail - this will trigger a KVO notification
                 [self.thumbnailImages removeObjectForKey:kThumbnailPlaceHolder];
                 [self.thumbnailImages setObject:[UIImage imageNamed:@"PlaceHolder-Deferred.png"] forKey:kThumbnailPlaceHolder];
+                //self.thumbnailStatus = @"Deferred PlaceHolder";
             }
         }
     } else        
@@ -443,22 +462,28 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
             
             // Init with the default Placeholder thumbnail Image
             self.thumbnailImages = [[NSMutableDictionary alloc] initWithObjectsAndKeys:[UIImage imageNamed:@"Placeholder.png"], kThumbnailPlaceHolder, nil];
+            
+            // notify observers
+            //self.thumbnailStatus = @"PlaceHolder";
         }
         assert(self.thumbnailImages != nil);
         
         // Update our dictionary accordingly
         if ([keyPath isEqual:@"imageDataSmall"]) {
-            [self.thumbnailImages removeObjectForKey:kThumbNailSizeSmall];
-            [self.thumbnailImages setObject:[change objectForKey:NSKeyValueChangeNewKey] forKey:kThumbNailSizeSmall];
+            //[self.thumbnailImages removeObjectForKey:kThumbNailSizeSmall];
+            //[self.thumbnailImages setObject:[change objectForKey:NSKeyValueChangeNewKey] forKey:kThumbNailSizeSmall];
             
-        } else if ([keyPath isEqual:@"imageDataMedium"]) {
-            [self.thumbnailImages removeObjectForKey:kThumbNailSizeMedium];
+            // Notify Observers
+            self.thumbnailStatus = @"Small Thumbnail";
+            
+        } /*else if ([keyPath isEqual:@"imageDataMedium"]) {
+            //[self.thumbnailImages removeObjectForKey:kThumbNailSizeMedium];
             [self.thumbnailImages setObject:[change objectForKey:NSKeyValueChangeNewKey] forKey:kThumbNailSizeMedium]; 
             
         } else if ([keyPath isEqual:@"imageDataLarge"]) {
             [self.thumbnailImages removeObjectForKey:kThumbNailSizeLarge];
             [self.thumbnailImages setObject:[change objectForKey:NSKeyValueChangeNewKey] forKey:kThumbNailSizeLarge];
-        }
+        }*/
     }
 }
 
@@ -477,14 +502,14 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
     // the resize Operations for us, we KVO observe its imageData properties
     
     if (self.thumbnail == nil) {
-        self.thumbnail = [NSEntityDescription insertNewObjectForEntityForName:@"MzProductThumbnail" inManagedObjectContext:self.managedObjectContext];
+        self.thumbnail = [NSEntityDescription insertNewObjectForEntityForName:@"MzProductThumbNail" inManagedObjectContext:self.managedObjectContext];
         assert(self.thumbnail != nil);
     }
     
     // Add self as an observer to our thumbnail's imageData
     [self.thumbnail addObserver:self forKeyPath:@"imageDataSmall" options:NSKeyValueObservingOptionNew context:ThumbnailStatusContext];
-    [self.thumbnail addObserver:self forKeyPath:@"imageDataMedium" options:NSKeyValueObservingOptionNew context:ThumbnailStatusContext];
-    [self.thumbnail addObserver:self forKeyPath:@"imageDataLarge" options:NSKeyValueObservingOptionNew context:ThumbnailStatusContext];
+    //[self.thumbnail addObserver:self forKeyPath:@"imageDataMedium" options:NSKeyValueObservingOptionNew context:ThumbnailStatusContext];
+    //[self.thumbnail addObserver:self forKeyPath:@"imageDataLarge" options:NSKeyValueObservingOptionNew context:ThumbnailStatusContext];
 
     
     [[QLog log] logWithFormat:@"Completed thumbnail GET for Product Item %@", self.productID];
@@ -494,9 +519,9 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
         //[self thumbnailCommitImage:nil isPlaceholder:YES];
         (void) [self stopThumbnail];
     } else {
-        [[QLog log] logOption:kLogOptionNetworkData withFormat:@"receive %@", operation.responseContent];
+        //[[QLog log] logOption:kLogOptionNetworkData withFormat:@"receive %@", operation.responseContent];
         
-                // Do the resize
+        // Do the resize
         [self.thumbnail startThumbnailResize:operation];
                 
     }
@@ -511,12 +536,19 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
     // Check our thumbnailImages dictionary first and return
     UIImage *returnImage;
     self.thumbnailImageIsPlaceholder = NO;
+    
+    if (self.thumbnailImages == nil) {
+        
+        // Init with the default Placeholder thumbnail Image
+        self.thumbnailImages = [[NSMutableDictionary alloc] initWithObjectsAndKeys:[UIImage imageNamed:@"Placeholder.png"], kThumbnailPlaceHolder, nil];        
+    }
     assert(self.thumbnailImages != nil);
     assert([self.thumbnailImages count] > 0);
     
     switch (thumbnailSize) {
         case kSmallThumbnailImage: {
-            returnImage = [thumbnailImages objectForKey:kThumbNailSizeSmall];
+            
+            //returnImage = [thumbnailImages objectForKey:kThumbNailSizeSmall];
             
             // hit the database if we don't have the thumbnail in the dictionary
             if (returnImage == nil && self.thumbnail.imageDataSmall != nil) {
@@ -527,7 +559,7 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
                     [thumbnailImages setObject:returnImage forKey:kThumbNailSizeSmall];
                     self.thumbnailImageIsPlaceholder = NO;
                 }
-            } else if (self.thumbnail.imageDataSmall == nil) {
+            } else if (returnImage == nil && self.thumbnail.imageDataSmall == nil) {
                 
                 // we need to hit the network so return a PlaceHolder. Start a new GET operation
                 // It is assumed that clients will KVO-observe the thumbnailImages dictionary
@@ -535,7 +567,6 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
                 //method. Note that in the off-chance we already have GET and RESIZE operations
                 // in progress they will be stopped by the new GET operations - this scenario
                 // should be rare but may occur only the first time a thumbnailImage is requested.
-            
                 returnImage = [self.thumbnailImages objectForKey:kThumbnailPlaceHolder];
                 self.thumbnailImageIsPlaceholder = YES;
             }
@@ -602,10 +633,14 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
     
     // We now hit the network if we returned a PlaceHolder
     if (self.thumbnailImageIsPlaceholder) {
-        [self stopThumbnail];
-        assert(self.getThumbnailOperation == nil);
-        assert(self.thumbnail.resizeOperations == nil);
-        [self startGetThumbnail];
+        
+        // if we are already in process of doing a Thumbnail GET, we do nothing
+        if (self.getThumbnailOperation == nil) {
+            assert(self.thumbnail.resizeOperations == nil);
+            [self startGetThumbnail];
+        } else {
+            [[QLog log] logWithFormat:@"Already downloading a thumbnail for Product Item %@", self.productID];
+        }        
     }
     
     return returnImage;
@@ -613,19 +648,14 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
 
 // Updates the thumbnail is response to a change in the owning MzProductItem object.
 - (void)updateProductThumbnail
-
 {
-    [[QLog log] logWithFormat:@"Update thumbnail for Product Item %@", self.productID];
+    [[QLog log] logWithFormat:@"Updating thumbnail for Product Item %@", self.productID];
     
-    // Update only if we've have existing thumbnails. 
-    if (self.thumbnail.imageDataSmall != nil || self.thumbnail.imageDataMedium != nil || self.thumbnail.imageDataLarge != nil) {
-        
-        // stop any getOperations and resizeOperations in progress       
-        (void) [self stopThumbnail];
-        
-        // Get the new thumbnail imageData       
-        [self startGetThumbnail];
-    }
+    // stop any getOperations and resizeOperations in progress       
+    (void) [self stopThumbnail];
+    
+    // Get the new thumbnail imageData       
+    [self startGetThumbnail];    
 }
 
 

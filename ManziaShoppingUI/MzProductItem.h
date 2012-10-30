@@ -42,7 +42,15 @@
 // returned in the meantime.
 - (UIImage *)getthumbnailImage:(kThumbnailImageSize)thumbnailSize;
 
+
 // Read-only public properties
+
+// Property that can be KVO observed by ViewControllers to determine the status of the Thumbnail and thus when to call
+// the "getthumbnailImage:" method above
+@property (nonatomic, retain, readonly) NSString *thumbnailStatus;
+
+// Property that is set to keep track of if we are being KVO observed
+@property (nonatomic, assign) BOOL hasObserver;
 
 // Immutable productID uniquely identifies a productItem, is KVO observable 
 @property (nonatomic, retain, readonly) NSString * productID;

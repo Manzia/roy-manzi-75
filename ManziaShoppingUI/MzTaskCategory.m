@@ -187,7 +187,7 @@
         [self updateTaskTypeWithProperties:properties inManagedObjectContext:context];
                 
         // categoryId has no valid taskType values
-        [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Update existing TaskCategory with categoryId: %@",[properties objectForKey:@"categoryId"]]; 
+       // [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Update existing TaskCategory with categoryId: %@",[properties objectForKey:@"categoryId"]]; 
     }        
     
     // Do the thmbnail updates.

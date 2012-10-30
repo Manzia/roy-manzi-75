@@ -15,7 +15,7 @@
 
 // Available Thumbnail Sizes
 // NOTE: This implementation was modified on 10/19/2012 so as to generate only one thumbnail Size.
-NSString *const kThumbNailSizeSmall = @"60.0";
+NSString *const kThumbNailSizeSmall = @"45.0";
 NSString *const kThumbNailSizeMedium = @"75.0";
 NSString *const kThumbNailSizeLarge = @"90.0";
 
@@ -46,7 +46,6 @@ NSString *const kThumbNailSizeLarge = @"90.0";
 #pragma mark * Resize operations
 
 // Method is called when the HTTP operation to GET the productImage's thumbnail completes.  
-
 - (void)startThumbnailResize:(RetryingHTTPOperation *)operation
 {
     // Ensure we are in the right state and got called by our MzProductItem object
@@ -66,31 +65,24 @@ NSString *const kThumbNailSizeLarge = @"90.0";
      By: Roy Manzi Tumubweinee, Manzia Corporation
      */
     [[QLog log] logWithFormat:@"Starting Resize for Product Item %@", self.productItem.productID];
+    
     MakeThumbnailOperation *resizeOperationSmall;
-
-    MakeThumbnailOperation *resizeOperationMedium;
-    MakeThumbnailOperation *resizeOperationLarge;
+    if ([operation.responseMIMEType isEqualToString:@"image/gif"]) {
+        NSData *imageData = [self convertToPNGRepresentation:operation.responseContent];
+        if (imageData != nil) {
+            // small resize Operation
+            resizeOperationSmall = [[MakeThumbnailOperation alloc] initWithImageData:imageData MIMEType:@"image/png"];
+            assert(resizeOperationSmall != nil);
+        }
+    } else {
+        // small resize Operation
+        resizeOperationSmall = [[MakeThumbnailOperation alloc] initWithImageData:operation.responseContent MIMEType:operation.responseMIMEType];
+        assert(resizeOperationSmall != nil);
+    }   
     
-    // small resize Operation
-    resizeOperationSmall = [[MakeThumbnailOperation alloc] initWithImageData:operation.responseContent MIMEType:operation.responseMIMEType];
-    assert(resizeOperationSmall != nil);
-    
+    // Set the Thumbnail Size
     resizeOperationSmall.thumbnailSize = kThumbNailSizeSmall.floatValue;
     
-    /* medium resize Operation
-    resizeOperationMedium = [[MakeThumbnailOperation alloc] initWithImageData:operation.responseContent MIMEType:operation.responseMIMEType];
-    assert(resizeOperationMedium != nil);
-    
-    resizeOperationMedium.thumbnailSize = kThumbNailSizeMedium.floatValue;
-    
-    // large resize Operation
-    resizeOperationLarge = [[MakeThumbnailOperation alloc] initWithImageData:operation.responseContent MIMEType:operation.responseMIMEType];
-    assert(resizeOperationLarge != nil);
-    
-    resizeOperationLarge.thumbnailSize = kThumbNailSizeLarge.floatValue; */
-    
-    // store
-    //self.resizeOperations = [NSArray arrayWithObjects:resizeOperationSmall, resizeOperationMedium, resizeOperationLarge, nil];
     self.resizeOperations = [NSArray arrayWithObject:resizeOperationSmall];
     assert(self.resizeOperations != nil);
     
@@ -105,6 +97,31 @@ NSString *const kThumbNailSizeLarge = @"90.0";
         }
         [[NetworkManager sharedManager] addCPUOperation:thumbnailOperation finishedTarget:self action:@selector(thumbnailResizeComplete:)]; 
     }    
+}
+
+//Convert image/gif to image/png representation...we do this on the main thread for now but shall revisit
+// after time profiling the performance impact. Also, we do this on the main thread coz we are not too sure about the 
+// thread-safety of the UIImage function we are using to do the conversion. This conversion is required because
+// the MakeThumbnailOperation operates only on image/jpeg and image/png
+-(NSData *)convertToPNGRepresentation:(NSData *)gifData
+{
+    assert(gifData != nil);
+    assert([gifData length] > 0);
+    
+    // Create Image - we use UIImage since it supports bunch of format including gif
+    UIImage *gifImage = [UIImage imageWithData:gifData];
+    assert(gifImage != nil);
+    assert(gifImage.size.width > 0);
+    assert(gifImage.size.height > 0);
+    
+    NSData *pngData = UIImagePNGRepresentation(gifImage);
+    
+    // Return
+    if (pngData == nil) {
+        [[QLog log] logWithFormat:@"Failed to convert image/gif to image/png for Product Item %@", self.productItem.productID];
+        return nil;
+    }
+    return pngData;
 }
 
 // Method to stop resize operations
@@ -165,12 +182,11 @@ NSString *const kThumbNailSizeLarge = @"90.0";
     assert(validOperation);
     assert([operation isFinished]);
     
-    [[QLog log] logWithFormat:@"Completed thumbnail resize for Product Item %@", self.productItem.productID];
-    
-    if (operation.thumbnail == NULL) {
+    if (operation.thumbnail == nil) {
         [[QLog log] logWithFormat:@"Failed thumbnail resize for Product Item %@", self.productItem.productID];
         productThumbImage = nil;
     } else {
+        [[QLog log] logWithFormat:@"Completed thumbnail resize for Product Item %@", self.productItem.productID];
         productThumbImage = [UIImage imageWithCGImage:operation.thumbnail];
         assert(productThumbImage != nil);
         
@@ -200,7 +216,7 @@ NSString *const kThumbNailSizeLarge = @"90.0";
         
         /* commit PNG representation into our thumbnail database.  To avoid the scroll view stuttering, we only want to do this if the run loop is running in the default mode.  Thus, we check the mode and either do it directly or defer the work until the next time the default run loop mode runs.
          */
-        [[QLog log] logWithFormat:@"Commit thumbnail for Product Item %@ thumbnail commit", self.productItem.productID];
+        [[QLog log] logWithFormat:@"Will commit thumbnail for Product Item %@", self.productItem.productID];
         if ( [[[NSRunLoop currentRunLoop] currentMode] isEqual:NSDefaultRunLoopMode] ) {
             [self thumbnailCommitImageData:productThumbImage];
         } else {
@@ -231,7 +247,7 @@ NSString *const kThumbNailSizeLarge = @"90.0";
 {
     __block NSString *imageSize;
     
-    [[QLog log] logWithFormat:@"Commit thumbnailImage data for Product Item %@", self.productItem.productID];
+    [[QLog log] logWithFormat:@"Commiting thumbnailImage data for Product Item... %@", self.productItem.productID];
     assert([self.resizedThumbnails count] > 0);
     
     // we only commit images that are in our resizedThumbnails dictionary
@@ -252,11 +268,11 @@ NSString *const kThumbNailSizeLarge = @"90.0";
     if ([imageSize isEqualToString:kThumbNailSizeSmall]) {
         self.imageDataSmall = nil;
         [self willChangeValueForKey:@"imageDataSmall"];
-        self.imageDataSmall = UIImagePNGRepresentation(image);
+        self.imageDataSmall = [[NSData alloc] initWithData:UIImagePNGRepresentation(image)];
         assert(self.imageDataSmall != nil);
         [self didChangeValueForKey:@"imageDataSmall"];
         
-    } else if ([imageSize isEqualToString:kThumbNailSizeMedium]) {
+    } /*else if ([imageSize isEqualToString:kThumbNailSizeMedium]) {
         self.imageDataMedium = nil;
         [self willChangeValueForKey:@"imageDataMedium"];
         self.imageDataMedium = UIImagePNGRepresentation(image);
@@ -269,7 +285,7 @@ NSString *const kThumbNailSizeLarge = @"90.0";
         self.imageDataLarge = UIImagePNGRepresentation(image);
         assert(self.imageDataLarge != nil);
         [self didChangeValueForKey:@"imageDataLarge"];
-    }   
+    }   */
     
     [[QLog log] logWithFormat:@"Successful Commit thumbnailImage data for Product Item %@", self.productItem.productID];
 }
