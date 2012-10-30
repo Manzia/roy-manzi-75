@@ -354,7 +354,7 @@
             assert([[self.tasksProperties objectForKey:kTaskParserResultAttributeOptionName] isKindOfClass:[NSArray class]]);
             
             // insert the dictionary into the array
-            [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"XML parse success for category: %@, tasktype: %@, taskAttribute: %@", [self.tasksProperties objectForKey:kTaskParserResultCategoryName], [self.tasksProperties objectForKey:kTaskParserResultTaskTypeName], [self.tasksProperties objectForKey:kTaskParserResultTaskAttributeName]];
+            //[[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"XML parse success for category: %@, tasktype: %@, taskAttribute: %@", [self.tasksProperties objectForKey:kTaskParserResultCategoryName], [self.tasksProperties objectForKey:kTaskParserResultTaskTypeName], [self.tasksProperties objectForKey:kTaskParserResultTaskAttributeName]];
             
             [self.mutableResults addObject:[self.tasksProperties copy]];
             

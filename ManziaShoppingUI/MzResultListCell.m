@@ -37,13 +37,24 @@ static NSString *kUSDollarSymbol = @"$";
     if (productItem != newProductItem) {
         productItem = newProductItem;
         
+        // The priceLabel.text string will be nil if we've been handed a cell that was dequeued
+        // and was originally a "No Searches Found" or "No Products Found" cell, so we need to
+        // un-nil first, we also need to re-set the Colors, Fonts etc..
+        
         // Set the Labels and Image
         productTitle.text = productItem.productTitle;
+        productTitle.textColor = [UIColor darkTextColor];
         productTitle.textAlignment = UITextAlignmentCenter;
         productPrice.text = [NSString stringWithFormat:@"%@%@", kUSDollarSymbol, productItem.productPriceAmount];
+        productPrice.textColor = [UIColor redColor];
         productPrice.textAlignment = UITextAlignmentLeft;
-        productImage = [[UIImageView alloc] initWithImage:[productItem getthumbnailImage:kSmallThumbnailImage]];
-        assert(productImage != nil);
+        
+        
+        if (priceLabel.text == nil) {
+            priceLabel.text = @"Price:";
+        }
+        priceLabel.textAlignment = UITextAlignmentRight;
+        priceLabel.textColor = [UIColor darkTextColor];
     }
 }
 
