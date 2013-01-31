@@ -14,6 +14,7 @@
 #import "MzProductCollection.h"
 #import "MzResultListCell.h"
 #import "MzProductItem.h"
+#import "MzResultsDetailViewController.h"
 
 @interface MzResultsListViewController ()
 
@@ -43,6 +44,10 @@
 @property(nonatomic, assign) BOOL noSearchesFound;
 @property(nonatomic, assign) BOOL noProductItemsFound;
 
+// Array that keeps track of all MzProductItems whose thumbnailStatus property
+// we are observing
+@property (nonatomic, strong, readwrite) NSMutableArray *observedItems;
+
 @end
 
 @implementation MzResultsListViewController
@@ -55,6 +60,10 @@
 @synthesize noProductItemsFound;
 @synthesize noSearchesFound;
 @synthesize deviceIdentifier;
+@synthesize observedItems;
+
+// Segue Identifier
+static NSString *kResultsDetailId = @"KResultsDetailSegue";
 
 // Base URL for Search URLs
 //static NSString *manziBaseURL = @"http://192.168.1.102:8080";
@@ -85,6 +94,7 @@ static NSString * kCollectionKeyCollectionURLString = @"collectionURLString";
 // & "statusOfSync" properties
 static void *NewProductCollectionContext = &NewProductCollectionContext;
 static void *ExistingProductCollectionContext = &ExistingProductCollectionContext;
+static void *ThumbnailStatusContext = &ThumbnailStatusContext;
 
 
 - (id)initWithStyle:(UITableViewStyle)style
@@ -160,6 +170,9 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
             [collection removeObserver:self forKeyPath:@"cacheSyncStatus" context:ExistingProductCollectionContext];
             [collection removeObserver:self forKeyPath:@"cachePath" context:
              NewProductCollectionContext];
+            
+            // Save all changes in the collections
+            [collection saveCollection];
         }
     }
     
@@ -183,6 +196,18 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
 
 -(void) viewWillDisappear:(BOOL)animated
 {
+    // Remove all the MzProductItem observers
+    if (self.observedItems != nil && [self.observedItems count] > 0) {
+        [self.observedItems enumerateObjectsUsingBlock:^(MzProductItem *productItem, NSUInteger idx, BOOL *stop) {
+            if (productItem.hasObserver) {
+                [productItem removeObserver:self forKeyPath:@"thumbnailStatus" context:ThumbnailStatusContext]; 
+            }
+            productItem.hasObserver = NO;
+        }];
+    }
+    // Release Array of Observed Items
+    self.observedItems = nil;
+    
     [super viewWillDisappear:animated];
 }
 
@@ -471,7 +496,7 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
                     [collection fetchProductsInCollection];
                     [self.activeCollections addObject:collection];
                     //dispatch_async(collectionQueue, ^{
-                        [collection startSynchronization:nil];
+                    [collection startSynchronization:nil];
                    // });   
                 } else {
                     
@@ -484,11 +509,11 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
                             // Get the current ProductItems if any and also re-synchronize
                             [collection fetchProductsInCollection];
                             //dispatch_async(collectionQueue, ^{
-                                [collection startSynchronization:nil];
+                            [collection startSynchronization:nil];
                             //});          
                                                       
                         } else {
-                            [[QLog log] logWithFormat:@"Dictionary of ProductItems is NIL so did NOT fetch Products for provided Search URL: %@!"]; 
+                            [[QLog log] logWithFormat:@"Dictionary of ProductItems is NIL so did NOT fetch Products for provided Search URL!"]; 
                         }
                     } 
                 }
@@ -593,6 +618,8 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
                 // NOTE: if the key (ProductCollection) already exists in the allProductItems
                 // dictionary the old NSArray will be replaced with the new one.
                 NSDictionary *productDict = [change objectForKey:NSKeyValueChangeNewKey];
+                assert(productDict != nil);
+               // NSLog(@"Delegate was called with %d productItems", [productDict count]);
                 if ([productDict count] > 0) {
                     NSUInteger prodCount = [[[productDict allValues] objectAtIndex:0] count];
                     [allProductItems addEntriesFromDictionary:productDict];
@@ -637,9 +664,60 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
                         if (colIndex != NSNotFound) {
                             [[QLog log] logWithFormat:@"Re-fetching ProductItems after re-synchronization for existing Product Collection Cache at Path: %@", [collectionName path ]];
                             [[self.activeCollections objectAtIndex:colIndex] fetchProductsInCollection];
-                        }
+                            
+                            // save the collection that was updated
+                            [[self.activeCollections objectAtIndex:colIndex] saveCollection];
+                        }                        
                     }                    
                 }                
+            }
+        }
+    } else if (context == ThumbnailStatusContext) {
+        
+        // A Thumbnail has changed
+        if ( [keyPath isEqualToString:@"thumbnailStatus"]) {
+            assert([object isKindOfClass:[MzProductItem class]]);
+            if ((change != nil) && ([[change objectForKey:NSKeyValueChangeKindKey] intValue] == NSKeyValueChangeSetting))
+            {
+                /* We do the following to update the Thumbnails on the visible cells
+                 NOTE: Each time the dataSource (i.e self) is asked for a Cell via the "cellForRowAtIndexPath" method
+                 we call the "getthumbnailImage" method of the MzProductItem we assigned to the Cell which returns
+                 a PlaceHolder image or the actual Thumbnail. To get the actual Thumbnail, the method queries the
+                 database and if no Thumbnail is available hits the network asynchronously. The only time we get called
+                 in this "observeValueForKeyPath:..." method is if the actual Thumbnail was successfully fetched from
+                 the network (either initially or via an update) in which case we do the following
+                 1- Query the currently visible cells in our tableView to determine which one was assigned the MzProductItem that has notified us in this "observeValueForKeyPath:..." method. (We avoid calling the "reloadData" method on the tableView, since this will call the "getthumbnailImage" method again on each cell that will stop any GET and RESIZE operations that may be in progress for that cell's MzProductItem)
+                 2- Set the retrieved Cell's imageView's image property to the actual Thumbnail and remove ourself as
+                 the observer of the MzProductItems in our "viewWillDisappear" method
+                 
+                 NOTE ALSO: Its possible for a Cell to become visible, call the "getthumbnailImage" method and before the
+                 actual Thumbnail image is returned, the Cell goes off screen and even off the tableView's reuse queue.
+                 This is OK, since the MzProductItem assigned to each cell is retained in our allProductItems dictionary
+                 so the next Cell that is dequeued and assigned this MzProductItem will not have to do a fetch off the
+                 network as the actual Thumbnail will have already been fetched and persisted in the database.            
+                 */
+                NSString *thumbnailState = [change objectForKey:NSKeyValueChangeNewKey];
+                if (thumbnailState != nil && [thumbnailState isEqualToString:@"Small Thumbnail"]) {
+                    NSArray *cellsInView = [self.tableView visibleCells];
+                    assert(cellsInView != nil);
+                    if ([cellsInView count] > 0) {
+                        NSUInteger sameProductItem = [cellsInView indexOfObjectPassingTest:
+                                                      ^(MzResultListCell *cell, NSUInteger idx, BOOL *stop) {
+                                                          if (cell.productItem == object) {
+                                                              *stop = YES;
+                                                              return YES;
+                                                          } else { return NO; }
+                                                      }];
+                        if (sameProductItem != NSNotFound) {
+                            MzResultListCell *updatedCell = [cellsInView objectAtIndex:sameProductItem];
+                            UIImage *cellImage = [object getthumbnailImage:kSmallThumbnailImage];
+                            assert(cellImage != nil);
+                            updatedCell.productImage.image = cellImage;                            
+                        }
+                    }
+                }
+                
+                
             }
         }
     }
@@ -735,24 +813,35 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
             cell.productTitle.font = [UIFont systemFontOfSize:15.0];
         } else {
             MzProductItem *productItem = [productsInSection objectAtIndex:indexPath.row];
+            assert(productItem != nil);
             cell.productItem = productItem;
-            cell.productTitle.text = productItem.productTitle;
-            cell.productTitle.textAlignment = UITextAlignmentCenter;
-            cell.productPrice.text = productItem.productPriceAmount;
-            cell.productImage.image = [productItem getthumbnailImage:kSmallThumbnailImage];
+            //cell.productTitle.text = productItem.productTitle;
+            //cell.productTitle.textAlignment = UITextAlignmentCenter;
+            //cell.productPrice.text = productItem.productPriceAmount;
+            UIImage *cellImage = [productItem getthumbnailImage:kSmallThumbnailImage];
+            //UIImage *cellImage = [UIImage imageNamed:@"first@2x.png"];
+            assert(cellImage != nil);
+            cell.productImage.image = cellImage;
+            
+            // Observe our cell's thumbnail
+            if (self.observedItems == nil) {
+                self.observedItems = [NSMutableArray array];
+            }
+            [productItem addObserver:self forKeyPath:@"thumbnailStatus" options:NSKeyValueObservingOptionNew context:ThumbnailStatusContext];
+            productItem.hasObserver = YES;
+            [self.observedItems addObject:productItem];
         }        
     }
     return cell;
 }
 
-/*
 // Override to support conditional editing of the table view.
 - (BOOL)tableView:(UITableView *)tableView canEditRowAtIndexPath:(NSIndexPath *)indexPath
 {
     // Return NO if you do not want the specified item to be editable.
-    return YES;
+    return NO;
 }
-*/
+
 
 /*
 // Override to support editing the table view.
@@ -852,17 +941,27 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
         assert(deleteKey != nil);
         if ([self.allSearches count] > 0) {
             [self.allSearches removeObjectForKey:deleteKey];
-            [[QLog log] logWithFormat:@"Deleted Search Item as per User Request with Title:", searchItem.searchTitle];
+            [[QLog log] logWithFormat:@"Deleted Search Item as per User Request with Title: %@", searchItem.searchTitle];
         } else {
-            [[QLog log] logWithFormat:@"User Requested delete unknown Search Item with Title:", searchItem.searchTitle];    
+            [[QLog log] logWithFormat:@"User Requested delete unknown Search Item with Title: %@", searchItem.searchTitle];    
         }
         // Mark the ProductCollection for deletion
         if ([self.productSearchMap count] > 0) {
             NSURL *collectionName = [self.productSearchMap objectForKey:deleteKey];
             if (collectionName != nil) {
                 [MzProductCollection markForRemoveCollectionCacheAtPath:collectionName];
+                
+                // Remove any KVO observers
+                NSArray *removeItems = [self.allProductItems objectForKey:[collectionName path]];
+                if (removeItems != nil && [removeItems count] > 0) {
+                    [removeItems enumerateObjectsUsingBlock:^(MzProductItem *productItem, NSUInteger idx, BOOL *stop) {
+                        if (productItem.hasObserver) {
+                            [productItem removeObserver:self forKeyPath:@"thumbnailStatus" context:ThumbnailStatusContext];
+                        }                        
+                    }];
+                }                
                 [self.allProductItems removeObjectForKey:[collectionName path]];
-                [[QLog log] logWithFormat:@"Deleted Search Item from Product Collection per User Request with Title:", searchItem.searchTitle];
+                [[QLog log] logWithFormat:@"Deleted Search Item from Product Collection per User Request with Title: %@", searchItem.searchTitle];
             }
         }
         
@@ -896,6 +995,27 @@ static void *ExistingProductCollectionContext = &ExistingProductCollectionContex
     } else {
         return NO;
     }    
+}
+
+#pragma mark - UIStoryboardSegue Interaction methods
+
+// Pass the MzProductItem to be displayed in a UIWebView
+-(void) prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender
+{
+    if ([[segue identifier] isEqualToString:kResultsDetailId]) {
+        MzResultsDetailViewController *resultDetailController = [segue destinationViewController];
+       
+        // Get the selected Cell
+        NSIndexPath *selectedPath = [self.tableView indexPathForSelectedRow];
+        if (selectedPath != nil) {
+            MzResultListCell *selectedCell = (MzResultListCell *)[self.tableView cellForRowAtIndexPath:selectedPath];
+            assert(selectedCell != nil);
+            resultDetailController.urlString = selectedCell.productItem.productDetailPath;
+            assert(resultDetailController.urlString != nil);
+        }
+    }
+    
+
 }
 
 @end

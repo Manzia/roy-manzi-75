@@ -23,7 +23,7 @@ enum SearchOptionButton {
 };
 typedef enum SearchOptionButton SearchOptionButton;
 
-@interface MzAddSearchViewController : UITableViewController <MzAttributeOptionViewControllerDelegate, MzAddSearchHeaderViewDelegate, UITextFieldDelegate>
+@interface MzAddSearchViewController : UITableViewController <MzAttributeOptionViewControllerDelegate, MzAddSearchHeaderViewDelegate, UITextFieldDelegate, UIAlertViewDelegate>
 
 
 // Our delegate

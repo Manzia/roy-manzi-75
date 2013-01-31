@@ -18,6 +18,7 @@
 
 // UIButton that caused us to be presented modally
 @property (nonatomic, strong) UIButton *modalButton;
+@property (nonatomic, copy) NSString *currentSection;
 
 @end
 

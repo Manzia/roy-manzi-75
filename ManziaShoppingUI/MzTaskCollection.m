@@ -766,7 +766,9 @@ static NSPersistentStoreCoordinator *storeCoordinator;
         self.errorFromLastSync = operation.parseError;
         self.stateOfSync = TaskCollectionSyncStateStopped;
     } else {
-        [self commitParserResults:operation.parseResults];
+        [self.managedObjectContext performBlock:^{
+            [self commitParserResults:operation.parseResults];
+        }];       
         
         assert(self.errorFromLastSync == nil);
         self.dateLastSynced = [NSDate date];

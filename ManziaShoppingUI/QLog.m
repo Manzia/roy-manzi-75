@@ -269,7 +269,7 @@
     // This simply calls -setupFromPreferences to re-read our preferences.
 {
     #pragma unused(note)
-    assert([NSThread isMainThread]);
+    //assert([NSThread isMainThread]);
     [self setupFromPreferences];
 }
 

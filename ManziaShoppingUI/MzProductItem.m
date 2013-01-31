@@ -365,7 +365,7 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
 {
     // Clear transient instance variables
     self.thumbnailImages = nil;
-    self.thumbnailStatus = nil;
+    //self.thumbnailStatus = nil;
     [super didTurnIntoFault];
 }
 
@@ -396,7 +396,7 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
     request = [NSURLRequest requestWithURL:requestURL];
     
     if (request == nil) {
-        [[QLog log] logWithFormat:@"Bad ThumbnailPath: %@ for Product Item: %@  path '%@'", self.remoteThumbnailPath, self.productID];
+        [[QLog log] logWithFormat:@"Bad ThumbnailPath: %@ for Product Item: %@", self.remoteThumbnailPath, self.productID];
         
         // Change the PlaceHolder thumbnail - this will trigger a KVO notification
         [self.thumbnailImages removeObjectForKey:kThumbnailPlaceHolder];

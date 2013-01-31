@@ -164,8 +164,9 @@ static NSString *kAllBrandsAttribute = @"All";
     NSFetchRequest *mrequest = [NSFetchRequest fetchRequestWithEntityName:kTaskAttributeEntity];
     assert(mrequest != nil);
     [mrequest setRelationshipKeyPathsForPrefetching:[NSArray arrayWithObject:@"taskType"]];
-    NSSortDescriptor * sortDescriptor = [[NSSortDescriptor alloc] initWithKey:@"taskAttributeId" ascending:YES];
-    NSArray *sortDescriptors = [NSArray arrayWithObject:sortDescriptor];
+    NSSortDescriptor *sortDescriptorType = [[NSSortDescriptor alloc] initWithKey:@"taskType.taskTypeName" ascending:YES];
+    NSSortDescriptor * sortDescriptorId = [[NSSortDescriptor alloc] initWithKey:@"taskAttributeId" ascending:YES];
+    NSArray *sortDescriptors = [NSArray arrayWithObjects:sortDescriptorType, sortDescriptorId, nil];
     [mrequest setSortDescriptors:sortDescriptors];
     
     NSFetchedResultsController *controller = [[NSFetchedResultsController alloc] initWithFetchRequest:mrequest managedObjectContext:self.managedContext sectionNameKeyPath:@"taskType.taskTypeName" cacheName:nil];
@@ -191,10 +192,11 @@ static NSString *kAllBrandsAttribute = @"All";
         if ([tempSections count] > 0) {
             self.currentSection = [tempSections objectAtIndex:0];
             /*for (id <NSFetchedResultsSectionInfo> sectionItem in tempSections) {
-                NSLog(@"Section name: %@", [sectionItem name]);
-                if ([[sectionItem name] isEqualToString:[self initialSectionName]]) {
-                    self.currentSection = sectionItem;
-                }
+               
+                [[sectionItem objects] enumerateObjectsUsingBlock:^(MzTaskAttribute *attribute,
+                                                                   NSUInteger idx, BOOL *stop) {
+                    NSLog(@"Section Name: %@   TaskAttribute Name: %@", [sectionItem name], attribute.taskAttributeName);
+                }];
             }*/
         } else {
             // If we have no sections we have nothing to display so we just return and let
@@ -309,7 +311,7 @@ static NSString *kAllBrandsAttribute = @"All";
         [[QLog log] logWithFormat:@"%d mod 3 rows from Task Collection returned for TableView", maxSectionCount];
         
         // apply the mod 3 test
-        if (maxSectionCount % kSearchButtonsPerCell == 0 || maxSectionCount % kSearchButtonsPerCell == 2) {
+        if (maxSectionCount % kSearchButtonsPerCell == 0 /*|| maxSectionCount % kSearchButtonsPerCell == 2 */) {
             return (maxSectionCount/kSearchButtonsPerCell);
         } else {
             return (maxSectionCount/kSearchButtonsPerCell) + 1;
@@ -411,14 +413,14 @@ static NSString *kAllBrandsAttribute = @"All";
     return cell;
 }
 
-/*
+
 // Override to support conditional editing of the table view.
 - (BOOL)tableView:(UITableView *)tableView canEditRowAtIndexPath:(NSIndexPath *)indexPath
 {
     // Return NO if you do not want the specified item to be editable.
-    return YES;
+    return NO;
 }
-*/
+
 
 /*
 // Override to support editing the table view.
@@ -504,6 +506,7 @@ static NSString *kAllBrandsAttribute = @"All";
         MzAttributeOptionViewController *optionsController = [segue destinationViewController];
         optionsController.delegate = self;
         optionsController.modalButton = (UIButton *)sender;
+        optionsController.currentSection = [self.currentSection name];
     }
     
     // If categoryButton in headerView was tapped
@@ -511,10 +514,11 @@ static NSString *kAllBrandsAttribute = @"All";
         MzAttributeOptionViewController *optionsController = [segue destinationViewController];
         optionsController.delegate = self;
         optionsController.modalButton = nil;
+        optionsController.currentSection = [self.currentSection name];
     }
 }
 
-// Method that updates our button labels and dismisses the viewController we modally presented
+// Method that updates our button labels
 -(void)controller:(MzAttributeOptionViewController *)optionController selection:(NSString *)selectedString
 {
     // set the new value our attributeOption property
@@ -528,7 +532,7 @@ static NSString *kAllBrandsAttribute = @"All";
         [self.selectedOptions replaceObjectAtIndex:self.buttonIndex withObject:self.attributeOption];
         
         // dimiss the modally presented controller
-        [self dismissModalViewControllerAnimated:YES];
+        //[self dismissModalViewControllerAnimated:YES];
         
         // reload our visible tableView data so we update tapped buttons
         [self.tableView reloadData];
@@ -626,8 +630,30 @@ static NSString *kAllBrandsAttribute = @"All";
 #pragma mark - Search Item creation
 
 // Method called when user taps Done button to indicate completion of the search
-// criteria selection
+// criteria selection, we first ask the User if they really want to us to create
+// the "search" via a UIAlertView
 -(IBAction)searchOptionsComplete:(id)sender
+{
+    UIAlertView *searchAlert;
+    searchAlert = [[UIAlertView alloc] initWithTitle:@"Confirm" message:@"Do you want to create a new Search" delegate:self cancelButtonTitle:@"No" otherButtonTitles:@"Yes", nil];
+    assert(searchAlert != nil);
+    
+    // Display alert
+    [searchAlert show];
+}
+
+// Respond to the User's selection on the UIAlertView
+-(void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonsIndex
+{
+    NSString *buttonTitle = [alertView buttonTitleAtIndex:buttonsIndex];
+    assert(buttonTitle != nil);
+    if ([buttonTitle isEqualToString:@"Yes"]) {
+        [self willCreateSearchItem];
+    }
+}
+
+// Method called to create and initiate new search Items
+-(void)willCreateSearchItem
 {
     // check our delegate
     assert(self.delegate != nil);
@@ -640,12 +666,12 @@ static NSString *kAllBrandsAttribute = @"All";
     assert(searchDictionary != nil);
     
     [[self.currentSection objects] enumerateObjectsUsingBlock:
-    ^(MzTaskAttribute *attribute, NSUInteger idx, BOOL *stop) {
-        
-        // Populate the dictionary - note that its possible for the key and value to have
-        // the same string value
-        [searchDictionary setObject:[self.selectedOptions objectAtIndex:idx] forKey:attribute.taskAttributeName];
-    }];
+     ^(MzTaskAttribute *attribute, NSUInteger idx, BOOL *stop) {
+         
+         // Populate the dictionary - note that its possible for the key and value to have
+         // the same string value
+         [searchDictionary setObject:[self.selectedOptions objectAtIndex:idx] forKey:attribute.taskAttributeName];
+     }];
     
     if ([searchDictionary count] > 0) {
         self.searchItem.searchOptions = searchDictionary;
@@ -686,7 +712,7 @@ static NSString *kAllBrandsAttribute = @"All";
     // If the user did not select the UIStepper control, set daysToSearch to 0
     if (self.searchItem.daysToSearch == nil) {
         self.searchItem.daysToSearch = [NSNumber numberWithInt:0];
-    }    
+    }
     
     // We can now pass the MzSearchItem to our delegate who will also dismiss us
     // from the screen

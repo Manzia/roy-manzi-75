@@ -32,6 +32,7 @@
 @synthesize fetchController;
 @synthesize fetchSucceeded;
 @synthesize categoryFetchController;
+@synthesize currentSection;
 
 // declare string constants
 static NSString *kTaskAttributeEntity = @"MzTaskAttribute";
@@ -80,10 +81,13 @@ static NSString *kTaskTypeEntity = @"MzTaskType";
         NSString *attributeName = self.modalButton.titleLabel.text;
         assert(attributeName != nil);
         NSLog(@"Modal button name: %@", attributeName );
+        assert(self.currentSection != nil);
         
         //Now retrieve the corresponding taskAttributeId from the database
         NSFetchRequest *taskRequest = [NSFetchRequest fetchRequestWithEntityName:kTaskAttributeEntity];
-        NSPredicate *taskPredicate = [NSPredicate predicateWithFormat:@"taskAttributeName like[c] %@", attributeName];
+        [taskRequest setRelationshipKeyPathsForPrefetching:[NSArray arrayWithObject:@"taskType"]];
+        NSPredicate *taskPredicate = [NSPredicate predicateWithFormat:
+                                      @"taskAttributeName like[c] %@ AND taskType.taskTypeName like[c] %@", attributeName, self.currentSection];
         assert(taskPredicate != nil);
         assert(taskRequest != nil);
         [taskRequest setPredicate:taskPredicate];
@@ -319,8 +323,11 @@ static NSString *kTaskTypeEntity = @"MzTaskType";
         assert(selectedString != nil);
     }
         
-    //Pass user's selection to our delegate - this method also causes our delegate to dismiss us
+    //Pass user's selection to our delegate
     [self.delegate controller:self selection:selectedString];
+    
+    // Tell our navigation controller to dismiss us
+    [self.navigationController popViewControllerAnimated:YES];
 }
 
 @end

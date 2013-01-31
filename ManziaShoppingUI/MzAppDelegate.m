@@ -59,9 +59,6 @@ static NSString *kTaskURLString = @"http://192.168.1.100:8080/ManziaWebServices/
     UITabBarController *tabBarController = (UITabBarController *)self.window.rootViewController;
     UITabBarItem *searchesItem = [[UITabBarItem alloc] initWithTitle:@"Searches" image:nil tag:0];
     UITabBarItem *resultsItem = [[UITabBarItem alloc] initWithTitle:@"Results" image:nil tag:1];
-    //UIOffset upTitle = UIOffsetMake(0.0, 10.0);
-    //[searchesItem setTitlePositionAdjustment:upTitle];
-    //[resultsItem setTitlePositionAdjustment:upTitle];
     [[[tabBarController viewControllers] objectAtIndex:0] setTabBarItem:searchesItem];
     [[[tabBarController viewControllers] objectAtIndex:1] setTabBarItem:resultsItem];
     
@@ -104,10 +101,7 @@ static NSString *kTaskURLString = @"http://192.168.1.100:8080/ManziaWebServices/
     if ( [userDefaults boolForKey:@"applicationClearSetup"] ) {
         [userDefaults removeObjectForKey:@"applicationClearSetup"];
        // [userDefaults removeObjectForKey:@"galleryURLString"];
-    }
-    
-    
-         
+    }         
     return YES;
 }
 

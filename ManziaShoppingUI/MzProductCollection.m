@@ -718,15 +718,6 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     self.timeToSave = nil;
     
     // Now save.
-    
-    /*if ( (self.productCollectionContext != nil) && [self.productCollectionContext hasChanges] ) {
-        BOOL success;
-        success = [self.productCollectionContext save:&error];
-        if (success) {
-            error = nil;
-        }
-    }*/
-    
     if (self.managedObjectContext != nil && [self.managedObjectContext hasChanges] ) {
         BOOL success;
         success = [self.managedObjectContext save:&error];
