@@ -512,7 +512,7 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
 
 /*
  Start up the Collection Cache for the collectionURLString property. This method also sets
- the productCollectionContext and collectionCachePath properties to point to the Collection Cache started up 
+ the NSManagedObjectContext and collectionCachePath properties to point to the Collection Cache started up 
  */
 - (BOOL)setupProductCollectionContext
 {
@@ -1038,22 +1038,6 @@ NSString * kProductImagesDirectoryName = @"ProductImages";
     
     [self notifyCacheSyncStatus];
 }
-
-/*
- This method is called when the collectionRefreshTimer fires (every 5 minutes). The Timer
- is created and start in the startCollection method and removed in the stopCollection method
- The method does the following;
- 1- iterates through all the stored relativePaths that were used to HTTP GET all the
- stored parserResults
- 2- For each relativePath, lookup the Time the ParserOperation completed. If this Time is
- greater than 5 minutes ago, hit the network again and HTTP GET new parseResult using the
- same relativePath
- 3- compare the new parseResult to the old parseResult, if there is no change, do nothing
- else, update, delete, insert productItem attributes accordingly
- 4- Replace the old parseResult with the new parseResult and associate with the relativePath
- 5- update the Time for the ParseOperation completion
- */
-
 
 // Commit the parseResults to the Core Data database
 - (void)commitParserResults:(NSArray *)parserResults

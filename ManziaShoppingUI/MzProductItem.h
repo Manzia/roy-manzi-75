@@ -109,11 +109,25 @@
 // Pointer to the thumbnail object associated with the productItem
 @property (nonatomic, retain, readonly) MzProductThumbNail *thumbnail;
 
+// Pointer to the productReviews set
+@property (nonatomic, retain, readonly) NSSet *productReviews;
+
 // KVO observable, returns nil if the photo isn't available yet
 //@property (nonatomic, retain, readonly ) UIImage * productImage;  
 
 // Property that returns getThumbnailOperation
 @property(nonatomic, retain, readonly) RetryingHTTPOperation *getThumbnailOperation;
+
+@end
+
+// Core Data Accessors for the productReviews relationship
+@interface MzProductItem (CoreDataGeneratedAccessors)
+
+- (void)addReviewItemObject:(MzReviewItem *)value;
+- (void)removeReviewItemObject:(MzReviewItem *)value;
+- (void)addReviewItems:(NSSet *)values;
+- (void)removeReviewItems:(NSSet *)values;
+
 
 
 // The view controllers call the following methods to register/unregister to be provided

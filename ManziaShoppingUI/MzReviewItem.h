@@ -11,16 +11,25 @@
 
 @class MzProductItem;
 
-@interface MzReviewItem : NSManagedObject
+@interface MzReviewItem : NSManagedObject {
+    
+}
 
-@property (nonatomic, retain) NSString * reviewAuthor;
-@property (nonatomic, retain) NSString * reviewCategory;
-@property (nonatomic, retain) NSString * reviewContent;
-@property (nonatomic, retain) NSString * reviewId;
-@property (nonatomic, retain) NSNumber * reviewRating;
-@property (nonatomic, retain) NSString * reviewSku;
-@property (nonatomic, retain) NSDate * reviewSubmitTime;
-@property (nonatomic, retain) NSString * reviewTitle;
+// Creates a MzReviewItem object with the specified properties in the specified context.
+// The properties dictionary is keyed by property names, in a KVC fashion.
++ (MzReviewItem *)insertNewMzReviewItemWithProperties:(NSDictionary *)properties
+                               inManagedObjectContext:(NSManagedObjectContext *)managedObjectContext;
+
+@property (nonatomic, retain, readonly) NSString * reviewAuthor;
+@property (nonatomic, retain, readonly) NSString * reviewCategory;
+@property (nonatomic, retain, readonly) NSString * reviewContent;
+@property (nonatomic, retain, readonly) NSString * reviewId;
+@property (nonatomic, retain, readonly) NSNumber * reviewRating;
+@property (nonatomic, retain, readonly) NSString * reviewSku;
+@property (nonatomic, retain, readonly) NSDate * reviewSubmitTime;
+@property (nonatomic, retain, readonly) NSString * reviewTitle;
+
+// The MzProductItem this MzReviewItem "belongs" to
 @property (nonatomic, retain) MzProductItem *reviewProduct;
 
 @end
