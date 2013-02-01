@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="2.0" toolsVersion="2843" systemVersion="11G63" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" initialViewController="4">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="2.0" toolsVersion="2843" systemVersion="11G63" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none">
     <dependencies>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="1929"/>
     </dependencies>
@@ -9,7 +9,7 @@
             <objects>
                 <tableViewController storyboardIdentifier="kAddSearchId" id="VLa-hM-uss" customClass="MzAddSearchViewController" sceneMemberID="viewController">
                     <tableView key="view" clipsSubviews="YES" clearsContextBeforeDrawing="NO" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" rowHeight="70" sectionHeaderHeight="22" sectionFooterHeight="22" id="J1t-Km-D7C">
-                        <rect key="frame" x="0.0" y="64" width="320" height="367"/>
+                        <rect key="frame" x="0.0" y="20" width="320" height="460"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                         <prototypes>
@@ -93,14 +93,14 @@
                 </tableViewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="HaS-Ig-h3i" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="1222" y="-745"/>
+            <point key="canvasLocation" x="1702" y="-673"/>
         </scene>
         <!--Mz Attribute Option View Controller - Search Options-->
         <scene sceneID="2o7-rr-Zi5">
             <objects>
                 <tableViewController id="gSc-8u-F1E" customClass="MzAttributeOptionViewController" sceneMemberID="viewController">
                     <tableView key="view" opaque="NO" clipsSubviews="YES" clearsContextBeforeDrawing="NO" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="grouped" separatorStyle="singleLineEtched" rowHeight="44" sectionHeaderHeight="10" sectionFooterHeight="10" id="LpB-3t-CTs">
-                        <rect key="frame" x="0.0" y="64" width="320" height="367"/>
+                        <rect key="frame" x="0.0" y="20" width="320" height="460"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <color key="backgroundColor" cocoaTouchSystemColor="groupTableViewBackgroundColor"/>
                         <prototypes>
@@ -132,14 +132,14 @@
                 </tableViewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="I3O-Kj-NM9" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="1830" y="-738"/>
+            <point key="canvasLocation" x="2044" y="-736"/>
         </scene>
         <!--Mz Search Detail View Controller - Search Details-->
         <scene sceneID="1Ja-XK-tfY">
             <objects>
                 <tableViewController id="Pn6-Gm-fZw" customClass="MzSearchDetailViewController" sceneMemberID="viewController">
                     <tableView key="view" opaque="NO" clipsSubviews="YES" clearsContextBeforeDrawing="NO" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" rowHeight="50" sectionHeaderHeight="22" sectionFooterHeight="22" id="SBE-ZC-kzM">
-                        <rect key="frame" x="0.0" y="64" width="320" height="367"/>
+                        <rect key="frame" x="0.0" y="20" width="320" height="460"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                         <prototypes>
@@ -178,80 +178,103 @@
                 </tableViewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="x1j-hn-AMk" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="1308" y="-74"/>
+            <point key="canvasLocation" x="1750" y="-12"/>
         </scene>
-        <!--View Controller-->
-        <scene sceneID="mr4-ct-Qbb">
+        <!--Mz Search Reviews View Controller-->
+        <scene sceneID="ZEP-xs-jXS">
             <objects>
-                <viewController id="tDF-Yk-mwN" sceneMemberID="viewController">
-                    <view key="view" contentMode="scaleToFill" id="Pte-Vi-YOJ">
-                        <rect key="frame" x="0.0" y="20" width="320" height="460"/>
+                <viewController id="ago-pT-6qE" customClass="MzSearchReviewsViewController" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="vEB-87-fwo">
+                        <rect key="frame" x="0.0" y="64" width="320" height="367"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                         <subviews>
-                            <view contentMode="scaleToFill" id="txk-7H-Gue">
-                                <rect key="frame" x="0.0" y="0.0" width="320" height="110"/>
-                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                                <subviews>
-                                    <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="Preferred Price: US$" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" minimumFontSize="10" id="XzZ-Mu-V7T">
-                                        <rect key="frame" x="20" y="10" width="120" height="25"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                        <fontDescription key="fontDescription" type="system" pointSize="17"/>
-                                        <color key="textColor" red="1" green="0.0" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
-                                        <nil key="highlightedColor"/>
-                                    </label>
-                                    <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" tag="1" contentMode="left" text="Search Duration (Days)" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" minimumFontSize="10" id="fbV-8q-0YO">
-                                        <rect key="frame" x="20" y="48" width="140" height="25"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                        <fontDescription key="fontDescription" type="system" pointSize="17"/>
-                                        <color key="textColor" red="1" green="0.0" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
-                                        <nil key="highlightedColor"/>
-                                    </label>
-                                    <stepper opaque="NO" clipsSubviews="YES" tag="3" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" maximumValue="7" id="Wk8-9K-3ro">
-                                        <rect key="frame" x="180" y="48" width="94" height="27"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                    </stepper>
-                                    <textField opaque="NO" clipsSubviews="YES" tag="2" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" placeholder="100.00" clearsOnBeginEditing="YES" minimumFontSize="17" id="vTV-iK-2Gb">
-                                        <rect key="frame" x="180" y="10" width="94" height="31"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                        <fontDescription key="fontDescription" type="system" pointSize="14"/>
-                                        <textInputTraits key="textInputTraits" keyboardType="numberPad"/>
-                                    </textField>
-                                    <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" tag="4" contentMode="center" text="5" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" minimumFontSize="10" id="R8K-xr-Aqd">
-                                        <rect key="frame" x="281" y="48" width="30" height="27"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                        <fontDescription key="fontDescription" type="system" pointSize="17"/>
-                                        <color key="textColor" red="1" green="0.0" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
-                                        <nil key="highlightedColor"/>
-                                    </label>
-                                    <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" tag="5" contentMode="left" text="Product Category" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" minimumFontSize="10" id="Tfq-2i-QSV">
-                                        <rect key="frame" x="20" y="80" width="130" height="21"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                        <fontDescription key="fontDescription" type="system" pointSize="13"/>
-                                        <color key="textColor" red="1" green="0.0" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
-                                        <nil key="highlightedColor"/>
-                                    </label>
-                                    <button opaque="NO" tag="6" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" id="K4Y-G0-b8G">
-                                        <rect key="frame" x="180" y="80" width="94" height="27"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                        <fontDescription key="fontDescription" type="boldSystem" pointSize="15"/>
-                                        <state key="normal" title="Phones">
-                                            <color key="titleColor" red="0.19607843459999999" green="0.30980393290000002" blue="0.52156865600000002" alpha="1" colorSpace="calibratedRGB"/>
-                                            <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
-                                        </state>
-                                        <state key="highlighted">
-                                            <color key="titleColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
-                                        </state>
-                                    </button>
-                                </subviews>
-                                <color key="backgroundColor" white="0.66666666666666663" alpha="1" colorSpace="calibratedWhite"/>
-                            </view>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" id="VcJ-R0-abG">
+                                <rect key="frame" x="73" y="85" width="174" height="44"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <fontDescription key="fontDescription" name="Helvetica-Bold" family="Helvetica" pointSize="16"/>
+                                <color key="tintColor" white="0.66666666666666663" alpha="1" colorSpace="calibratedWhite"/>
+                                <state key="normal" title="Laptops">
+                                    <color key="titleColor" red="0.19607843459999999" green="0.30980393290000002" blue="0.52156865600000002" alpha="1" colorSpace="calibratedRGB"/>
+                                    <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
+                                </state>
+                            </button>
+                            <segmentedControl opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="top" segmentControlStyle="plain" selectedSegmentIndex="0" id="K5v-AA-HKQ">
+                                <rect key="frame" x="73" y="162" width="174" height="44"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <segments>
+                                    <segment title="Include"/>
+                                    <segment title="Exclude"/>
+                                </segments>
+                                <connections>
+                                    <action selector="selectedQueryType:" destination="ago-pT-6qE" eventType="valueChanged" id="76C-da-nXD"/>
+                                </connections>
+                            </segmentedControl>
+                            <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="whose Reviews" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="XhO-Td-L0e">
+                                <rect key="frame" x="100" y="132" width="120" height="23"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="16"/>
+                                <color key="textColor" red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <pickerView contentMode="scaleToFill" id="efO-JG-tpr">
+                                <rect key="frame" x="9" y="288" width="289" height="216"/>
+                                <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMaxY="YES"/>
+                                <color key="backgroundColor" red="0.90518851902173914" green="0.90518851902173914" blue="0.90518851902173914" alpha="1" colorSpace="calibratedRGB"/>
+                                <connections>
+                                    <outlet property="dataSource" destination="ago-pT-6qE" id="H0H-DN-wCM"/>
+                                    <outlet property="delegate" destination="ago-pT-6qE" id="FUJ-Vh-XN9"/>
+                                </connections>
+                            </pickerView>
+                            <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="Manzia, Inc" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="qw3-MB-aq8">
+                                <rect key="frame" x="7" y="8" width="80" height="21"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="15"/>
+                                <color key="textColor" cocoaTouchSystemColor="darkTextColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="e.g attractive display, lightweight and ideal for student" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="Ovf-b5-XSS">
+                                <rect key="frame" x="12" y="259" width="288" height="21"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="12"/>
+                                <color key="textColor" cocoaTouchSystemColor="darkTextColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <searchBar contentMode="redraw" text="Search" id="khB-Yv-QZV">
+                                <rect key="frame" x="7" y="215" width="293" height="44"/>
+                                <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMaxY="YES"/>
+                                <color key="tintColor" red="0.81116253396739135" green="0.81116253396739135" blue="0.81116253396739135" alpha="1" colorSpace="calibratedRGB"/>
+                                <textInputTraits key="textInputTraits"/>
+                            </searchBar>
+                            <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="Search For" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="deK-gd-Uu4">
+                                <rect key="frame" x="111" y="57" width="100" height="23"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <color key="textColor" red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
+                                <nil key="highlightedColor"/>
+                            </label>
                         </subviews>
-                        <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="calibratedWhite"/>
+                        <color key="backgroundColor" red="0.91026239809782605" green="0.91026239809782605" blue="0.91026239809782605" alpha="1" colorSpace="calibratedRGB"/>
                     </view>
+                    <navigationItem key="navigationItem" id="v2U-O8-GpF"/>
+                    <connections>
+                        <outlet property="categoryButton" destination="VcJ-R0-abG" id="ZBG-Ob-vPS"/>
+                        <outlet property="pickerView" destination="efO-JG-tpr" id="Kl6-bJ-MsI"/>
+                        <outlet property="searchBar" destination="khB-Yv-QZV" id="542-Ev-Hr1"/>
+                        <outlet property="searchDisplayController" destination="A81-fc-aWW" id="LqD-gq-uRg"/>
+                        <outlet property="segmentedControl" destination="K5v-AA-HKQ" id="PRA-Qw-7hI"/>
+                    </connections>
                 </viewController>
-                <placeholder placeholderIdentifier="IBFirstResponder" id="efx-tQ-au2" userLabel="First Responder" sceneMemberID="firstResponder"/>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="1mh-h6-p7i" userLabel="First Responder" sceneMemberID="firstResponder"/>
+                <searchDisplayController id="A81-fc-aWW">
+                    <connections>
+                        <outlet property="delegate" destination="ago-pT-6qE" id="KuM-0T-85C"/>
+                        <outlet property="searchContentsController" destination="ago-pT-6qE" id="LBC-AQ-iSM"/>
+                        <outlet property="searchResultsDataSource" destination="ago-pT-6qE" id="WuF-Xl-L4l"/>
+                        <outlet property="searchResultsDelegate" destination="ago-pT-6qE" id="lTz-SK-gv7"/>
+                    </connections>
+                </searchDisplayController>
             </objects>
-            <point key="canvasLocation" x="1856" y="117"/>
+            <point key="canvasLocation" x="680" y="-380"/>
         </scene>
         <!--Mz Results List View Controller - Results-->
         <scene sceneID="pjZ-rr-Sv7">
@@ -404,7 +427,7 @@
                     </navigationBar>
                     <nil name="viewControllers"/>
                     <connections>
-                        <segue destination="cyz-BP-3jW" kind="relationship" relationship="rootViewController" id="Lf4-uZ-iiP"/>
+                        <segue destination="ago-pT-6qE" kind="push" id="Y4p-oL-jrw"/>
                     </connections>
                 </navigationController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="pmr-bG-tj8" userLabel="First Responder" sceneMemberID="firstResponder"/>
@@ -416,7 +439,7 @@
             <objects>
                 <tableViewController storyboardIdentifier="kSearchListId" id="cyz-BP-3jW" customClass="MzSearchListViewController" sceneMemberID="viewController">
                     <tableView key="view" opaque="NO" clipsSubviews="YES" clearsContextBeforeDrawing="NO" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="grouped" separatorStyle="singleLineEtched" rowHeight="63" sectionHeaderHeight="10" sectionFooterHeight="10" id="sqY-Q1-EfK">
-                        <rect key="frame" x="0.0" y="64" width="320" height="367"/>
+                        <rect key="frame" x="0.0" y="20" width="320" height="460"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <color key="backgroundColor" cocoaTouchSystemColor="groupTableViewBackgroundColor"/>
                         <prototypes>
@@ -485,7 +508,7 @@
                 </tableViewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="XFc-tT-EuC" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="708" y="-161"/>
+            <point key="canvasLocation" x="1200" y="-639"/>
         </scene>
         <!--Navigation Controller - Second-->
         <scene sceneID="kSD-cs-j7S">
@@ -512,6 +535,72 @@
         <image name="first" width="16" height="16"/>
         <image name="second" width="16" height="16"/>
     </resources>
+    <classes>
+        <class className="MzAddSearchCell" superclassName="UITableViewCell">
+            <source key="sourceIdentifier" type="project" relativePath="./Classes/MzAddSearchCell.h"/>
+            <relationships>
+                <relationship kind="outlet" name="leftOptionButton" candidateClass="UIButton"/>
+                <relationship kind="outlet" name="middleOptionButton" candidateClass="UIButton"/>
+                <relationship kind="outlet" name="rightOptionButton" candidateClass="UIButton"/>
+            </relationships>
+        </class>
+        <class className="MzAddSearchViewController" superclassName="UITableViewController">
+            <source key="sourceIdentifier" type="project" relativePath="./Classes/MzAddSearchViewController.h"/>
+            <relationships>
+                <relationship kind="action" name="searchOptionTapped:"/>
+                <relationship kind="action" name="searchOptionsComplete:"/>
+                <relationship kind="outlet" name="addSearchCell" candidateClass="MzAddSearchCell"/>
+            </relationships>
+        </class>
+        <class className="MzAttributeOptionViewController" superclassName="UITableViewController">
+            <source key="sourceIdentifier" type="project" relativePath="./Classes/MzAttributeOptionViewController.h"/>
+        </class>
+        <class className="MzResultListCell" superclassName="UITableViewCell">
+            <source key="sourceIdentifier" type="project" relativePath="./Classes/MzResultListCell.h"/>
+            <relationships>
+                <relationship kind="outlet" name="priceLabel" candidateClass="UILabel"/>
+                <relationship kind="outlet" name="productImage" candidateClass="UIImageView"/>
+                <relationship kind="outlet" name="productPrice" candidateClass="UILabel"/>
+                <relationship kind="outlet" name="productTitle" candidateClass="UILabel"/>
+            </relationships>
+        </class>
+        <class className="MzResultsDetailViewController" superclassName="UIViewController">
+            <source key="sourceIdentifier" type="project" relativePath="./Classes/MzResultsDetailViewController.h"/>
+            <relationships>
+                <relationship kind="outlet" name="webView" candidateClass="UIWebView"/>
+            </relationships>
+        </class>
+        <class className="MzResultsListViewController" superclassName="UITableViewController">
+            <source key="sourceIdentifier" type="project" relativePath="./Classes/MzResultsListViewController.h"/>
+        </class>
+        <class className="MzSearchDetailViewController" superclassName="UITableViewController">
+            <source key="sourceIdentifier" type="project" relativePath="./Classes/MzSearchDetailViewController.h"/>
+        </class>
+        <class className="MzSearchListCell" superclassName="UITableViewCell">
+            <source key="sourceIdentifier" type="project" relativePath="./Classes/MzSearchListCell.h"/>
+            <relationships>
+                <relationship kind="outlet" name="searchPriceLabel" candidateClass="UILabel"/>
+                <relationship kind="outlet" name="searchStatusLabel" candidateClass="UILabel"/>
+                <relationship kind="outlet" name="searchTitleLabel" candidateClass="UILabel"/>
+            </relationships>
+        </class>
+        <class className="MzSearchListViewController" superclassName="UITableViewController">
+            <source key="sourceIdentifier" type="project" relativePath="./Classes/MzSearchListViewController.h"/>
+            <relationships>
+                <relationship kind="outlet" name="searchCell" candidateClass="MzSearchListCell"/>
+            </relationships>
+        </class>
+        <class className="MzSearchReviewsViewController" superclassName="UIViewController">
+            <source key="sourceIdentifier" type="project" relativePath="./Classes/MzSearchReviewsViewController.h"/>
+            <relationships>
+                <relationship kind="action" name="selectedQueryType:"/>
+                <relationship kind="outlet" name="categoryButton" candidateClass="UIButton"/>
+                <relationship kind="outlet" name="pickerView" candidateClass="UIPickerView"/>
+                <relationship kind="outlet" name="searchBar" candidateClass="UISearchBar"/>
+                <relationship kind="outlet" name="segmentedControl" candidateClass="UISegmentedControl"/>
+            </relationships>
+        </class>
+    </classes>
     <simulatedMetricsContainer key="defaultSimulatedMetrics">
         <simulatedStatusBarMetrics key="statusBar"/>
         <simulatedOrientationMetrics key="orientation"/>
