@@ -9,11 +9,14 @@
 #import "MzSearchReviewsViewController.h"
 #import "MzTaskCollection.h"
 #import "Logging.h"
+#import "MzResultsListViewController.h"
+#import "MzSearchCollection.h"
 
 @interface MzSearchReviewsViewController ()
 
 @property (nonatomic, strong) NSFetchedResultsController *fetchController;
 @property (nonatomic, strong) NSManagedObjectContext *managedContext;
+@property (nonatomic, assign) BOOL includeQuery;
 
 @end
 
@@ -25,11 +28,17 @@
 @synthesize searchBar;
 @synthesize segmentedControl;
 @synthesize fetchController;
+@synthesize includeQuery;
 
 // Database entity that we fetch from
 static NSString *kTaskTypeEntity = @"MzTaskType";
 static NSString *kQueryTypeInclude = @"Include";
 static NSString *kQueryTypeExclude = @"Exclude";
+
+// SearchItem Keys
+static NSString *kSearchItemKeywords = @"Keywords";
+static NSString *kSearchItemCategory = @"Category";
+static NSString *kSearchItemQueryType = @"Type";
 
 // Initializer
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
@@ -61,7 +70,7 @@ static NSString *kQueryTypeExclude = @"Exclude";
     NSFetchRequest *mrequest = [NSFetchRequest fetchRequestWithEntityName:kTaskTypeEntity];
     assert(mrequest != nil);
     NSSortDescriptor *sortDescriptorType = [[NSSortDescriptor alloc] initWithKey:@"taskTypeName" ascending:YES];
-    NSArray *sortDescriptors = [NSArray arrayWithObject:sortDescriptorType, nil];
+    NSArray *sortDescriptors = [NSArray arrayWithObject:sortDescriptorType];
     [mrequest setSortDescriptors:sortDescriptors];
     
     // We set up only one section i.e one component for the UIPickerView
@@ -89,6 +98,51 @@ static NSString *kQueryTypeExclude = @"Exclude";
     assert(self.categoryButton != nil);
     [self.categoryButton addTarget:self action:@selector(selectCategory) forControlEvents:UIControlEventTouchUpInside];
     
+    // Set up the UISearchBar
+    assert(self.searchBar != nil);
+    self.searchBar.delegate = self;
+    //self.searchBar.showsCancelButton = YES;
+    
+    // Set up the MzResultsListViewController as the delegate for insertions and deletions of
+    // MzSearchItems.
+    // 1- Get the delegate's Navigation Controller
+    UINavigationController *delegateNavController = [[self.tabBarController viewControllers] objectAtIndex:1];
+    assert(delegateNavController != nil);
+    
+    // 2- Find out whichever conforms to our protocol and set them as our delegate
+    if ([delegateNavController.viewControllers count] > 0 ) {
+        NSUInteger delegateIndex = [delegateNavController.viewControllers indexOfObjectPassingTest:
+                                    ^(id viewController, NSUInteger idx, BOOL *stop) {
+                                        if( [viewController isKindOfClass:[MzResultsListViewController class]] &&
+                                           [MzResultsListViewController conformsToProtocol:@protocol(MzSearchReviewsViewControllerDelegate)]) {
+                                            *stop = YES;
+                                            return YES;
+                                        } else {
+                                            return  NO;
+                                        }
+                                    }];
+        if (delegateIndex != NSNotFound) {
+            self.delegate = [delegateNavController.viewControllers objectAtIndex:delegateIndex];
+        } else {
+            //Log
+            [[QLog log] logWithFormat:@"WARNING: No ViewController was found to set as Delegate to the MzSearchReviewsViewController!!"];
+        }
+    } else {
+        //Log
+        [[QLog log] logWithFormat:@"MzSearchReviewsViewController delegate's NavigationViewController has zero ViewControllers!!"];
+    }
+    
+    // Default Setting for UISegmentedControl
+    self.includeQuery = YES;
+
+}
+
+// Release iVars
+-(void) viewDidUnload
+{
+    self.managedContext = nil;
+    self.fetchController = nil;
+    self.searchBar.delegate = nil;
 }
 
 // View Lifecycle
@@ -98,9 +152,7 @@ static NSString *kQueryTypeExclude = @"Exclude";
     
     // Keep the UIPickerView hidden until user taps the categoryButton
     assert(self.pickerView != nil);
-    self.pickerView.hidden = YES;
-    
-    //
+    self.pickerView.hidden = YES;    
 }
 
 
@@ -150,11 +202,16 @@ static NSString *kQueryTypeExclude = @"Exclude";
     self.pickerView.hidden = YES;    
 }
 
-// Bring up the UIPickerView
+// Bring up the UIPickerView if its hidden otherwise if its already on screen then dismiss it
 -(void)selectCategory
 {
     assert(self.pickerView != nil);
-    self.pickerView.hidden = NO;
+    
+    if (self.pickerView.hidden) {
+        self.pickerView.hidden = NO;
+    } else {
+        self.pickerView.hidden = YES;
+    }
 }
 
 #pragma mark * Memory Management
@@ -174,11 +231,84 @@ static NSString *kQueryTypeExclude = @"Exclude";
     assert(queryType != nil);
     
     if ([queryType isEqualToString:kQueryTypeInclude]) {
-        
+        self.includeQuery = YES;        
     } else if ([queryType isEqualToString:kQueryTypeExclude]) {
-        
+        self.includeQuery = NO;
     }
 }
 
+// User is going to enter the query
+-(void) searchBarSearchButtonClicked:(UISearchBar *)searchBar
+{
+    assert(self.searchBar != nil);
+    // resign UISearchBar form being First Responder
+    if (self.searchBar.isFirstResponder) {
+        [self.searchBar resignFirstResponder];
+    }
+}
+
+// User finished entering query
+-(void) searchBarTextDidEndEditing:(UISearchBar *)searchesBar
+{
+    NSString *query;
+    assert(searchesBar != nil);
+    query = searchesBar.text;
+    if ([query length] > 0) {
+        
+        //Log
+        [[QLog log] logWithFormat:@"User entered query: %@", query];
+        
+        // Send query to Delegate...method immediately starts the synchronization process
+        // and also pushes the delegate onto screen
+        MzSearchItem *searchItem = [self createSearchItemFromQuery:query andCategory:self.categoryButton.titleLabel.text];
+        assert(self.delegate != nil);
+        [self.delegate controller:self addSearchItem:searchItem];
+    }
+    // resign UISearchBar form being First Responder
+    if (self.searchBar.isFirstResponder) {
+        [self.searchBar resignFirstResponder];
+    }       
+}
+
+// Create a MzSearchItem from the user's query
+-(MzSearchItem *) createSearchItemFromQuery:(NSString *)queryStr andCategory:(NSString *)categoryStr
+{
+    MzSearchItem *searchItem = nil;
+    if (queryStr != nil && categoryStr != nil) {
+        
+        searchItem = [[MzSearchItem alloc] init];        
+        //set the search Properties
+        searchItem.searchTitle = [NSString string];
+        searchItem.searchStatus = SearchItemStateInProgress;
+        searchItem.searchTimestamp = [NSDate date];
+        searchItem.daysToSearch = [NSNumber numberWithInt:0];
+        searchItem.priceToSearch = [NSNumber numberWithDouble:0.0];
+        
+        // set the search Options
+        NSString *queryType;
+        NSDictionary *searchDict;
+        queryType = self.includeQuery ? kQueryTypeInclude : kQueryTypeExclude;
+        searchDict = [NSDictionary dictionaryWithObjectsAndKeys:queryStr, kSearchItemKeywords,
+                      categoryStr, kSearchItemCategory, queryType, kSearchItemQueryType, nil];
+        searchItem.searchOptions = [NSDictionary dictionaryWithDictionary:searchDict];
+        
+        // add the new MzSearchItem to the MzSearchCollection
+        MzSearchCollection *searchCollection = [[MzSearchCollection alloc] init];
+        BOOL success = [searchCollection addSearchCollection];
+        if (success) {
+            [searchCollection addSearchItem:searchItem];
+        } else {
+            [[QLog log] logWithFormat:@"Failed to add new MzSearchItem to MzSearchCollection with Query: %@", queryStr];
+        }        
+    }
+    return searchItem;
+}
+
+// User cancelled entering query
+-(void) searchBarCancelButtonClicked:(UISearchBar *)searchBar
+{
+    assert(self.searchBar != nil);
+    [self.searchBar resignFirstResponder];
+}
 
 @end

@@ -55,6 +55,13 @@ static NSString *kTaskURLString = @"http://192.168.1.100:8080/ManziaWebServices/
 #pragma unused(launchOptions)
     assert(self.window != nil);
     
+    // Start our TaskCollection...this executes asynchrounously and hits the network
+    assert([NSURL URLWithString:kTaskURLString] != nil); //check we have a valid URL
+    self.taskCollection = [[MzTaskCollection alloc] initWithTasksURLString:kTaskURLString];
+    assert(self.taskCollection != nil);
+    
+    [self.taskCollection applicationHasLaunched];
+    
     // add tabBarItems to the tab bar controller
     UITabBarController *tabBarController = (UITabBarController *)self.window.rootViewController;
     UITabBarItem *searchesItem = [[UITabBarItem alloc] initWithTitle:@"Searches" image:nil tag:0];
@@ -147,14 +154,18 @@ static NSString *kTaskURLString = @"http://192.168.1.100:8080/ManziaWebServices/
     if (self.taskCollection != nil && self.taskCollection.stateOfSync == TaskCollectionSyncStateStopped) {
         
         [self.taskCollection saveCollection];
+    } else {
+        [self.taskCollection stopCollection];
     }
-
+    
+    // Delete all MzSearchItems created in this session
+    [self.searchCollection deleteSearchDirectory];
     
     // Stop the Task Collection synchronization task if its still running in the background
-    if (application.backgroundTimeRemaining < 0.5) {
-        [self.taskCollection stopCollection];
-        [application endBackgroundTask:self.taskCollection.taskCollectionSync];
-    }
+    //if (application.backgroundTimeRemaining < 0.5) {
+        //[self.taskCollection stopCollection];
+      //  [application endBackgroundTask:self.taskCollection.taskCollectionSync];
+    //}
     [[NSUserDefaults standardUserDefaults] synchronize];
 }
 

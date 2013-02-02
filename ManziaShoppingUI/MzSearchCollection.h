@@ -54,4 +54,10 @@
 // Get all the "deserialized" MzSearchItems from the Search Directory
 -(NSArray *)allSearchItems;
 
+// Get the most "recent" MzSearchItem based on timestamps
+-(MzSearchItem *)recentSearchItemInDirectory;
+
+// Delete the Search Directory and thus all the "serialized" MzSearchItems
+-(void) deleteSearchDirectory;
+
 @end

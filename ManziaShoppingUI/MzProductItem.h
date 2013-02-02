@@ -9,6 +9,7 @@
 #import <Foundation/Foundation.h>
 #import <CoreData/CoreData.h>
 #import "MzProductThumbNail.h"
+#import "MzReviewItem.h"
 
 @class MzProductThumbNail;
 @class RetryingHTTPOperation;

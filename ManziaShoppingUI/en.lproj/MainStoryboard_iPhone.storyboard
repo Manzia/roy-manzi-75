@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="2.0" toolsVersion="2843" systemVersion="11G63" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="2.0" toolsVersion="2843" systemVersion="11G63" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" initialViewController="4">
     <dependencies>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="1929"/>
     </dependencies>
@@ -93,7 +93,7 @@
                 </tableViewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="HaS-Ig-h3i" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="1702" y="-673"/>
+            <point key="canvasLocation" x="2228" y="-673"/>
         </scene>
         <!--Mz Attribute Option View Controller - Search Options-->
         <scene sceneID="2o7-rr-Zi5">
@@ -132,7 +132,7 @@
                 </tableViewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="I3O-Kj-NM9" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="2044" y="-736"/>
+            <point key="canvasLocation" x="2570" y="-736"/>
         </scene>
         <!--Mz Search Detail View Controller - Search Details-->
         <scene sceneID="1Ja-XK-tfY">
@@ -178,18 +178,18 @@
                 </tableViewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="x1j-hn-AMk" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="1750" y="-12"/>
+            <point key="canvasLocation" x="2276" y="-12"/>
         </scene>
-        <!--Mz Search Reviews View Controller-->
+        <!--Mz Search Reviews View Controller - Search Reviews-->
         <scene sceneID="ZEP-xs-jXS">
             <objects>
-                <viewController id="ago-pT-6qE" customClass="MzSearchReviewsViewController" sceneMemberID="viewController">
+                <viewController storyboardIdentifier="KSearchReviewsVC" id="ago-pT-6qE" customClass="MzSearchReviewsViewController" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="vEB-87-fwo">
                         <rect key="frame" x="0.0" y="64" width="320" height="367"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                         <subviews>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" id="VcJ-R0-abG">
-                                <rect key="frame" x="73" y="85" width="174" height="44"/>
+                                <rect key="frame" x="73" y="72" width="174" height="44"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <fontDescription key="fontDescription" name="Helvetica-Bold" family="Helvetica" pointSize="16"/>
                                 <color key="tintColor" white="0.66666666666666663" alpha="1" colorSpace="calibratedWhite"/>
@@ -199,7 +199,7 @@
                                 </state>
                             </button>
                             <segmentedControl opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="top" segmentControlStyle="plain" selectedSegmentIndex="0" id="K5v-AA-HKQ">
-                                <rect key="frame" x="73" y="162" width="174" height="44"/>
+                                <rect key="frame" x="73" y="141" width="174" height="44"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <segments>
                                     <segment title="Include"/>
@@ -210,14 +210,14 @@
                                 </connections>
                             </segmentedControl>
                             <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="whose Reviews" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="XhO-Td-L0e">
-                                <rect key="frame" x="100" y="132" width="120" height="23"/>
+                                <rect key="frame" x="100" y="117" width="120" height="23"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="16"/>
                                 <color key="textColor" red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
                                 <nil key="highlightedColor"/>
                             </label>
                             <pickerView contentMode="scaleToFill" id="efO-JG-tpr">
-                                <rect key="frame" x="9" y="288" width="289" height="216"/>
+                                <rect key="frame" x="11" y="251" width="289" height="216"/>
                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMaxY="YES"/>
                                 <color key="backgroundColor" red="0.90518851902173914" green="0.90518851902173914" blue="0.90518851902173914" alpha="1" colorSpace="calibratedRGB"/>
                                 <connections>
@@ -233,20 +233,20 @@
                                 <nil key="highlightedColor"/>
                             </label>
                             <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="e.g attractive display, lightweight and ideal for student" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="Ovf-b5-XSS">
-                                <rect key="frame" x="12" y="259" width="288" height="21"/>
+                                <rect key="frame" x="14" y="228" width="288" height="21"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="12"/>
                                 <color key="textColor" cocoaTouchSystemColor="darkTextColor"/>
                                 <nil key="highlightedColor"/>
                             </label>
                             <searchBar contentMode="redraw" text="Search" id="khB-Yv-QZV">
-                                <rect key="frame" x="7" y="215" width="293" height="44"/>
+                                <rect key="frame" x="9" y="184" width="293" height="44"/>
                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMaxY="YES"/>
                                 <color key="tintColor" red="0.81116253396739135" green="0.81116253396739135" blue="0.81116253396739135" alpha="1" colorSpace="calibratedRGB"/>
                                 <textInputTraits key="textInputTraits"/>
                             </searchBar>
                             <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="Search For" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="deK-gd-Uu4">
-                                <rect key="frame" x="111" y="57" width="100" height="23"/>
+                                <rect key="frame" x="115" y="41" width="100" height="23"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                 <color key="textColor" red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
@@ -255,7 +255,7 @@
                         </subviews>
                         <color key="backgroundColor" red="0.91026239809782605" green="0.91026239809782605" blue="0.91026239809782605" alpha="1" colorSpace="calibratedRGB"/>
                     </view>
-                    <navigationItem key="navigationItem" id="v2U-O8-GpF"/>
+                    <navigationItem key="navigationItem" title="Search Reviews" id="v2U-O8-GpF"/>
                     <connections>
                         <outlet property="categoryButton" destination="VcJ-R0-abG" id="ZBG-Ob-vPS"/>
                         <outlet property="pickerView" destination="efO-JG-tpr" id="Kl6-bJ-MsI"/>
@@ -274,7 +274,7 @@
                     </connections>
                 </searchDisplayController>
             </objects>
-            <point key="canvasLocation" x="680" y="-380"/>
+            <point key="canvasLocation" x="478" y="-352"/>
         </scene>
         <!--Mz Results List View Controller - Results-->
         <scene sceneID="pjZ-rr-Sv7">
@@ -413,7 +413,7 @@
                 </tabBarController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="14" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="-334" y="84"/>
+            <point key="canvasLocation" x="-480" y="80"/>
         </scene>
         <!--Navigation Controller - First-->
         <scene sceneID="Czc-hy-Fyy">
@@ -427,12 +427,12 @@
                     </navigationBar>
                     <nil name="viewControllers"/>
                     <connections>
-                        <segue destination="ago-pT-6qE" kind="push" id="Y4p-oL-jrw"/>
+                        <segue destination="ago-pT-6qE" kind="relationship" relationship="rootViewController" id="cjM-cd-jXq"/>
                     </connections>
                 </navigationController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="pmr-bG-tj8" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="141" y="-146"/>
+            <point key="canvasLocation" x="-62" y="-297"/>
         </scene>
         <!--Mz Search List View Controller - Searches-->
         <scene sceneID="GLa-u8-gRe">
@@ -508,7 +508,7 @@
                 </tableViewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="XFc-tT-EuC" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="1200" y="-639"/>
+            <point key="canvasLocation" x="1726" y="-639"/>
         </scene>
         <!--Navigation Controller - Second-->
         <scene sceneID="kSD-cs-j7S">

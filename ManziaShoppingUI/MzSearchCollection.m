@@ -338,4 +338,45 @@ static NSString *kSearchFilePrefix = @"search-file";
     return items;
 }
 
+// Return the most recent, i.e newest MzSearchItem in the MzSearchCollection's Search Directory wher recency is based
+// on the MzSearchItem's timestamp
+-(MzSearchItem *)recentSearchItemInDirectory
+{
+    // Get all the MzSearchItems
+    NSArray *searchItems;
+    NSArray *sortedItems;
+    searchItems = [self allSearchItems];
+    assert(searchItems != nil);
+    
+    // We sort using a comparator
+    sortedItems = [searchItems sortedArrayUsingComparator:^(MzSearchItem *searchOne, MzSearchItem *searchTwo) {
+        return [searchOne.searchTimestamp compare:searchTwo.searchTimestamp];
+    }];
+    assert(sortedItems != nil);
+    
+    // return nil if we have an empty array else return the last object which will be the most recent
+    if ([sortedItems count] == 0) return nil;
+    NSUInteger mostRecentIdx = [sortedItems count] - 1;
+    return [sortedItems objectAtIndex:mostRecentIdx];
+}
+
+// Delete the Search Directory and thus all the "serialized" MzSearchItems
+-(void) deleteSearchDirectory
+{
+    assert(self.searchDirectory != nil);
+    NSFileManager *fileManager;
+    fileManager = [NSFileManager defaultManager];
+    assert(fileManager != nil);
+    
+    // create the directory
+    NSError *dirError = NULL;
+    NSURL *dirPath = [[self pathToCachesDirectory] URLByAppendingPathComponent:self.searchDirectory isDirectory:YES];
+    assert(dirPath != nil);
+    [fileManager removeItemAtURL:dirPath error:&dirError];
+    if (dirError) {
+        // Log
+        [[QLog log] logWithFormat:@"Error while deleting Search Directory at Path: %@", [dirPath path]];
+    }
+}
+
 @end

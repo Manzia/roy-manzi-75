@@ -324,7 +324,13 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
     NSMutableDictionary *searchDict;
     MzSearchCollection *scollection = [(MzAppDelegate *)[[UIApplication sharedApplication] delegate] searchCollection];
     assert(scollection != nil);
-    NSArray *searchItems = [scollection allSearchItems];
+    
+    /*
+     Modified: Feb 01, 2013
+     Instead of retrieving and using all "serialized" MzSearchItems, we only use the most recent one
+     */
+    //NSArray *searchItems = [scollection allSearchItems];
+    NSArray *searchItems = [NSArray arrayWithObject:[scollection recentSearchItemInDirectory]];
     assert(searchItems != nil);
     
     if ([searchItems count] > 0) {
@@ -382,7 +388,8 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
         fileManager = [NSFileManager defaultManager];
         assert(fileManager != nil);
         
-        possibleCollections = [fileManager contentsOfDirectoryAtURL:productCachesDir includingPropertiesForKeys:nil options:NSDirectoryEnumerationSkipsHiddenFiles | NSDirectoryEnumerationSkipsSubdirectoryDescendants error:nil];
+        possibleCollections = [fileManager contentsOfDirectoryAtURL:productCachesDir includingPropertiesForKeys:nil
+                                                            options:NSDirectoryEnumerationSkipsHiddenFiles | NSDirectoryEnumerationSkipsSubdirectoryDescendants error:nil];
         assert(possibleCollections != nil);
         actualCollections = [NSMutableArray array];
                 
@@ -930,6 +937,14 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
     }
 }
 
+// Note that this delegate method references the MzSearchReviewsViewController unlike the method above
+-(void) controller:(MzSearchReviewsViewController *)searchController addSearchItem:(MzSearchItem *)searchItem
+{
+    
+}
+
+// Note that this delegate method is deprecated!!! Instead, when the App moves to Background, all serialized
+// MzSearchItems are deleted.
 -(void)controller:(MzSearchListViewController *)searchController deletedSearchItem:(MzSearchItem *)searchItem
 {
     if (self.isViewLoaded == YES) {
