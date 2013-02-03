@@ -8,6 +8,8 @@
 
 #import <UIKit/UIKit.h>
 
+@class MzSearchItem;
+
 // Protocol implemented by delegates dealing with MzSearchItems'
 @protocol MzSearchReviewsViewControllerDelegate;
 
@@ -18,15 +20,11 @@
 
 // IBOutlets
 @property(nonatomic, strong) IBOutlet UISearchBar* searchBar;
-@property (nonatomic, strong) IBOutlet UISegmentedControl *segmentedControl;
 @property (nonatomic, strong) IBOutlet UIPickerView *pickerView;
 @property (nonatomic, strong) IBOutlet UIButton *categoryButton;
 
 // Our delegate
 @property (nonatomic, weak) id <MzSearchReviewsViewControllerDelegate> delegate;
-
-// UISegmentedControl method
--(IBAction)selectedQueryType:(id)sender;
 
 @end
 

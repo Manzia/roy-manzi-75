@@ -44,5 +44,6 @@ extern NSString * kReviewParserReviewContent;     //NSString
 extern NSString * kReviewParserReviewRating;   //NSString
 extern NSString * kReviewParserReviewSubmitTime;      //NSString
 extern NSString * kReviewParserReviewAuthor;       //NSString
+extern NSString * kReviewParserReviewSource;    // NSString
 
 @end

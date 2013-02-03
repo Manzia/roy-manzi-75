@@ -16,4 +16,7 @@ MzSearchReviewsViewControllerDelegate> {
     
 }
 
+// Method called when the "selected Reviews" UIButton is tapped
+-(IBAction)selectedReviewsTapped:(id)sender;
+
 @end

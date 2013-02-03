@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model name="" userDefinedModelVersionIdentifier="" type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="1811" systemVersion="11G63" minimumToolsVersion="Automatic" macOSVersion="Automatic" iOSVersion="Automatic">
+    <entity name="MzProductItem" representedClassName="MzProductItem" syncable="YES">
+        <attribute name="localImagePath" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="productAvailability" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="productBrand" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="productClassID" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="productCondition" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="productCountry" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="productDescription" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="productDetailPath" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="productID" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="productLanguage" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="productPriceAmount" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="productPriceUnit" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="productSubClassID" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="productTimestamp" optional="YES" attributeType="Date" syncable="YES"/>
+        <attribute name="productTitle" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="remoteImagePath" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="remoteThumbnailPath" optional="YES" attributeType="String" syncable="YES"/>
+        <relationship name="productReviews" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="MzReviewItem" inverseName="reviewProduct" inverseEntity="MzReviewItem" syncable="YES"/>
+        <relationship name="thumbnail" optional="YES" minCount="1" maxCount="1" deletionRule="Nullify" destinationEntity="MzProductThumbNail" inverseName="productItem" inverseEntity="MzProductThumbNail" syncable="YES"/>
+    </entity>
+    <entity name="MzProductThumbNail" representedClassName="MzProductThumbNail" syncable="YES">
+        <attribute name="imageDataLarge" optional="YES" attributeType="Binary" syncable="YES"/>
+        <attribute name="imageDataMedium" optional="YES" attributeType="Binary" syncable="YES"/>
+        <attribute name="imageDataSmall" optional="YES" attributeType="Binary" syncable="YES"/>
+        <relationship name="productItem" optional="YES" minCount="1" maxCount="1" deletionRule="Nullify" destinationEntity="MzProductItem" inverseName="thumbnail" inverseEntity="MzProductItem" syncable="YES"/>
+    </entity>
+    <entity name="MzReviewItem" representedClassName="MzReviewItem" syncable="YES">
+        <attribute name="reviewAuthor" attributeType="String" syncable="YES"/>
+        <attribute name="reviewCategory" attributeType="String" syncable="YES"/>
+        <attribute name="reviewContent" attributeType="String" syncable="YES"/>
+        <attribute name="reviewId" attributeType="String" minValueString="1" indexed="YES" syncable="YES"/>
+        <attribute name="reviewRating" attributeType="Double" defaultValueString="0.0" syncable="YES"/>
+        <attribute name="reviewSku" attributeType="String" minValueString="1" syncable="YES"/>
+        <attribute name="reviewSource" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="reviewSubmitTime" attributeType="Date" syncable="YES"/>
+        <attribute name="reviewTitle" attributeType="String" syncable="YES"/>
+        <relationship name="reviewProduct" minCount="1" maxCount="1" deletionRule="No Action" destinationEntity="MzProductItem" inverseName="productReviews" inverseEntity="MzProductItem" syncable="YES"/>
+    </entity>
+    <elements>
+        <element name="MzProductItem" positionX="81" positionY="243" width="128" height="330"/>
+        <element name="MzProductThumbNail" positionX="414" positionY="219" width="128" height="105"/>
+        <element name="MzReviewItem" positionX="439" positionY="477" width="128" height="195"/>
+    </elements>
+</model>

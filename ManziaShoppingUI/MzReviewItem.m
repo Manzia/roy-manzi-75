@@ -12,14 +12,15 @@
 
 @interface MzReviewItem ()
 
-@property (nonatomic, retain, readwrite) NSString * reviewAuthor;
-@property (nonatomic, retain, readwrite) NSString * reviewCategory;
-@property (nonatomic, retain, readwrite) NSString * reviewContent;
-@property (nonatomic, retain, readwrite) NSString * reviewId;
-@property (nonatomic, retain, readwrite) NSNumber * reviewRating;
-@property (nonatomic, retain, readwrite) NSString * reviewSku;
-@property (nonatomic, retain, readwrite) NSDate * reviewSubmitTime;
-@property (nonatomic, retain, readwrite) NSString * reviewTitle;
+@property (nonatomic, strong, readwrite) NSString * reviewAuthor;
+@property (nonatomic, strong, readwrite) NSString * reviewCategory;
+@property (nonatomic, strong, readwrite) NSString * reviewContent;
+@property (nonatomic, strong, readwrite) NSString * reviewId;
+@property (nonatomic, strong, readwrite) NSNumber * reviewRating;
+@property (nonatomic, strong, readwrite) NSString * reviewSku;
+@property (nonatomic, strong, readwrite) NSDate * reviewSubmitTime;
+@property (nonatomic, strong, readwrite) NSString * reviewTitle;
+@property (nonatomic, strong, readwrite) NSString *reviewSource;
 
 @end
 
@@ -34,6 +35,7 @@
 @dynamic reviewSubmitTime;
 @dynamic reviewTitle;
 @dynamic reviewProduct;
+@dynamic reviewSource;
 
 #pragma mark * Insert Review Items
 
@@ -53,6 +55,7 @@
     assert( [[properties objectForKey:@"reviewRating"] isKindOfClass:[NSString class]] );
     assert( [[properties objectForKey:@"reviewSubmitTime"] isKindOfClass:[NSString class]] );
     assert( [[properties objectForKey:@"reviewAuthor"] isKindOfClass:[NSString class]] );
+    assert([[properties objectForKey:@"reviewSource"] isKindOfClass:[NSString class]] );
         
     assert(managedObjectContext != nil);
     
@@ -70,6 +73,7 @@
         insertResult.reviewCategory = [[properties objectForKey:@"reviewCategory"] copy];
         insertResult.reviewContent = [[properties objectForKey:@"reviewContent"] copy];
         insertResult.reviewAuthor = [[properties objectForKey:@"reviewAuthor"] copy];
+        insertResult.reviewAuthor = [[properties objectForKey:@"reviewSource"] copy];
         
         // Convert the Rating
         double rating = [[properties objectForKey:@"reviewRating"] doubleValue];

@@ -143,6 +143,7 @@ static NSString *KDefaultAttributeValue = @"unknown";
             <mz:reviewRating>5.0</mz:reviewRating>
             <mz:reviewSubmitTime>2007-08-10T08:10:52</mz:reviewSubmitTime>
             <mz:reviewAuthor>royt75</mz:reviewAuthor>
+            <mz:reviewSource>Best Buy</mz:reviewSource>
         </mz:reviewMatch>
  </mz:reviewMatches>
  
@@ -222,6 +223,11 @@ static NSString *KDefaultAttributeValue = @"unknown";
     
     // reviewAuthor element
     if ([elementName isEqualToString:@"reviewAuthor"]) {
+        storeCharacters = YES;
+    }
+    
+    // reviewAuthor element
+    if ([elementName isEqualToString:@"reviewSource"]) {
         storeCharacters = YES;
     }
     
@@ -329,6 +335,18 @@ static NSString *KDefaultAttributeValue = @"unknown";
         currentStringValue = nil;
     }
     
+    // copy reviewSource
+    if ([elementName isEqualToString:@"reviewSource"]) {
+        
+        if ( (self.currentStringValue == nil) || ([self.currentStringValue length] == 0) ) {
+            [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"XML parse skipped, missing 'reviewSource'"];
+        } else {
+            [self.reviewItemProperties setObject:self.currentStringValue forKey:kReviewParserReviewSource];
+        }
+        currentStringValue = nil;
+    }
+
+    
     // Add properties dictionary to array, stop storing characters and reset currentStringValue
     if ([elementName isEqualToString:@"reviewMatch"]) {
         storeCharacters = NO;
@@ -342,19 +360,17 @@ static NSString *KDefaultAttributeValue = @"unknown";
                  assert([[self.reviewItemProperties objectForKey:kReviewParserReviewCategory] isKindOfClass:[NSString class]]);
                 assert([[self.reviewItemProperties objectForKey:kReviewParserReviewRating] isKindOfClass:[NSString class]]);
                 assert([[self.reviewItemProperties objectForKey:kReviewParserReviewSubmitTime] isKindOfClass:[NSString class]]);
+                assert([[self.reviewItemProperties objectForKey:kReviewParserReviewContent] isKindOfClass:[NSString class]]);
+                assert([[self.reviewItemProperties objectForKey:kReviewParserReviewTitle] isKindOfClass:[NSString class]]);
                  
                  // Verify the Results from Parsing
-                 if(![[self.reviewItemProperties objectForKey:kReviewParserReviewTitle] isKindOfClass:[NSString class]]) {
-                     [self.reviewItemProperties setObject:KDefaultAttributeValue forKey:kReviewParserReviewTitle];
-                 }
-                                
                  if(![[self.reviewItemProperties objectForKey:kReviewParserReviewAuthor] isKindOfClass:[NSString class]]) {
                      [self.reviewItemProperties setObject:KDefaultAttributeValue forKey:kReviewParserReviewAuthor];
                  }
-                 
-                 if(![[self.reviewItemProperties objectForKey:kReviewParserReviewContent] isKindOfClass:[NSString class]]) {
-                     [self.reviewItemProperties setObject:KDefaultAttributeValue forKey:kReviewParserReviewContent];
-                 }
+                             
+                if(![[self.reviewItemProperties objectForKey:kReviewParserReviewSource] isKindOfClass:[NSString class]]) {
+                    [self.reviewItemProperties setObject:KDefaultAttributeValue forKey:kReviewParserReviewSource];
+                }
                  
                  // Log Success!
                  [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"Review XML parse success for SKU: %@", [self.reviewItemProperties objectForKey:kReviewParserReviewSku]];
@@ -386,5 +402,6 @@ NSString * kReviewParserReviewContent = @"reviewContent";
 NSString * kReviewParserReviewRating = @"reviewRating";
 NSString * kReviewParserReviewSubmitTime = @"reviewSubmitTime";
 NSString * kReviewParserReviewAuthor = @"reviewAuthor";
+NSString * kReviewParserReviewSource = @"reviewSource";
 
 @end

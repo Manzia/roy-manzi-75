@@ -11,12 +11,12 @@
 #import "Logging.h"
 #import "MzResultsListViewController.h"
 #import "MzSearchCollection.h"
+#import "MzAppDelegate.h"
 
 @interface MzSearchReviewsViewController ()
 
 @property (nonatomic, strong) NSFetchedResultsController *fetchController;
 @property (nonatomic, strong) NSManagedObjectContext *managedContext;
-@property (nonatomic, assign) BOOL includeQuery;
 
 @end
 
@@ -26,19 +26,16 @@
 @synthesize categoryButton;
 @synthesize pickerView;
 @synthesize searchBar;
-@synthesize segmentedControl;
 @synthesize fetchController;
-@synthesize includeQuery;
 
 // Database entity that we fetch from
 static NSString *kTaskTypeEntity = @"MzTaskType";
-static NSString *kQueryTypeInclude = @"Include";
-static NSString *kQueryTypeExclude = @"Exclude";
 
 // SearchItem Keys
 static NSString *kSearchItemKeywords = @"Keywords";
 static NSString *kSearchItemCategory = @"Category";
-static NSString *kSearchItemQueryType = @"Type";
+static NSString *kDefaultSearchItemTitle = @"No Title";
+static NSString *kDefaultCategoryButtonString = @"Select a Category";
 
 // Initializer
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
@@ -101,7 +98,7 @@ static NSString *kSearchItemQueryType = @"Type";
     // Set up the UISearchBar
     assert(self.searchBar != nil);
     self.searchBar.delegate = self;
-    //self.searchBar.showsCancelButton = YES;
+    self.searchBar.showsCancelButton = YES;
     
     // Set up the MzResultsListViewController as the delegate for insertions and deletions of
     // MzSearchItems.
@@ -131,10 +128,7 @@ static NSString *kSearchItemQueryType = @"Type";
         //Log
         [[QLog log] logWithFormat:@"MzSearchReviewsViewController delegate's NavigationViewController has zero ViewControllers!!"];
     }
-    
-    // Default Setting for UISegmentedControl
-    self.includeQuery = YES;
-
+   
 }
 
 // Release iVars
@@ -224,7 +218,7 @@ static NSString *kSearchItemQueryType = @"Type";
 
 #pragma mark * Search Query Management
 
-// User selects a query Type - Include or Exclude
+/* User selects a query Type - Include or Exclude
 -(IBAction)selectedQueryType:(id)sender
 {
     NSString *queryType = [self.segmentedControl titleForSegmentAtIndex:self.segmentedControl.selectedSegmentIndex];
@@ -235,20 +229,37 @@ static NSString *kSearchItemQueryType = @"Type";
     } else if ([queryType isEqualToString:kQueryTypeExclude]) {
         self.includeQuery = NO;
     }
-}
+} */
 
-// User is going to enter the query
--(void) searchBarSearchButtonClicked:(UISearchBar *)searchBar
+// Verify that the User has selected a Category before they can enter a Query
+-(BOOL) searchBarShouldBeginEditing:(UISearchBar *)searchBar
 {
-    assert(self.searchBar != nil);
-    // resign UISearchBar form being First Responder
-    if (self.searchBar.isFirstResponder) {
-        [self.searchBar resignFirstResponder];
+    assert(self.categoryButton != nil);
+    if ([self.categoryButton.titleLabel.text isEqualToString:kDefaultCategoryButtonString]) {
+        
+        // Display an Alert
+        UIAlertView *searchAlert;
+        searchAlert = [[UIAlertView alloc] initWithTitle:@"Required" message:@"Tap to Select a Category" delegate:self cancelButtonTitle:@"Ok" otherButtonTitles:nil, nil];
+        assert(searchAlert != nil);
+        
+        // Display alert
+        [searchAlert show];
+        
+        return NO;
+    } else {
+        return YES;
     }
 }
 
-// User finished entering query
--(void) searchBarTextDidEndEditing:(UISearchBar *)searchesBar
+// Respond to the User's selection on the UIAlertView
+-(void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonsIndex
+{
+   // We don't do anything
+    return;
+}
+
+// User is going to enter the query
+-(void) searchBarSearchButtonClicked:(UISearchBar *)searchesBar
 {
     NSString *query;
     assert(searchesBar != nil);
@@ -263,11 +274,21 @@ static NSString *kSearchItemQueryType = @"Type";
         MzSearchItem *searchItem = [self createSearchItemFromQuery:query andCategory:self.categoryButton.titleLabel.text];
         assert(self.delegate != nil);
         [self.delegate controller:self addSearchItem:searchItem];
+        
+        // Add MzSearchItem to MzSearchCollection
+        MzSearchCollection *scollection = [(MzAppDelegate *)[[UIApplication sharedApplication] delegate] searchCollection];
+        assert(scollection != nil);
+        [scollection addSearchItem:searchItem];
     }
     // resign UISearchBar form being First Responder
-    if (self.searchBar.isFirstResponder) {
-        [self.searchBar resignFirstResponder];
-    }       
+    [searchesBar resignFirstResponder];
+}
+
+// User finished entering query
+-(void) searchBarTextDidEndEditing:(UISearchBar *)searchesBar
+{
+    // resign UISearchBar form being First Responder
+    [searchesBar resignFirstResponder];
 }
 
 // Create a MzSearchItem from the user's query
@@ -278,18 +299,17 @@ static NSString *kSearchItemQueryType = @"Type";
         
         searchItem = [[MzSearchItem alloc] init];        
         //set the search Properties
-        searchItem.searchTitle = [NSString string];
+        searchItem.searchTitle = kDefaultSearchItemTitle;
         searchItem.searchStatus = SearchItemStateInProgress;
         searchItem.searchTimestamp = [NSDate date];
         searchItem.daysToSearch = [NSNumber numberWithInt:0];
         searchItem.priceToSearch = [NSNumber numberWithDouble:0.0];
         
         // set the search Options
-        NSString *queryType;
         NSDictionary *searchDict;
-        queryType = self.includeQuery ? kQueryTypeInclude : kQueryTypeExclude;
+        //queryType = self.includeQuery ? kQueryTypeInclude : kQueryTypeExclude;
         searchDict = [NSDictionary dictionaryWithObjectsAndKeys:queryStr, kSearchItemKeywords,
-                      categoryStr, kSearchItemCategory, queryType, kSearchItemQueryType, nil];
+                      categoryStr, kSearchItemCategory, nil];
         searchItem.searchOptions = [NSDictionary dictionaryWithDictionary:searchDict];
         
         // add the new MzSearchItem to the MzSearchCollection
@@ -305,10 +325,10 @@ static NSString *kSearchItemQueryType = @"Type";
 }
 
 // User cancelled entering query
--(void) searchBarCancelButtonClicked:(UISearchBar *)searchBar
+-(void) searchBarCancelButtonClicked:(UISearchBar *)searchesBar
 {
     assert(self.searchBar != nil);
-    [self.searchBar resignFirstResponder];
+    [searchesBar resignFirstResponder];
 }
 
 @end

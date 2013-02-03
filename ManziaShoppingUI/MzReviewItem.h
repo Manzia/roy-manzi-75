@@ -20,14 +20,15 @@
 + (MzReviewItem *)insertNewMzReviewItemWithProperties:(NSDictionary *)properties
                                inManagedObjectContext:(NSManagedObjectContext *)managedObjectContext;
 
-@property (nonatomic, retain, readonly) NSString * reviewAuthor;
-@property (nonatomic, retain, readonly) NSString * reviewCategory;
-@property (nonatomic, retain, readonly) NSString * reviewContent;
-@property (nonatomic, retain, readonly) NSString * reviewId;
-@property (nonatomic, retain, readonly) NSNumber * reviewRating;
-@property (nonatomic, retain, readonly) NSString * reviewSku;
-@property (nonatomic, retain, readonly) NSDate * reviewSubmitTime;
-@property (nonatomic, retain, readonly) NSString * reviewTitle;
+@property (nonatomic, strong, readonly) NSString * reviewAuthor;
+@property (nonatomic, strong, readonly) NSString * reviewCategory;
+@property (nonatomic, strong, readonly) NSString * reviewContent;
+@property (nonatomic, strong, readonly) NSString * reviewId;
+@property (nonatomic, strong, readonly) NSNumber * reviewRating;
+@property (nonatomic, strong, readonly) NSString * reviewSku;
+@property (nonatomic, strong, readonly) NSDate * reviewSubmitTime;
+@property (nonatomic, strong, readonly) NSString * reviewTitle;
+@property (nonatomic, strong, readonly) NSString *reviewSource;
 
 // The MzProductItem this MzReviewItem "belongs" to
 @property (nonatomic, retain) MzProductItem *reviewProduct;

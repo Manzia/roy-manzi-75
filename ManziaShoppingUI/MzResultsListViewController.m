@@ -15,6 +15,7 @@
 #import "MzResultListCell.h"
 #import "MzProductItem.h"
 #import "MzResultsDetailViewController.h"
+#import "MzReviewsListViewController.h"
 
 @interface MzResultsListViewController ()
 
@@ -64,6 +65,7 @@
 
 // Segue Identifier
 static NSString *kResultsDetailId = @"KResultsDetailSegue";
+static NSString *kReviewsListSegueId = @"kReviewsListSegue";
 
 // Base URL for Search URLs
 //static NSString *manziBaseURL = @"http://192.168.1.102:8080";
@@ -244,18 +246,22 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
     assert(pathString.length > 0);
     
     // Create the Query Parameters
-    NSString *queryCategory = [[aSearchItem.searchTitle componentsSeparatedByString:kSearchTitleSeparator] objectAtIndex:1];
+    // Modified Feb 2, 2013 - Category Key is inserted in the MzSearchReviewsViewController
+    /*NSString *queryCategory;
+    if ([aSearchItem.searchTitle length] > 0) {
+        queryCategory = [[aSearchItem.searchTitle componentsSeparatedByString:kSearchTitleSeparator] objectAtIndex:1];
+    }    
     assert(queryCategory != nil);
     
     // Adjust the Mobile Phone category
     NSRange phonesRange = [queryCategory rangeOfString:kPhonesCategory options:NSCaseInsensitiveSearch];
     if (phonesRange.location != NSNotFound) {
         queryCategory = kMobilePhonesCategory;
-    }
+    }*/
     
     NSMutableDictionary * queryOptions = [NSMutableDictionary dictionaryWithDictionary:aSearchItem.searchOptions];
     assert(queryOptions != nil);
-    [queryOptions setObject:queryCategory forKey:kSearchCategoryKey];
+    //[queryOptions setObject:queryCategory forKey:kSearchCategoryKey];
     [queryOptions setObject:[aSearchItem.priceToSearch stringValue] forKey:KSearchPriceKey];
     
     // Generate the query String
@@ -797,6 +803,9 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
         cell.productPrice.text = nil;
         cell.priceLabel.text = nil;
         cell.productTitle.font = [UIFont systemFontOfSize:15.0];
+        cell.selectedReviews.hidden = YES;
+        cell.userInteractionEnabled = NO;
+        cell.selectedReviews.userInteractionEnabled = NO;
     } else {
         
         // we have Searches to display
@@ -818,6 +827,9 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
             cell.productPrice.text = nil;
             cell.priceLabel.text = nil;
             cell.productTitle.font = [UIFont systemFontOfSize:15.0];
+            cell.selectedReviews.hidden = YES;
+            cell.selectedReviews.userInteractionEnabled = NO;
+            cell.userInteractionEnabled = NO;
         } else {
             MzProductItem *productItem = [productsInSection objectAtIndex:indexPath.row];
             assert(productItem != nil);
@@ -829,6 +841,7 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
             //UIImage *cellImage = [UIImage imageNamed:@"first@2x.png"];
             assert(cellImage != nil);
             cell.productImage.image = cellImage;
+            cell.selectedReviews.hidden = NO;
             
             // Observe our cell's thumbnail
             if (self.observedItems == nil) {
@@ -940,7 +953,23 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
 // Note that this delegate method references the MzSearchReviewsViewController unlike the method above
 -(void) controller:(MzSearchReviewsViewController *)searchController addSearchItem:(MzSearchItem *)searchItem
 {
-    
+    if (self.isViewLoaded == YES) {
+        // Update the Model
+        assert(searchItem != nil);
+        NSURL *insertURL = [self createURLFromSearchItem:searchItem];
+        assert(insertURL != nil);
+        NSString *insertKey = [insertURL absoluteString];
+        assert(insertKey != nil);
+        NSArray *insertItems = [NSArray arrayWithObject:insertKey];
+        assert(insertItems != nil);
+        [self.allSearches setObject:searchItem forKey:insertKey];
+        [self updateProductCollectionCaches:insertItems];
+        [self.tableView reloadRowsAtIndexPaths:[self.tableView indexPathsForVisibleRows] withRowAnimation:UITableViewRowAnimationNone];
+    } else {
+        // Attempt to load our View which will update all the relevant Collections
+        // and also because the User is likely to be coming to this screen next!
+        [self view];
+    }
 }
 
 // Note that this delegate method is deprecated!!! Instead, when the App moves to Background, all serialized
@@ -1028,6 +1057,20 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
             resultDetailController.urlString = selectedCell.productItem.productDetailPath;
             assert(resultDetailController.urlString != nil);
         }
+    }
+    
+    // Pass the MzProductItem whose MzReviewItems will be displayed
+    if ([[segue identifier] isEqualToString:kReviewsListSegueId]) {
+        assert([sender isKindOfClass:[UIButton class]]);
+        UIButton *reviewButton = (UIButton *)sender;
+        MzResultListCell *reviewCell = (MzResultListCell *)reviewButton.superview;
+        assert(reviewCell != nil);
+        assert(reviewCell.productItem != nil);
+        
+        // Pass the MzProductItem to the MzReviewsListViewController
+        MzReviewsListViewController *reviewsController = [segue destinationViewController];
+        reviewsController.productItem = reviewCell.productItem;
+        assert(reviewsController.productItem != nil);
     }
     
 
