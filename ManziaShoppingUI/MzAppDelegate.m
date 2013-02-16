@@ -20,7 +20,8 @@
 @property (nonatomic, readwrite, copy) NSString *uniqueDeviceId;
 @property (nonatomic, strong) MzTaskCollection *taskCollection;
 @property (nonatomic, strong, readwrite) MzSearchCollection *searchCollection;
-@property (nonatomic, strong, readwrite) NSString *baseURL;
+@property (nonatomic, strong, readwrite) NSString *searchesURL;
+
 
 @end
 
@@ -31,10 +32,11 @@
 @synthesize taskCollection;
 @synthesize uniqueDeviceId;
 @synthesize searchCollection;
-@synthesize baseURL;
+@synthesize searchesURL;
+
 
 // URL String for the TaskCollection pointing to the Manzia Servers
-static NSString *kTaskURLString = @"http://192.168.1.100:8080/ManziaWebServices/service/interface";
+static NSString *kTaskURLString = @"http://ec2-50-18-112-205.us-west-1.compute.amazonaws.com:8080/ManziaWebService/service/interface";
 
 // Override Getter
 -(NSString *)uniqueDeviceId
@@ -43,10 +45,10 @@ static NSString *kTaskURLString = @"http://192.168.1.100:8080/ManziaWebServices/
     return @"415-309-7418";
 }
 
-// Override Getter
--(NSString *)baseURL
+// Override URL Getters
+-(NSString *)searchesURL
 {
-    return @"http://192.168.1.100:8080";
+    return @"http://ec2-50-18-112-205.us-west-1.compute.amazonaws.com:8080";
 }
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions

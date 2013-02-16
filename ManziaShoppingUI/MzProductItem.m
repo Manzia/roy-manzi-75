@@ -24,9 +24,9 @@
  */
 
 // Available Thumbnail Sizes
-extern NSString *const kThumbNailSizeSmall;
-extern NSString *const kThumbNailSizeMedium;
-extern NSString *const kThumbNailSizeLarge;
+extern NSString *kThumbNailSizeSmall;
+extern NSString *kThumbNailSizeMedium;
+extern NSString *kThumbNailSizeLarge;
 
 // Key whose value is a PlaceHolder thumbnail Image. The PlaceHolder
 // is stored in the thumbnailImages dictionary and one placeholder image is stored

@@ -69,7 +69,7 @@ static NSString *kReviewsListSegueId = @"kReviewsListSegue";
 
 // Base URL for Search URLs
 //static NSString *manziBaseURL = @"http://192.168.1.102:8080";
-static NSString *manziaServerPath = @"/ManziaWebServices/searches";
+static NSString *manziaServerPath = @"/ManziaWebService/searches";
 
 // SearchItem's Title string separator, format is "Brand Category" e.g "HP Laptop"
 static NSString *kSearchTitleSeparator = @" ";
@@ -281,7 +281,7 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
     NSString *encodedURLString = [urlString stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
     assert(encodedURLString != nil);
     NSLog(@"Path & Query String: %@\n", encodedURLString);
-    NSString *mzBaseURL = [(MzAppDelegate *)[[UIApplication sharedApplication] delegate] baseURL];
+    NSString *mzBaseURL = [(MzAppDelegate *)[[UIApplication sharedApplication] delegate] searchesURL];
     assert(mzBaseURL != nil);
     NSURL *searchURL = [NSURL URLWithString:encodedURLString relativeToURL:[NSURL URLWithString:mzBaseURL]];
     assert(searchURL != nil);

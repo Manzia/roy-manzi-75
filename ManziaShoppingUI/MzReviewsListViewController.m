@@ -10,12 +10,15 @@
 #import "Logging.h"
 #import "MzProductItem.h"
 #import "MzReviewsListCell.h"
+#import "MzReviewCollection.h"
+#import "MzAppDelegate.h"
 
 @interface MzReviewsListViewController ()
 
 // Data Management
 @property (nonatomic, strong) NSFetchedResultsController *fetchController;
 @property (nonatomic, strong) NSManagedObjectContext *managedContext;
+@property (nonatomic, strong) MzReviewCollection *reviewCollection;
 
 @end
 
@@ -25,10 +28,16 @@
 @synthesize productItem;
 @synthesize fetchController;
 @synthesize managedContext;
+@synthesize reviewCollection;
 
 // MzReviewItem Entity
 static NSString *kReviewItemEntity = @"MzReviewItem";
 static NSString *kReviewCellId = @"kReviewCellIdentifier";
+
+// Reviews URL path
+static NSString *kReviewURLPath = @"ManziaWebService/service/reviews";
+static NSString *kReviewURLFormat = @"%@/%@?%@";
+static NSString *kProductSkuQueryFormat = @"sku=%@";
 
 - (id)initWithStyle:(UITableViewStyle)style
 {
@@ -39,6 +48,19 @@ static NSString *kReviewCellId = @"kReviewCellIdentifier";
     return self;
 }
 
+#pragma mark - View Lifecycle
+/*
+ During the view loading process we do the following:
+ 1- Instantiate a MzReviewCollection object and download MzReviewItems from the network, note
+ that the MzReviewCollection will only insert "new" MzReviewItems in the MzReviewItem table and
+ ignore those that already exist. We download in groups of 10.
+ 2- Instantiate a NSFetchedResultsController that retrieves objects from the MzReviewItem table
+ 3- Set "self" as a delegate to the NSFetchedResultsController so we update our tableView when
+ the MzReviewItems have been downloaded from the network and stored in CoreData.
+ 4- If the User "pushes" us off the screen while the MzReviewCollection is still syncing, we stop
+ the syncing process and save any MzReviewItems we may have downloaded and nil out all our properties
+ 5-  
+ */
 - (void)viewDidLoad
 {
     [super viewDidLoad];
@@ -49,8 +71,23 @@ static NSString *kReviewCellId = @"kReviewCellIdentifier";
     // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
     // self.navigationItem.rightBarButtonItem = self.editButtonItem;
     
-    // Check that our productItem property has been set
+    // Check that our productItem property has been set and generate the Reviews URL
     assert(self.productItem != nil);
+    NSString *reviewsURL = [self generateReviewsURL:self.productItem.productID];
+    if (reviewsURL == nil) {
+        // Pop off the stack - get off screen
+        if (self.navigationController.topViewController == self) {
+            self.productItem = nil;
+            [[QLog log] logWithFormat:@"Null Review URL was generated...exit MzReviewsListViewController!"];
+            [self.navigationController popViewControllerAnimated:NO];
+        }
+    }
+    
+    // Start the ReviewCollection - asynchronously retrieves MzReviewItems from the Network
+    MzReviewCollection *collection = [[MzReviewCollection alloc] initWithCollectionURLString:reviewsURL andProductItem:self.productItem];
+    assert(collection != nil);
+    self.reviewCollection = collection;
+    [self.reviewCollection startCollection];
     
     // Core Data
     // we initialize our NSManagedObjectContext
@@ -79,6 +116,7 @@ static NSString *kReviewCellId = @"kReviewCellIdentifier";
     assert(controller != nil);
     self.fetchController = controller;
     assert(self.fetchController != nil);
+    self.fetchController.delegate = self;       // Set "ourself" as delegate
     
     // Execute the fetch
     NSError *error = NULL;
@@ -97,7 +135,54 @@ static NSString *kReviewCellId = @"kReviewCellIdentifier";
 - (void)didReceiveMemoryWarning
 {
     [super didReceiveMemoryWarning];
-    // Dispose of any resources that can be recreated.
+    self.productItem = nil;
+}
+
+// We are going off screen so we stop the Review Collection and nil out our properties
+-(void)viewWillDisappear:(BOOL)animated
+{
+    self.productItem = nil;
+}
+
+-(void)viewWillUnload
+{
+    // If Review Collection is syncing then stop it
+    if (self.reviewCollection.isSynchronizing) {
+        [self.reviewCollection stopCollection];
+    }
+    self.managedContext = nil;
+    self.fetchController = nil;
+}
+
+-(void)viewDidUnload
+{
+    self.reviewCollection = nil;
+}
+
+#pragma mark - Review Collection management
+
+// generate the reviews URL string, if an invalid productSku is specified we "pop" ourself
+// and get off the screen
+-(NSString *)generateReviewsURL:(NSString *)productSkuId
+{
+    // check inputs
+    if (productSkuId == nil || [productSkuId length] < 1) {
+        // Log
+        [[QLog log] logWithFormat:@"Cannot generate URL from Null or Empty productSkuId..!"];
+        return nil;
+        
+    } else {
+        // Create the reviews URL
+        NSString *productSkuQuery = [NSString stringWithFormat:kProductSkuQueryFormat, productSkuId];
+        assert(productSkuQuery != nil);
+        NSString *baseURL = [(MzAppDelegate *)[[UIApplication sharedApplication] delegate] searchesURL];
+        if(baseURL == nil) {
+            baseURL = @"http://ec2-50-18-112-205.us-west-1.compute.amazonaws.com:8080";
+        }
+        NSString *reviewsURL = [NSString stringWithFormat:kReviewURLFormat, baseURL, kReviewURLPath, productSkuQuery];
+        assert(reviewsURL != nil);
+        return reviewsURL;
+    }
 }
 
 #pragma mark - Table view data source
@@ -182,6 +267,42 @@ static NSString *kReviewCellId = @"kReviewCellIdentifier";
      // Pass the selected object to the new view controller.
      [self.navigationController pushViewController:detailViewController animated:YES];
      */
+}
+
+#pragma mark - NSFetchedResultsController delegate
+
+// Begin updates
+-(void)controllerWillChangeContent:(NSFetchedResultsController *)controller
+{
+    [self.tableView beginUpdates];
+}
+
+// End updates
+-(void)controllerDidChangeContent:(NSFetchedResultsController *)controller
+{
+    [self.tableView endUpdates];
+}
+
+// Insert MzReviewItems
+- (void)controller:(NSFetchedResultsController *)controller didChangeObject:(id)anObject
+       atIndexPath:(NSIndexPath *)indexPath forChangeType:(NSFetchedResultsChangeType)type
+      newIndexPath:(NSIndexPath *)newIndexPath {
+    
+    UITableView *tableView = self.tableView;
+    
+    switch(type) {
+            
+        case NSFetchedResultsChangeInsert:
+            [tableView insertRowsAtIndexPaths:[NSArray arrayWithObject:newIndexPath]
+                             withRowAnimation:UITableViewRowAnimationFade];
+            break;
+            
+        case NSFetchedResultsChangeDelete:
+            [tableView deleteRowsAtIndexPaths:[NSArray arrayWithObject:indexPath]
+                             withRowAnimation:UITableViewRowAnimationFade];
+            break;
+            
+    }
 }
 
 @end
