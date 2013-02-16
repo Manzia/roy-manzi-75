@@ -2,8 +2,8 @@
 //  MzProductUITests.h
 //  MzProductUITests
 //
-//  Created by Macbook Pro on 6/25/12.
-//  Copyright (c) 2012 __MyCompanyName__. All rights reserved.
+//  Created by Roy Manzi Tumubweinee on 6/25/12.
+//  Copyright (c) 2012 Manzia Corporation. All rights reserved.
 //
 
 #import <SenTestingKit/SenTestingKit.h>
