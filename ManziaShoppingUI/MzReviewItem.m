@@ -59,7 +59,7 @@
         
     assert(managedObjectContext != nil);
     
-    insertResult = (MzReviewItem *) [NSEntityDescription insertNewObjectForEntityForName:@"MzProductItem" inManagedObjectContext:managedObjectContext];
+    insertResult = (MzReviewItem *) [NSEntityDescription insertNewObjectForEntityForName:@"MzReviewItem" inManagedObjectContext:managedObjectContext];
     
     // check we have a valid MzReviewItem and assign the new properties
     if (insertResult != nil) {

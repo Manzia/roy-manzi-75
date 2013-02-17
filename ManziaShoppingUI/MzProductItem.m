@@ -62,7 +62,7 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
 @property (nonatomic, retain, readwrite) NSString *productCondition;
 @property (nonatomic, retain, readwrite) NSString *productAvailability;
 @property (nonatomic, retain, readwrite) MzProductThumbNail *thumbnail;
-@property (nonatomic, retain, readwrite) NSSet* productReviews;
+
 //@property (nonatomic, copy, readwrite) NSError *errorGettingImage;
 
 // The dictionary stores the PlaceHolder thumbnails and provides a different one depending on

@@ -17,6 +17,11 @@
 // will always be set by the ViewController that presents us via a Push UIStoryBoardSegue
 @property (nonatomic, strong) MzProductItem *productItem;
 
+// Category selected by User from the MzSearchReviewsViewController. This is a required query
+// parameter when retrieveing Review from the Manzia backend. This value is set by the ViewController
+// that pushes "us" onto screen
+@property (nonatomic, strong) NSString *reviewCategory;
+
 // generate the reviews URL string, if an invalid productSku is specified we "pop" ourself
 // and get off the screen
 -(NSString *)generateReviewsURL:(NSString *)productSkuId;

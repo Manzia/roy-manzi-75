@@ -7,6 +7,7 @@
 //
 
 #import <UIKit/UIKit.h>
+#import <CoreData/CoreData.h>
 
 @class MzSearchItem;
 
@@ -14,7 +15,7 @@
 @protocol MzSearchReviewsViewControllerDelegate;
 
 @interface MzSearchReviewsViewController : UIViewController
-<UIPickerViewDataSource, UIPickerViewDelegate, UISearchBarDelegate > {
+<UIPickerViewDataSource, UIPickerViewDelegate, UISearchBarDelegate, NSFetchedResultsControllerDelegate> {
     
 }
 

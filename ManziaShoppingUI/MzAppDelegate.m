@@ -57,7 +57,8 @@ static NSString *kTaskURLString = @"http://ec2-50-18-112-205.us-west-1.compute.a
 #pragma unused(launchOptions)
     assert(self.window != nil);
     
-    // Start our TaskCollection...this executes asynchrounously and hits the network
+    // Start our TaskCollection...this executes asynchrounously and hits the network...this ensures
+    // we shall have updated Categories to display on the first screen
     assert([NSURL URLWithString:kTaskURLString] != nil); //check we have a valid URL
     self.taskCollection = [[MzTaskCollection alloc] initWithTasksURLString:kTaskURLString];
     assert(self.taskCollection != nil);
@@ -95,13 +96,6 @@ static NSString *kTaskURLString = @"http://ec2-50-18-112-205.us-west-1.compute.a
     // the side effect of starting up the NetworkManager singleton.
     
     [[NetworkManager sharedManager] addObserver:self forKeyPath:@"networkInUse" options:NSKeyValueObservingOptionInitial context:NULL];
-    
-    // Start our TaskCollection...this executes asynchrounously and hits the network
-    assert([NSURL URLWithString:kTaskURLString] != nil); //check we have a valid URL
-    self.taskCollection = [[MzTaskCollection alloc] initWithTasksURLString:kTaskURLString];
-    assert(self.taskCollection != nil);
-        
-    [self.taskCollection applicationHasLaunched];
     
     // If the "applicationClearSetup" user default is set, clear our preferences. 
     // This provides an easy way to get back to the initial state while debugging.
@@ -163,11 +157,6 @@ static NSString *kTaskURLString = @"http://ec2-50-18-112-205.us-west-1.compute.a
     // Delete all MzSearchItems created in this session
     [self.searchCollection deleteSearchDirectory];
     
-    // Stop the Task Collection synchronization task if its still running in the background
-    //if (application.backgroundTimeRemaining < 0.5) {
-        //[self.taskCollection stopCollection];
-      //  [application endBackgroundTask:self.taskCollection.taskCollectionSync];
-    //}
     [[NSUserDefaults standardUserDefaults] synchronize];
 }
 

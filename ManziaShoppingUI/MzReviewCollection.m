@@ -114,7 +114,7 @@
     NSFetchRequest *fetchRequest;
     fetchRequest = [NSFetchRequest fetchRequestWithEntityName:[self.reviewItemEntity name]];
     assert(fetchRequest != nil);
-    NSPredicate *predicate = [NSPredicate predicateWithFormat:@"ANY reviewProduct.productID like[c] %@", self.productItemID];
+    NSPredicate *predicate = [NSPredicate predicateWithFormat:@"reviewProduct.productID like[c] %@", self.productItemID];
     assert(predicate != nil);
     [fetchRequest setPredicate:predicate];
     //[fetchRequest setFetchBatchSize:20];
@@ -275,7 +275,7 @@
 // Override getter for the KVO-observable and User-Visible statusOfSync property
 - (NSString *)statusOfSync
 {
-    NSString *  syncResult;
+    NSString *syncResult;
     
     if (self.errorFromLastSync == nil) {
         switch (self.stateOfSync) {
@@ -430,7 +430,7 @@
     assert(operation == self.getCollectionOperation);
     assert(self.stateOfSync == ReviewCollectionSyncStateGetting);
     
-    [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Completed HTTP GET operation for Review Collection with URL: %@", [self.collectionCachePath path ]];
+    [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Completed HTTP GET operation for Review Collection with URL: %@", self.collectionURLString ];
     
     // error checking
     error = operation.error;
@@ -531,7 +531,8 @@
         assert(fetchRequest != nil);
         retrievedReviews = [self.managedObjectContext executeFetchRequest:fetchRequest error:&fetchError];
         assert(retrievedReviews != nil);
-        
+        [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Retrieved: %d Review Items from Database for Review Collection with ProductItemID: %@", [retrievedReviews count] ,self.productItemID];
+                
         // Handle errors, we do not commit the new parserResults if we have errors ...the next time we synchronize
         // we shall re-attempt to commit the new Reviews and assume the underlying PersistentStore managed by
         // our associated MzProductCollection has been fixed.
@@ -544,6 +545,8 @@
         // Do the Updates accordingly
         if ([retrievedReviews count] > 0) {
             
+            [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Retrieved: %d Review Items from Database for Review Collection with ProductItemID: %@", [retrievedReviews count] ,self.productItemID];
+            
             // Retrieve the productIDs from the existing reviewItems
             oldReviewIDs = [NSMutableSet setWithArray:[retrievedReviews valueForKey:kReviewParserReviewId]];
             assert(oldReviewIDs != nil);
@@ -554,6 +557,7 @@
             // insert all the new productItems we don't already have
             int newReviewCount = 0;
             assert(self.productItem != nil);
+            NSMutableSet *newItems = [NSMutableSet setWithSet:self.productItem.productReviews];
             for (NSDictionary *result in parserResults) {
                 
                 if ([newReviewIDs containsObject:[result objectForKey:kReviewParserReviewId]]) {
@@ -561,12 +565,38 @@
                                                                          inManagedObjectContext:self.managedObjectContext];
                     assert(newReview != nil);
                     assert([newReview.reviewSku isEqualToString:self.productItemID] );
-                    [self.productItem addReviewItemObject:newReview];
+                    [newItems addObject:newReview];
+                    //[self.productItem addReviewItemsObject:newReview];
                     newReviewCount++;
                 }                
             }
+            self.productItem.productReviews = [NSSet setWithSet:newItems];
+            [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Inserted %d new Reviews for Review Collection with ProductItemID: %@", newReviewCount, self.productItemID];
+            
+        } else {
+            
+            // we insert all the new MzReviewItems since NONE exist in the database
+            int newReviewCount = 0;
+            assert(self.productItem != nil);
+            NSMutableSet *newItems = [NSMutableSet set];
+            for (NSDictionary *result in parserResults) {
+                                
+                MzReviewItem *newReview = [MzReviewItem insertNewMzReviewItemWithProperties:result
+                                                                     inManagedObjectContext:self.managedObjectContext];
+                assert(newReview != nil);
+                assert([newReview.reviewSku isEqualToString:self.productItemID] );
+                [newItems addObject:newReview];
+                //[self.productItem addReviewItemsObject:newReview];
+                newReviewCount++;
+                
+            }
+            self.productItem.productReviews = [NSSet setWithSet:newItems];
             [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"Inserted %d new Reviews for Review Collection with ProductItemID: %@", newReviewCount, self.productItemID];
         }
+    } else {
+        
+        // we got zero ReviewItems from the ParseResults
+        [[QLog log] logOption:kLogOptionSyncDetails withFormat:@"EMPTY ParseResults array for Review Collection with ProductItemID: %@", self.productItemID];
     }
     
 #if ! defined(NDEBUG)

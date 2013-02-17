@@ -16,9 +16,10 @@
 @interface MzReviewsListViewController ()
 
 // Data Management
-@property (nonatomic, strong) NSFetchedResultsController *fetchController;
-@property (nonatomic, strong) NSManagedObjectContext *managedContext;
+//@property (nonatomic, strong) NSFetchedResultsController *fetchController;
+//@property (nonatomic, strong) NSManagedObjectContext *managedContext;
 @property (nonatomic, strong) MzReviewCollection *reviewCollection;
+@property (nonatomic, strong, readonly) NSMutableArray *reviewItems;
 
 @end
 
@@ -26,9 +27,11 @@
 
 //Synthesize
 @synthesize productItem;
-@synthesize fetchController;
-@synthesize managedContext;
+//@synthesize fetchController;
+//@synthesize managedContext;
 @synthesize reviewCollection;
+@synthesize reviewCategory;
+@synthesize reviewItems;
 
 // MzReviewItem Entity
 static NSString *kReviewItemEntity = @"MzReviewItem";
@@ -36,8 +39,12 @@ static NSString *kReviewCellId = @"kReviewCellIdentifier";
 
 // Reviews URL path
 static NSString *kReviewURLPath = @"ManziaWebService/service/reviews";
-static NSString *kReviewURLFormat = @"%@/%@?%@";
-static NSString *kProductSkuQueryFormat = @"sku=%@";
+static NSString *kReviewURLFormat = @"%@/%@/%@?%@";
+static NSString *kProductSkuQueryFormat = @"sku=%@&Category=%@";
+
+// KVO context - we observe the "statusOfSync" property of our MzReviewCollection in
+// order to determine when to fetch the MzReviewItems from CoreData
+static void *ReviewCollectionContext = &ReviewCollectionContext;
 
 - (id)initWithStyle:(UITableViewStyle)style
 {
@@ -87,17 +94,20 @@ static NSString *kProductSkuQueryFormat = @"sku=%@";
     MzReviewCollection *collection = [[MzReviewCollection alloc] initWithCollectionURLString:reviewsURL andProductItem:self.productItem];
     assert(collection != nil);
     self.reviewCollection = collection;
+    [self.reviewCollection addObserver:self forKeyPath:@"statusOfSync" options:NSKeyValueObservingOptionNew context:ReviewCollectionContext];
     [self.reviewCollection startCollection];
     
-    // Core Data
-    // we initialize our NSManagedObjectContext
+    // Core Data - intialize array of ReviewItems
+    self->reviewItems = [NSMutableArray array];
+    
+    /* we initialize our NSManagedObjectContext
     self.managedContext = self.productItem.managedObjectContext;
     assert(self.managedContext != nil);
         
     // We can now initialize our NSFetchedResultsController
     NSFetchRequest *mrequest = [NSFetchRequest fetchRequestWithEntityName:kReviewItemEntity];
     assert(mrequest != nil);
-    NSPredicate *predicate = [NSPredicate predicateWithFormat:@"ANY reviewSku like[c] %@", self.productItem.productID];
+    NSPredicate *predicate = [NSPredicate predicateWithFormat:@"reviewSku like[c] %@", self.productItem.productID];
     assert(predicate != nil);
     [mrequest setPredicate:predicate];
     
@@ -105,7 +115,9 @@ static NSString *kProductSkuQueryFormat = @"sku=%@";
     NSSortDescriptor *sortDescriptorType = [[NSSortDescriptor alloc] initWithKey:@"reviewSubmitTime" ascending:NO comparator:^(MzReviewItem *reviewOne, MzReviewItem *reviewTwo) {
         return [reviewOne.reviewSubmitTime compare:reviewTwo.reviewSubmitTime];
     }];
-    NSArray *sortDescriptors = [NSArray arrayWithObject:sortDescriptorType];
+    NSSortDescriptor *sortByRating = [[NSSortDescriptor alloc] initWithKey:@"reviewRating" ascending:NO];
+    assert(sortByRating != nil);
+    NSArray *sortDescriptors = [NSArray arrayWithObject:sortByRating];
     [mrequest setSortDescriptors:sortDescriptors];
     
     // We set up only one section i.e one component for the UIPickerView
@@ -128,7 +140,7 @@ static NSString *kProductSkuQueryFormat = @"sku=%@";
         //Log
         [[QLog log] logWithFormat:@"Error fetching Review Items to display from MzReviewiTem Entity: %@", error.localizedDescription];
         self.fetchController = nil;
-    }
+    } */
 
 }
 
@@ -141,7 +153,8 @@ static NSString *kProductSkuQueryFormat = @"sku=%@";
 // We are going off screen so we stop the Review Collection and nil out our properties
 -(void)viewWillDisappear:(BOOL)animated
 {
-    self.productItem = nil;
+    [self.reviewCollection removeObserver:self forKeyPath:@"statusOfSync" context:ReviewCollectionContext];
+    self.productItem = nil;    
 }
 
 -(void)viewWillUnload
@@ -150,8 +163,9 @@ static NSString *kProductSkuQueryFormat = @"sku=%@";
     if (self.reviewCollection.isSynchronizing) {
         [self.reviewCollection stopCollection];
     }
-    self.managedContext = nil;
-    self.fetchController = nil;
+    //self.managedContext = nil;
+    //self.fetchController = nil;
+    self->reviewItems = nil;
 }
 
 -(void)viewDidUnload
@@ -173,17 +187,62 @@ static NSString *kProductSkuQueryFormat = @"sku=%@";
         
     } else {
         // Create the reviews URL
-        NSString *productSkuQuery = [NSString stringWithFormat:kProductSkuQueryFormat, productSkuId];
+        NSString *productSkuQuery = [NSString stringWithFormat:kProductSkuQueryFormat, productSkuId, self.reviewCategory];
         assert(productSkuQuery != nil);
         NSString *baseURL = [(MzAppDelegate *)[[UIApplication sharedApplication] delegate] searchesURL];
         if(baseURL == nil) {
             baseURL = @"http://ec2-50-18-112-205.us-west-1.compute.amazonaws.com:8080";
         }
-        NSString *reviewsURL = [NSString stringWithFormat:kReviewURLFormat, baseURL, kReviewURLPath, productSkuQuery];
+        NSString *deviceId = [(MzAppDelegate *)[[UIApplication sharedApplication] delegate] uniqueDeviceId];
+        assert(deviceId != nil);
+        NSString *reviewsURL = [NSString stringWithFormat:kReviewURLFormat, baseURL, kReviewURLPath, deviceId, productSkuQuery];
         assert(reviewsURL != nil);
-        return reviewsURL;
+        NSString *encodedURLString = [reviewsURL stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+        assert(encodedURLString != nil);
+        return encodedURLString;
     }
 }
+
+
+// KVO implementation
+-(void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context
+{
+    if (context == ReviewCollectionContext) {
+        
+        // ReviewCollection is synchronizing or has synchronized
+        if ([keyPath isEqualToString:@"statusOfSync"]) {
+            assert([object isKindOfClass:[MzReviewCollection class]]);
+            
+            if ((change != nil) && ([[change objectForKey:NSKeyValueChangeKindKey] intValue] == NSKeyValueChangeSetting)) {
+                
+                NSString *statusValue = [change objectForKey:NSKeyValueChangeNewKey];
+                assert(statusValue != nil);
+                
+                if ([statusValue isEqualToString:@"Update Failed"] || [statusValue isEqualToString:@"Update cancelled"] ) {
+                    
+                    // Log
+                    [[QLog log] logWithFormat:@"Update Failed/Cancelled for Review Collection Cache for Product ID: %@", self.productItem.productID];
+                                        
+                    // Get off the screen
+                    if (self.navigationController.visibleViewController == self) {
+                        [self.navigationController popViewControllerAnimated:YES];
+                    }
+                    
+                } else if ([statusValue hasPrefix:@"Updated:"]) {
+                    
+                    // Synchronization succeeded so we fetch the ReviewItems
+                    [[QLog log] logWithFormat:@"Fetching ReviewItems after synchronization of Review Collection Cache for Product ID: %@", self.productItem.productID ];
+                    [self.reviewCollection fetchReviewsInCollection];
+                    [self.reviewItems addObjectsFromArray:[self.reviewCollection.reviewItems objectForKey:self.productItem.productID]];
+                    
+                    // Reload tableView since we may have new ReviewItems
+                    [self.tableView reloadData];
+                }
+            }
+        }
+    }
+}
+
 
 #pragma mark - Table view data source
 
@@ -196,24 +255,26 @@ static NSString *kProductSkuQueryFormat = @"sku=%@";
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
     // Number of rows in the section.
-    assert(self.fetchController != nil);
-    return [[self.fetchController fetchedObjects] count];
+    assert(self.reviewItems != nil);
+    //NSUInteger rowCount = [[self.fetchController fetchedObjects] count];
+    NSUInteger rowCount = [self.reviewItems count];
+    [[QLog log] logWithFormat:@"Number of Reviews to be Displayed: %d", rowCount];
+    return rowCount;
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    assert(self.fetchController != nil);
+    assert(self.reviewItems != nil);
     
     MzReviewsListCell *cell = (MzReviewsListCell *)[tableView dequeueReusableCellWithIdentifier:kReviewCellId forIndexPath:indexPath];
     
     // Configure the cell by setting its reviewItem property..which causes all other
     // properties to be set as well
-    NSArray *reviewItems = [self.fetchController fetchedObjects];
-    assert(reviewItems != nil);
-    if ([reviewItems count] > 0) {
-        cell.reviewItem = [reviewItems objectAtIndex:indexPath.row];
+    //NSArray *reviewItems = [self.fetchController fetchedObjects];
+    //assert(reviewItems != nil);
+    if ([self.reviewItems count] > 0) {
+        cell.reviewItem = [self.reviewItems objectAtIndex:indexPath.row];
     }
-    
     return cell;
 }
 
@@ -281,6 +342,7 @@ static NSString *kProductSkuQueryFormat = @"sku=%@";
 -(void)controllerDidChangeContent:(NSFetchedResultsController *)controller
 {
     [self.tableView endUpdates];
+    [self.tableView reloadData];
 }
 
 // Insert MzReviewItems

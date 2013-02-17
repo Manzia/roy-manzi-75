@@ -40,6 +40,7 @@ typedef enum SearchItemState SearchItemState;
 // Method that serializes the MzSearchItem as a property list
 -(BOOL) writeSearchItemToFile:(NSURL *)filepath;
 
+
 // Keys for the MzSearchItem property List
 extern NSString *kSearchItemTitle;
 extern NSString *kSearchItemPrice;

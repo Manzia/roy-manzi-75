@@ -46,6 +46,7 @@ static NSString *kUSDollarSymbol = @"$";
         productTitle.text = productItem.productTitle;
         productTitle.textColor = [UIColor darkTextColor];
         productTitle.textAlignment = UITextAlignmentCenter;
+        productTitle.font = [UIFont systemFontOfSize:15.0];
         productPrice.text = [NSString stringWithFormat:@"%@%@", kUSDollarSymbol, productItem.productPriceAmount];
         productPrice.textColor = [UIColor redColor];
         productPrice.textAlignment = UITextAlignmentLeft;

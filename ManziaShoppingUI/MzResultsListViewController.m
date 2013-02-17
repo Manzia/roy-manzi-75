@@ -49,6 +49,9 @@
 // we are observing
 @property (nonatomic, strong, readwrite) NSMutableArray *observedItems;
 
+// String that keeps track of the user-selected Category of the current Search
+@property (nonatomic, copy) NSString *searchCategory;
+
 @end
 
 @implementation MzResultsListViewController
@@ -62,6 +65,7 @@
 @synthesize noSearchesFound;
 @synthesize deviceIdentifier;
 @synthesize observedItems;
+@synthesize searchCategory;
 
 // Segue Identifier
 static NSString *kResultsDetailId = @"KResultsDetailSegue";
@@ -184,6 +188,9 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
     self->allProductItems = nil;
     self->productSearchMap = nil;
     self.sortedSections = nil;
+    
+    // Release Category
+    self.searchCategory = nil;
     
     [super viewDidUnload];
 }
@@ -842,6 +849,10 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
             assert(cellImage != nil);
             cell.productImage.image = cellImage;
             cell.selectedReviews.hidden = NO;
+            cell.userInteractionEnabled = YES;
+            
+            // Assign the Reviews UIButton a tag corresponding to the tableView row so we can reference it again
+            cell.selectedReviews.tag = indexPath.row;
             
             // Observe our cell's thumbnail
             if (self.observedItems == nil) {
@@ -954,8 +965,13 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
 -(void) controller:(MzSearchReviewsViewController *)searchController addSearchItem:(MzSearchItem *)searchItem
 {
     if (self.isViewLoaded == YES) {
-        // Update the Model
+        
         assert(searchItem != nil);
+        // Update Search Category
+        self.searchCategory = searchItem.searchTitle;
+        assert(self.searchCategory != nil);
+        
+        // Update the Model
         NSURL *insertURL = [self createURLFromSearchItem:searchItem];
         assert(insertURL != nil);
         NSString *insertKey = [insertURL absoluteString];
@@ -968,7 +984,12 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
     } else {
         // Attempt to load our View which will update all the relevant Collections
         // and also because the User is likely to be coming to this screen next!
+        assert(searchItem != nil);
+        // Update Search Category
+        self.searchCategory = searchItem.searchTitle;
+        assert(self.searchCategory != nil);
         [self view];
+        
     }
 }
 
@@ -1063,7 +1084,8 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
     if ([[segue identifier] isEqualToString:kReviewsListSegueId]) {
         assert([sender isKindOfClass:[UIButton class]]);
         UIButton *reviewButton = (UIButton *)sender;
-        MzResultListCell *reviewCell = (MzResultListCell *)reviewButton.superview;
+        MzResultListCell *reviewCell = (MzResultListCell *)[self.tableView cellForRowAtIndexPath:
+                                                            [NSIndexPath indexPathForRow:reviewButton.tag inSection:0]];
         assert(reviewCell != nil);
         assert(reviewCell.productItem != nil);
         
@@ -1071,6 +1093,8 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
         MzReviewsListViewController *reviewsController = [segue destinationViewController];
         reviewsController.productItem = reviewCell.productItem;
         assert(reviewsController.productItem != nil);
+        reviewsController.reviewCategory = self.searchCategory;
+        assert(reviewsController.reviewCategory != nil);
     }
     
 

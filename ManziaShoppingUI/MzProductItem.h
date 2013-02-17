@@ -111,7 +111,7 @@
 @property (nonatomic, retain, readonly) MzProductThumbNail *thumbnail;
 
 // Pointer to the productReviews set
-@property (nonatomic, retain, readonly) NSSet *productReviews;
+@property (nonatomic, retain) NSSet *productReviews;
 
 // KVO observable, returns nil if the photo isn't available yet
 //@property (nonatomic, retain, readonly ) UIImage * productImage;  
@@ -124,8 +124,8 @@
 // Core Data Accessors for the productReviews relationship
 @interface MzProductItem (CoreDataGeneratedAccessors)
 
-- (void)addReviewItemObject:(MzReviewItem *)value;
-- (void)removeReviewItemObject:(MzReviewItem *)value;
+- (void)addReviewItemsObject:(MzReviewItem *)value;
+- (void)removeReviewItemsObject:(MzReviewItem *)value;
 - (void)addReviewItems:(NSSet *)values;
 - (void)removeReviewItems:(NSSet *)values;
 

@@ -32,7 +32,7 @@
 static NSString *kTaskTypeEntity = @"MzTaskType";
 
 // SearchItem Keys
-static NSString *kSearchItemKeywords = @"Keywords";
+static NSString *kSearchItemKeywords = @"q";
 static NSString *kSearchItemCategory = @"Category";
 static NSString *kDefaultSearchItemTitle = @"No Title";
 static NSString *kDefaultCategoryButtonString = @"Select a Category";
@@ -78,6 +78,7 @@ static NSString *kDefaultCategoryButtonString = @"Select a Category";
     assert(controller != nil);
     self.fetchController = controller;
     assert(self.fetchController != nil);
+    self.fetchController.delegate = self;
     
     // Execute the fetch
     NSError *error = NULL;
@@ -292,6 +293,7 @@ static NSString *kDefaultCategoryButtonString = @"Select a Category";
 }
 
 // Create a MzSearchItem from the user's query
+// We set the MzSearchItem searchTitle property to the user-selected Category
 -(MzSearchItem *) createSearchItemFromQuery:(NSString *)queryStr andCategory:(NSString *)categoryStr
 {
     MzSearchItem *searchItem = nil;
@@ -299,7 +301,7 @@ static NSString *kDefaultCategoryButtonString = @"Select a Category";
         
         searchItem = [[MzSearchItem alloc] init];        
         //set the search Properties
-        searchItem.searchTitle = kDefaultSearchItemTitle;
+        searchItem.searchTitle = [categoryStr copy];
         searchItem.searchStatus = SearchItemStateInProgress;
         searchItem.searchTimestamp = [NSDate date];
         searchItem.daysToSearch = [NSNumber numberWithInt:0];
