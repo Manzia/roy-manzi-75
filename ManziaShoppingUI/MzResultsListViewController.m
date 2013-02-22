@@ -52,6 +52,9 @@
 // String that keeps track of the user-selected Category of the current Search
 @property (nonatomic, copy) NSString *searchCategory;
 
+// Integer that keeps track of which Selected Reviews UIButton was tapped
+@property (nonatomic, assign) NSUInteger buttonIndex;
+
 @end
 
 @implementation MzResultsListViewController
@@ -66,6 +69,7 @@
 @synthesize deviceIdentifier;
 @synthesize observedItems;
 @synthesize searchCategory;
+@synthesize buttonIndex;
 
 // Segue Identifier
 static NSString *kResultsDetailId = @"KResultsDetailSegue";
@@ -436,7 +440,7 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
         [[QLog log] logWithFormat:@"Found %d existing Product Collections with KNOWN Search URLs", [self.productSearchMap count]];
         
         // Do the Updates
-        // 1- All search URLs not in the productSearchMap are to be created
+        // 1- All search URLs in the passed in NSArray not in the productSearchMap are to be created
         // 2- All the Collection Caches not in the productSearchMap are to be deleted
         NSMutableSet *addSearches = [NSMutableSet setWithArray:searchArray];
         assert(addSearches != nil);
@@ -813,6 +817,8 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
         cell.selectedReviews.hidden = YES;
         cell.userInteractionEnabled = NO;
         cell.selectedReviews.userInteractionEnabled = NO;
+        //[cell.selectedReviews setTag:indexPath.row];
+        //cell.reviewButtonId = indexPath.row;
     } else {
         
         // we have Searches to display
@@ -836,23 +842,26 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
             cell.productTitle.font = [UIFont systemFontOfSize:15.0];
             cell.selectedReviews.hidden = YES;
             cell.selectedReviews.userInteractionEnabled = NO;
+            //[cell.selectedReviews setTag:indexPath.row];
+            //cell.selectedReviews.backgroundColor = [UIColor darkGrayColor];
             cell.userInteractionEnabled = NO;
+            //cell.reviewButtonId = indexPath.row;
         } else {
             MzProductItem *productItem = [productsInSection objectAtIndex:indexPath.row];
             assert(productItem != nil);
             cell.productItem = productItem;
-            //cell.productTitle.text = productItem.productTitle;
-            //cell.productTitle.textAlignment = UITextAlignmentCenter;
-            //cell.productPrice.text = productItem.productPriceAmount;
             UIImage *cellImage = [productItem getthumbnailImage:kSmallThumbnailImage];
             //UIImage *cellImage = [UIImage imageNamed:@"first@2x.png"];
             assert(cellImage != nil);
             cell.productImage.image = cellImage;
             cell.selectedReviews.hidden = NO;
             cell.userInteractionEnabled = YES;
+            //[cell.selectedReviews addTarget:self action:@selector(selectedReviewsTapped:event:) forControlEvents:UIControlEventTouchUpInside];
             
             // Assign the Reviews UIButton a tag corresponding to the tableView row so we can reference it again
-            cell.selectedReviews.tag = indexPath.row;
+            //[cell.selectedReviews setTag:indexPath.row];
+            //cell.reviewButtonId = indexPath.row;
+            //NSLog(@"Reviews Button Tag was set to: %d", cell.reviewButtonId);
             
             // Observe our cell's thumbnail
             if (self.observedItems == nil) {
@@ -923,7 +932,7 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
         MzSearchItem *item = [self.allSearches objectForKey:[self.sortedSections objectAtIndex:section]];
         assert(item != nil);
         assert([item.searchTitle length] > 0);
-        NSString *title = [NSString stringWithFormat:@"Search %d: %@", section+1, item.searchTitle];
+        NSString *title = [NSString stringWithFormat:@"Search: %@", item.searchTitle];
         return title;
     }
 }
@@ -978,9 +987,23 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
         assert(insertKey != nil);
         NSArray *insertItems = [NSArray arrayWithObject:insertKey];
         assert(insertItems != nil);
+        
+        /* Remove the "Old" SearchItem from the allSearches Dictionary before we insert new one
+         NOTE:
+         1- We keep the MzProductCollection (object and Cache) associated with the old MzSearchItem around just in case
+         the user re-enters the old query again so that we do not have to go through the whole instantiation
+         and synchronization process again
+         2- Point 1 above means we keep all the MzProductCollection Collection Caches until the App moves to background
+         at which point the SearchDirectory with serialized MzSearchItems gets deleted. The next time, the App is launched
+         all these Collection Caches are marked for deletion and then deleted when the App moves to background again.
+         3- Note that the MzProductCollection objects get released in the viewDidUnload method of this ViewController even
+         though the associated Collection Caches stick around...we re-instantiate them as needed
+         */
+        [self.allSearches removeAllObjects];
+        assert([self.allSearches count] == 0);
         [self.allSearches setObject:searchItem forKey:insertKey];
         [self updateProductCollectionCaches:insertItems];
-        [self.tableView reloadRowsAtIndexPaths:[self.tableView indexPathsForVisibleRows] withRowAnimation:UITableViewRowAnimationNone];
+        //[self.tableView reloadRowsAtIndexPaths:[self.tableView indexPathsForVisibleRows] withRowAnimation:UITableViewRowAnimationNone];
     } else {
         // Attempt to load our View which will update all the relevant Collections
         // and also because the User is likely to be coming to this screen next!
@@ -1084,20 +1107,64 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
     if ([[segue identifier] isEqualToString:kReviewsListSegueId]) {
         assert([sender isKindOfClass:[UIButton class]]);
         UIButton *reviewButton = (UIButton *)sender;
-        MzResultListCell *reviewCell = (MzResultListCell *)[self.tableView cellForRowAtIndexPath:
-                                                            [NSIndexPath indexPathForRow:reviewButton.tag inSection:0]];
-        assert(reviewCell != nil);
-        assert(reviewCell.productItem != nil);
+        assert(reviewButton != nil);
+        
+        //CGPoint buttonCenter = CGPointMake((reviewButton.center.x * (CGFloat)(1+reviewButton.tag)), reviewButton.center.y * (CGFloat)(1+reviewButton.tag));
+        //NSLog(@"Review Button Center: (%f , %f)", buttonCenter.x, buttonCenter.y);
+        //NSIndexPath *buttonPath = [self.tableView indexPathForRowAtPoint:buttonCenter];
+        //assert(buttonPath != nil);
+        // Get the associated MzProductItem
+        assert(self.sortedSections != nil);
+        NSArray *productsInSection;
+        NSURL *collectionName = [self.productSearchMap objectForKey:[self.sortedSections objectAtIndex:0]];
+        if (collectionName != nil) {
+            productsInSection = [self.allProductItems objectForKey:[collectionName path]];            
+        } else {
+            //Log
+            [[QLog log] logWithFormat:@"Cannot find Product Collection by Name to retrieve MzProductItem to download MzReviewItems"];
+        }
+        MzProductItem *prodItem = [productsInSection objectAtIndex:self.buttonIndex];
+        assert(prodItem != nil);
+        [[QLog log] logWithFormat:@"User selected Review Button for Row: %d", self.buttonIndex];
+        
+        //MzResultListCell *reviewCell = (MzResultListCell *)[self.tableView cellForRowAtIndexPath:
+        //                                                    [NSIndexPath indexPathForRow:reviewButton.tag inSection:0]];
+        //assert(reviewCell != nil);
+        //assert(reviewCell.productItem != nil);
         
         // Pass the MzProductItem to the MzReviewsListViewController
         MzReviewsListViewController *reviewsController = [segue destinationViewController];
-        reviewsController.productItem = reviewCell.productItem;
+        reviewsController.productItem = prodItem;
         assert(reviewsController.productItem != nil);
         reviewsController.reviewCategory = self.searchCategory;
         assert(reviewsController.reviewCategory != nil);
-    }
-    
+    }    
 
 }
+
+// Method called when the "selected Reviews" UIButton is tapped. We push the Segue manually so we get to the
+// state of the UIButton that was tapped otherwise when done automatically we cannot identify the UIButton
+// that was tapped either by the tag property or UIButton coordinates as these are not set.
+-(void)selectedReviewsTapped:(id)sender
+{
+    assert([sender isKindOfClass:[UIButton class]]);
+    UIButton *reviewButton = (UIButton *)sender;
+    assert(reviewButton != nil);
+    
+    // Get the Cell
+    UITableViewCell *clickedCell = (UITableViewCell *)[[sender superview] superview];
+    NSIndexPath *clickedButtonPath = [self.tableView indexPathForCell:clickedCell];
+    
+    // Get the Touches
+    //NSSet *touches = [event allTouches];
+    //UITouch *touch = [touches anyObject];
+    //CGPoint currentTouchPosition = [touch locationInView:self.tableView];
+    //NSIndexPath *indexPath = [self.tableView indexPathForRowAtPoint: currentTouchPosition];
+    
+    //NSLog(@"Review Button Sender Tag: %d", indexPath.row);
+    self.buttonIndex = clickedButtonPath.row;
+    [self performSegueWithIdentifier:kReviewsListSegueId sender:reviewButton];
+}
+
 
 @end

@@ -26,4 +26,7 @@
 // and get off the screen
 -(NSString *)generateReviewsURL:(NSString *)productSkuId;
 
+// Method called when User taps the Selected Reviews method
+-(IBAction)selectedReviewsTapped:(id)sender;
+
 @end

@@ -283,6 +283,9 @@ static NSString *kDefaultCategoryButtonString = @"Select a Category";
     }
     // resign UISearchBar form being First Responder
     [searchesBar resignFirstResponder];
+    
+    // Switch to the Results ViewController Hierarchy
+    self.tabBarController.selectedIndex = 1;
 }
 
 // User finished entering query
@@ -315,8 +318,8 @@ static NSString *kDefaultCategoryButtonString = @"Select a Category";
         searchItem.searchOptions = [NSDictionary dictionaryWithDictionary:searchDict];
         
         // add the new MzSearchItem to the MzSearchCollection
-        MzSearchCollection *searchCollection = [[MzSearchCollection alloc] init];
-        BOOL success = [searchCollection addSearchCollection];
+        MzSearchCollection *searchCollection = [(MzAppDelegate *)[[UIApplication sharedApplication] delegate] searchCollection];
+        BOOL success = searchCollection != nil;
         if (success) {
             [searchCollection addSearchItem:searchItem];
         } else {

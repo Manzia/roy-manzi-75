@@ -44,6 +44,10 @@
         
         // Format the DateTime
         self->reviewDateTime.text = [self formatReviewSubmitTime:newReviewItem.reviewSubmitTime];
+        
+        // Format the TextView
+        NSRange textRange = NSMakeRange(0, 150);
+        [self->reviewText scrollRangeToVisible:textRange];
     }
 }
 

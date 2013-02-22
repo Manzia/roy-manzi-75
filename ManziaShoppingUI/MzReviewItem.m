@@ -73,7 +73,7 @@
         insertResult.reviewCategory = [[properties objectForKey:@"reviewCategory"] copy];
         insertResult.reviewContent = [[properties objectForKey:@"reviewContent"] copy];
         insertResult.reviewAuthor = [[properties objectForKey:@"reviewAuthor"] copy];
-        insertResult.reviewAuthor = [[properties objectForKey:@"reviewSource"] copy];
+        insertResult.reviewSource = [[properties objectForKey:@"reviewSource"] copy];
         
         // Convert the Rating
         double rating = [[properties objectForKey:@"reviewRating"] doubleValue];

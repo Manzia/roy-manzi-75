@@ -194,7 +194,9 @@ static void *ReviewCollectionContext = &ReviewCollectionContext;
             baseURL = @"http://ec2-50-18-112-205.us-west-1.compute.amazonaws.com:8080";
         }
         NSString *deviceId = [(MzAppDelegate *)[[UIApplication sharedApplication] delegate] uniqueDeviceId];
-        assert(deviceId != nil);
+        if(deviceId == nil) {
+            deviceId = @"415-309-7418";
+        }
         NSString *reviewsURL = [NSString stringWithFormat:kReviewURLFormat, baseURL, kReviewURLPath, deviceId, productSkuQuery];
         assert(reviewsURL != nil);
         NSString *encodedURLString = [reviewsURL stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
@@ -273,7 +275,9 @@ static void *ReviewCollectionContext = &ReviewCollectionContext;
     //NSArray *reviewItems = [self.fetchController fetchedObjects];
     //assert(reviewItems != nil);
     if ([self.reviewItems count] > 0) {
-        cell.reviewItem = [self.reviewItems objectAtIndex:indexPath.row];
+        MzReviewItem *newItem = [self.reviewItems objectAtIndex:indexPath.row];
+        assert(newItem != nil);
+        [cell setReviewItem:newItem];
     }
     return cell;
 }
