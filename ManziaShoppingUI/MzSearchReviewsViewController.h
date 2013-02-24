@@ -22,10 +22,14 @@
 // IBOutlets
 @property(nonatomic, strong) IBOutlet UISearchBar* searchBar;
 @property (nonatomic, strong) IBOutlet UIPickerView *pickerView;
-@property (nonatomic, strong) IBOutlet UIButton *categoryButton;
+//@property (nonatomic, strong) IBOutlet UIButton *categoryButton;
+@property (nonatomic, strong) IBOutlet UISegmentedControl *mainMenu;
 
 // Our delegate
 @property (nonatomic, weak) id <MzSearchReviewsViewControllerDelegate> delegate;
+
+// Main Menu
+-(IBAction)selectedMainMenu:(id)sender;
 
 @end
 
