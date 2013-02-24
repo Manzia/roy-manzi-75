@@ -12,23 +12,6 @@
                         <rect key="frame" x="0.0" y="64" width="320" height="367"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                         <subviews>
-                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" id="VcJ-R0-abG">
-                                <rect key="frame" x="75" y="64" width="159" height="29"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <fontDescription key="fontDescription" type="italicSystem" pointSize="15"/>
-                                <color key="tintColor" white="0.66666666666666663" alpha="1" colorSpace="calibratedWhite"/>
-                                <state key="normal" title="Select a Category">
-                                    <color key="titleColor" cocoaTouchSystemColor="darkTextColor"/>
-                                    <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
-                                </state>
-                            </button>
-                            <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="whose REVIEWS Contain" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="XhO-Td-L0e">
-                                <rect key="frame" x="67" y="102" width="182" height="23"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <fontDescription key="fontDescription" type="boldSystem" pointSize="15"/>
-                                <color key="textColor" red="0.1960784314" green="0.30980392159999998" blue="0.52156862749999999" alpha="1" colorSpace="calibratedRGB"/>
-                                <nil key="highlightedColor"/>
-                            </label>
                             <pickerView contentMode="scaleToFill" id="efO-JG-tpr">
                                 <rect key="frame" x="17" y="199" width="278" height="216"/>
                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMaxY="YES"/>
@@ -39,9 +22,9 @@
                                 </connections>
                             </pickerView>
                             <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="Manzia, Inc" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="qw3-MB-aq8">
-                                <rect key="frame" x="7" y="8" width="80" height="21"/>
+                                <rect key="frame" x="5" y="1" width="57" height="13"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <fontDescription key="fontDescription" type="system" pointSize="13"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="10"/>
                                 <color key="textColor" cocoaTouchSystemColor="darkTextColor"/>
                                 <nil key="highlightedColor"/>
                             </label>
@@ -52,20 +35,43 @@
                                 <color key="textColor" cocoaTouchSystemColor="darkTextColor"/>
                                 <nil key="highlightedColor"/>
                             </label>
-                            <searchBar contentMode="redraw" barStyle="blackTranslucent" showsCancelButton="YES" id="khB-Yv-QZV">
-                                <rect key="frame" x="9" y="135" width="293" height="44"/>
+                            <searchBar contentMode="redraw" barStyle="blackTranslucent" placeholder="Enter a Product Quality" showsCancelButton="YES" id="khB-Yv-QZV">
+                                <rect key="frame" x="67" y="134" width="230" height="44"/>
                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMaxY="YES"/>
                                 <textInputTraits key="textInputTraits"/>
                             </searchBar>
+                            <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="Select a Category then add Product Qualities to Rank Products" textAlignment="center" lineBreakMode="wordWrap" numberOfLines="2" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="Tlu-9N-abx">
+                                <rect key="frame" x="9" y="24" width="285" height="29"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="13"/>
+                                <color key="textColor" cocoaTouchSystemColor="darkTextColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <segmentedControl opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="top" segmentControlStyle="bar" selectedSegmentIndex="2" id="Ict-U9-Nqn">
+                                <rect key="frame" x="9" y="58" width="293" height="30"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <segments>
+                                    <segment title="Select Category"/>
+                                    <segment title="Select Quality"/>
+                                    <segment title="Your Qualities"/>
+                                </segments>
+                                <color key="tintColor" white="0.33333333333333331" alpha="1" colorSpace="calibratedWhite"/>
+                                <connections>
+                                    <action selector="selectedMainMenu:" destination="ago-pT-6qE" eventType="valueChanged" id="mOY-H0-Nq4"/>
+                                    <action selector="tappedMainMenu:" destination="ago-pT-6qE" eventType="touchUpInside" id="vm9-8i-me5"/>
+                                </connections>
+                            </segmentedControl>
                         </subviews>
-                        <color key="backgroundColor" red="0.91026239809782605" green="0.91026239809782605" blue="0.91026239809782605" alpha="1" colorSpace="calibratedRGB"/>
+                        <color key="backgroundColor" red="0.93478260869999996" green="0.93478260869999996" blue="0.93478260869999996" alpha="1" colorSpace="calibratedRGB"/>
                     </view>
+                    <toolbarItems/>
                     <navigationItem key="navigationItem" title="Search" id="v2U-O8-GpF"/>
                     <connections>
-                        <outlet property="categoryButton" destination="VcJ-R0-abG" id="ZBG-Ob-vPS"/>
+                        <outlet property="mainMenu" destination="Ict-U9-Nqn" id="kLf-Wc-WvX"/>
                         <outlet property="pickerView" destination="efO-JG-tpr" id="Kl6-bJ-MsI"/>
                         <outlet property="searchBar" destination="khB-Yv-QZV" id="542-Ev-Hr1"/>
                         <outlet property="searchDisplayController" destination="A81-fc-aWW" id="LqD-gq-uRg"/>
+                        <segue destination="8fY-7w-JRN" kind="push" identifier="kQualitiesDetailSegue" id="RUF-Zu-aOb"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="1mh-h6-p7i" userLabel="First Responder" sceneMemberID="firstResponder"/>
@@ -78,7 +84,50 @@
                     </connections>
                 </searchDisplayController>
             </objects>
-            <point key="canvasLocation" x="478" y="-352"/>
+            <point key="canvasLocation" x="402" y="-453"/>
+        </scene>
+        <!--Mz Qualities List View Controller - Your Qualities-->
+        <scene sceneID="HOx-h9-TZN">
+            <objects>
+                <tableViewController id="8fY-7w-JRN" customClass="MzQualitiesListViewController" sceneMemberID="viewController">
+                    <tableView key="view" opaque="NO" clipsSubviews="YES" clearsContextBeforeDrawing="NO" contentMode="scaleToFill" alwaysBounceVertical="YES" indicatorStyle="white" dataMode="prototypes" style="plain" separatorStyle="none" allowsSelection="NO" rowHeight="50" sectionHeaderHeight="30" sectionFooterHeight="22" id="nSy-aX-tNX">
+                        <rect key="frame" x="0.0" y="64" width="320" height="367"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                        <color key="separatorColor" cocoaTouchSystemColor="lightTextColor"/>
+                        <prototypes>
+                            <tableViewCell contentMode="center" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="kQualitiesDetailCellId" rowHeight="50" id="AP4-kP-a67">
+                                <rect key="frame" x="0.0" y="30" width="320" height="50"/>
+                                <autoresizingMask key="autoresizingMask"/>
+                                <view key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center">
+                                    <rect key="frame" x="0.0" y="0.0" width="320" height="49"/>
+                                    <autoresizingMask key="autoresizingMask"/>
+                                    <subviews>
+                                        <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="TopLeft" text="Label" lineBreakMode="tailTruncation" numberOfLines="2" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="5ww-aR-1Cg">
+                                            <rect key="frame" x="20" y="6" width="291" height="36"/>
+                                            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                            <fontDescription key="fontDescription" type="italicSystem" pointSize="14"/>
+                                            <color key="textColor" cocoaTouchSystemColor="darkTextColor"/>
+                                            <color key="highlightedColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                                        </label>
+                                    </subviews>
+                                    <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
+                                </view>
+                            </tableViewCell>
+                        </prototypes>
+                        <connections>
+                            <outlet property="dataSource" destination="8fY-7w-JRN" id="CgG-Da-I0T"/>
+                            <outlet property="delegate" destination="8fY-7w-JRN" id="AWt-2p-qkG"/>
+                        </connections>
+                    </tableView>
+                    <toolbarItems/>
+                    <navigationItem key="navigationItem" title="Your Qualities" id="Ood-ta-WeL">
+                        <barButtonItem key="rightBarButtonItem" systemItem="save" id="6Xx-hq-GEW"/>
+                    </navigationItem>
+                </tableViewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="7Z2-uT-tmW" userLabel="First Responder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="821" y="-502"/>
         </scene>
         <!--Mz Results List View Controller - Results-->
         <scene sceneID="pjZ-rr-Sv7">
@@ -356,55 +405,6 @@
         <image name="first" width="16" height="16"/>
         <image name="second" width="16" height="16"/>
     </resources>
-    <classes>
-        <class className="MzResultListCell" superclassName="UITableViewCell">
-            <source key="sourceIdentifier" type="project" relativePath="./Classes/MzResultListCell.h"/>
-            <relationships>
-                <relationship kind="outlet" name="priceLabel" candidateClass="UILabel"/>
-                <relationship kind="outlet" name="productImage" candidateClass="UIImageView"/>
-                <relationship kind="outlet" name="productPrice" candidateClass="UILabel"/>
-                <relationship kind="outlet" name="productTitle" candidateClass="UILabel"/>
-                <relationship kind="outlet" name="selectedReviews" candidateClass="UIButton"/>
-            </relationships>
-        </class>
-        <class className="MzResultsDetailViewController" superclassName="UIViewController">
-            <source key="sourceIdentifier" type="project" relativePath="./Classes/MzResultsDetailViewController.h"/>
-            <relationships>
-                <relationship kind="outlet" name="webView" candidateClass="UIWebView"/>
-            </relationships>
-        </class>
-        <class className="MzResultsListViewController" superclassName="UITableViewController">
-            <source key="sourceIdentifier" type="project" relativePath="./Classes/MzResultsListViewController.h"/>
-            <relationships>
-                <relationship kind="action" name="selectedReviewsTapped:"/>
-            </relationships>
-        </class>
-        <class className="MzReviewsListCell" superclassName="UITableViewCell">
-            <source key="sourceIdentifier" type="project" relativePath="./Classes/MzReviewsListCell.h"/>
-            <relationships>
-                <relationship kind="outlet" name="reviewAuthor" candidateClass="UILabel"/>
-                <relationship kind="outlet" name="reviewDateTime" candidateClass="UILabel"/>
-                <relationship kind="outlet" name="reviewRating" candidateClass="UILabel"/>
-                <relationship kind="outlet" name="reviewSource" candidateClass="UILabel"/>
-                <relationship kind="outlet" name="reviewText" candidateClass="UITextView"/>
-                <relationship kind="outlet" name="reviewTitle" candidateClass="UILabel"/>
-            </relationships>
-        </class>
-        <class className="MzReviewsListViewController" superclassName="UITableViewController">
-            <source key="sourceIdentifier" type="project" relativePath="./Classes/MzReviewsListViewController.h"/>
-            <relationships>
-                <relationship kind="action" name="selectedReviewsTapped:"/>
-            </relationships>
-        </class>
-        <class className="MzSearchReviewsViewController" superclassName="UIViewController">
-            <source key="sourceIdentifier" type="project" relativePath="./Classes/MzSearchReviewsViewController.h"/>
-            <relationships>
-                <relationship kind="outlet" name="categoryButton" candidateClass="UIButton"/>
-                <relationship kind="outlet" name="pickerView" candidateClass="UIPickerView"/>
-                <relationship kind="outlet" name="searchBar" candidateClass="UISearchBar"/>
-            </relationships>
-        </class>
-    </classes>
     <simulatedMetricsContainer key="defaultSimulatedMetrics">
         <simulatedStatusBarMetrics key="statusBar"/>
         <simulatedOrientationMetrics key="orientation"/>

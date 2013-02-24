@@ -14,7 +14,7 @@
 @property (nonatomic, copy, readonly) NSString *qualitiesDirectory;
 
 // Add a Product Quality to the Quality Collection
--(BOOL)addProductQuality:(NSString *)productQuality;
+-(void)addProductQuality:(NSString *)productQuality;
 
 // assigns an existing Qualities Directory or creates a new one if none
 // is found - this method was not turned into an initializer becoz it
@@ -25,7 +25,10 @@
 // Get all the "deserialized" Qualities from the Qualities Directory
 -(NSArray *)allProductQualities;
 
-// Remove a MzSearchItem from the Search Directory
--(BOOL)removeProductQuality:(NSString *)productQuality;
+// Removes old Files ( > 1 week) from the Qualities Directory
+-(void)cleanQualitiesDirectory;
+
+// Saves all Product Qualities to an existing Qualities Directory
+-(BOOL)saveQualityCollection;
 
 @end

@@ -28,8 +28,12 @@
 // Our delegate
 @property (nonatomic, weak) id <MzSearchReviewsViewControllerDelegate> delegate;
 
-// Main Menu
+// Main Menu Value Changed
 -(IBAction)selectedMainMenu:(id)sender;
+
+// Main Menu tapped
+-(IBAction)tappedMainMenu:(id)sender;
+
 
 @end
 
