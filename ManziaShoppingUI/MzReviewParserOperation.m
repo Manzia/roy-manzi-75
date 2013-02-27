@@ -81,12 +81,12 @@ static NSString *KDefaultAttributeValue = @"unknown";
     
     [[QLog log] logOption:kLogOptionXMLParseDetails withFormat:@"Start XML parsing"];
     
-    // Write to file to test input
+    /* Write to file to test input
      NSFileManager *fileManager;
      fileManager = [NSFileManager defaultManager];
      NSLog(@"Current Directory Path: %@", [fileManager currentDirectoryPath]);
      [fileManager createFileAtPath:@"/Users/admin/Manzia/testXMLfile" contents:self.xmldata attributes:nil]; 
-    //[self.xmldata writeToFile:@"testXMLfile" atomically:YES];
+    //[self.xmldata writeToFile:@"testXMLfile" atomically:YES]; */
     
     success = [self.reviewParser parse];
     if (!success) {

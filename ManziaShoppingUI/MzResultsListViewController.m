@@ -74,6 +74,7 @@
 // Segue Identifier
 static NSString *kResultsDetailId = @"KResultsDetailSegue";
 static NSString *kReviewsListSegueId = @"kReviewsListSegue";
+static NSString *kProductRankId = @"kProductRankSegueId";
 
 // Base URL for Search URLs
 //static NSString *manziBaseURL = @"http://192.168.1.102:8080";
@@ -132,7 +133,7 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
     // self.clearsSelectionOnViewWillAppear = NO;
  
     // Display an Edit button in the navigation bar for this view controller.
-    self.navigationItem.rightBarButtonItem = self.editButtonItem;
+    //self.navigationItem.rightBarButtonItem = self.editButtonItem;
     
     // Set our DeviceId
     self.deviceIdentifier = [(MzAppDelegate *)[[UIApplication sharedApplication] delegate] uniqueDeviceId];
@@ -1164,6 +1165,12 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
     //NSLog(@"Review Button Sender Tag: %d", indexPath.row);
     self.buttonIndex = clickedButtonPath.row;
     [self performSegueWithIdentifier:kReviewsListSegueId sender:reviewButton];
+}
+
+// Pushed the MzProductRankViewController
+-(IBAction)rankTapped:(id)sender
+{
+    [self performSegueWithIdentifier:kProductRankId sender:self];
 }
 
 

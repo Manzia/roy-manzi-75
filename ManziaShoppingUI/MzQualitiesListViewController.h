@@ -8,6 +8,17 @@
 
 #import <UIKit/UIKit.h>
 
+@class MzQualityCollection;
+
 @interface MzQualitiesListViewController : UITableViewController
+
+// Array of Qualities to display
+@property (nonatomic, strong) NSArray *qualityArray;
+
+// QualityCollection
+@property (nonatomic, strong) MzQualityCollection *qCollection;
+
+// Save User Qualities
+-(IBAction)saveQualities:(id)sender;
 
 @end

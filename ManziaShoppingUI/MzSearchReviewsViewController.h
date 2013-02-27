@@ -10,6 +10,7 @@
 #import <CoreData/CoreData.h>
 
 @class MzSearchItem;
+@class MzSearchSegmentedControl;
 
 // Protocol implemented by delegates dealing with MzSearchItems'
 @protocol MzSearchReviewsViewControllerDelegate;
@@ -22,18 +23,13 @@
 // IBOutlets
 @property(nonatomic, strong) IBOutlet UISearchBar* searchBar;
 @property (nonatomic, strong) IBOutlet UIPickerView *pickerView;
-//@property (nonatomic, strong) IBOutlet UIButton *categoryButton;
-@property (nonatomic, strong) IBOutlet UISegmentedControl *mainMenu;
+@property (nonatomic, strong) IBOutlet MzSearchSegmentedControl *mainMenu;
 
 // Our delegate
 @property (nonatomic, weak) id <MzSearchReviewsViewControllerDelegate> delegate;
 
 // Main Menu Value Changed
 -(IBAction)selectedMainMenu:(id)sender;
-
-// Main Menu tapped
--(IBAction)tappedMainMenu:(id)sender;
-
 
 @end
 

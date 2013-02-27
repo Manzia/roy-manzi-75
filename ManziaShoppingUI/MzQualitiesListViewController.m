@@ -7,12 +7,15 @@
 //
 
 #import "MzQualitiesListViewController.h"
-
-@interface MzQualitiesListViewController ()
-
-@end
+#import "MzQualitiesListCell.h"
+#import "MzQualityCollection.h"
 
 @implementation MzQualitiesListViewController
+
+@synthesize qualityArray;
+@synthesize qCollection;
+
+static NSString *kQualitiesCellIdentifier = @"kQualitiesDetailCellId";
 
 - (id)initWithStyle:(UITableViewStyle)style
 {
@@ -32,7 +35,28 @@
  
     // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
     // self.navigationItem.rightBarButtonItem = self.editButtonItem;
+    
+    assert(self.qualityArray != nil);
+    assert(self.qCollection != nil);
+    
+    // Test - Print the qualityArray values
+    for (NSString *quality in self.qualityArray) {
+        NSLog(@"Quality in Pushed Array: %@", quality);
+    }
 }
+
+-(void)viewDidUnload
+{
+    self.qualityArray = nil;
+    [super viewDidUnload];
+}
+
+-(void)viewWillAppear:(BOOL)animated
+{
+    assert(self.qualityArray != nil);
+    [super viewWillAppear:animated];
+}
+
 
 - (void)didReceiveMemoryWarning
 {
@@ -44,36 +68,35 @@
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView
 {
-#warning Potentially incomplete method implementation.
     // Return the number of sections.
-    return 0;
+    return 1;
 }
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
-#warning Incomplete method implementation.
     // Return the number of rows in the section.
-    return 0;
+    return [self.qualityArray count];
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    static NSString *CellIdentifier = @"Cell";
-    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellIdentifier forIndexPath:indexPath];
+    
+    MzQualitiesListCell *cell = (MzQualitiesListCell *)[tableView dequeueReusableCellWithIdentifier:kQualitiesCellIdentifier forIndexPath:indexPath];
     
     // Configure the cell...
-    
+    assert(cell != nil);
+    cell.qualityLabel.text = [[self.qualityArray objectAtIndex:indexPath.row] copy];
     return cell;
 }
 
-/*
+
 // Override to support conditional editing of the table view.
 - (BOOL)tableView:(UITableView *)tableView canEditRowAtIndexPath:(NSIndexPath *)indexPath
 {
     // Return NO if you do not want the specified item to be editable.
-    return YES;
+    return NO;
 }
-*/
+
 
 /*
 // Override to support editing the table view.
@@ -96,14 +119,14 @@
 }
 */
 
-/*
+
 // Override to support conditional rearranging of the table view.
 - (BOOL)tableView:(UITableView *)tableView canMoveRowAtIndexPath:(NSIndexPath *)indexPath
 {
     // Return NO if you do not want the item to be re-orderable.
-    return YES;
+    return NO;
 }
-*/
+
 
 #pragma mark - Table view delegate
 
@@ -116,6 +139,20 @@
      // Pass the selected object to the new view controller.
      [self.navigationController pushViewController:detailViewController animated:YES];
      */
+}
+
+#pragma mark - Qualities
+
+// Save User Qualities
+-(IBAction)saveQualities:(id)sender
+{
+    assert(self.qCollection != nil);
+    assert(self.qualityArray != nil);
+    if ([self.qualityArray count] > 0) {
+        for (NSString *quality in self.qualityArray) {
+            [self.qCollection addProductQuality:quality];
+        }        
+    }
 }
 
 @end

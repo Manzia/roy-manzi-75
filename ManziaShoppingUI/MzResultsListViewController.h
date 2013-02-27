@@ -19,4 +19,7 @@ MzSearchReviewsViewControllerDelegate> {
 // Pushes the MzReviewsListViewController
 -(IBAction)selectedReviewsTapped:(id)sender;
 
+// Pushed the MzProductRankViewController
+-(IBAction)rankTapped:(id)sender;
+
 @end

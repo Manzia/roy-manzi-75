@@ -2,7 +2,7 @@
 //  MzQualitiesListCell.h
 //  ManziaShoppingUI
 //
-//  Created by Macbook Pro on 2/24/13.
+//  Created by Roy Manzi Tumubweinee on 2/24/13.
 //  Copyright (c) 2013 Manzia Corporation. All rights reserved.
 //
 
@@ -11,6 +11,6 @@
 @interface MzQualitiesListCell : UITableViewCell
 
 // Interface Builder properties
-@property (nonatomic, strong, readonly) IBOutlet UILabel *qualityLabel;
+@property (nonatomic, strong) IBOutlet UILabel *qualityLabel;
 
 @end

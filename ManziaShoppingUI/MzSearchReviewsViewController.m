@@ -13,6 +13,16 @@
 #import "MzSearchCollection.h"
 #import "MzAppDelegate.h"
 #import "MzQualityCollection.h"
+#import "MzSearchSegmentedControl.h"
+#import "MzQualitiesListViewController.h"
+#import <QuartzCore/QuartzCore.h>
+
+// Rank Button Frame
+#define BUTTON_X 222
+#define BUTTON_Y 18
+#define BUTTON_WIDTH 73
+#define BUTTON_HEIGHT 25
+
 
 @interface MzSearchReviewsViewController ()
 
@@ -24,6 +34,9 @@
 // Stores the Product Qualities added to the Query by the User
 @property (nonatomic, strong) NSMutableArray *usersQualities;
 
+// Array that stores saved Qualities retrieved from the Qualities Directory in the Local Cache
+@property (nonatomic, strong) NSArray *savedQualities;
+
 // Stores all the available for selection to the User
 @property (nonatomic, strong) NSMutableArray *allQualities;
 
@@ -31,10 +44,14 @@
 @property (nonatomic, strong) UIAlertView *searchAlert;
 
 // Keeps track of the current UISegmentedControl segment, this is necessary to capture
-// the case of where the User taps the same segment consecutively which will not fire
-// the ValueChanged event
-@property (nonatomic, assign) NSUInteger currentSegmentIdx;
+// the case of where the User taps the same segment consecutively
+@property (nonatomic, assign) NSInteger currentSegmentIdx;
 @property (nonatomic, assign) BOOL sameSegmentTapped;
+
+// Keeps track of when the User taps and selects the same Category, this is necessary
+// to prevent duplicating the category-specific qualities shown in the UIPickerView
+@property (nonatomic, assign) BOOL categoryHasChanged;
+@property (nonatomic, copy) NSString *currentCategory;
 
 @end
 
@@ -53,6 +70,9 @@
 @synthesize searchAlert;
 @synthesize currentSegmentIdx;
 @synthesize sameSegmentTapped;
+@synthesize savedQualities;
+@synthesize categoryHasChanged;
+@synthesize currentCategory;
 
 // Database entity that we fetch from
 static NSString *kTaskTypeEntity = @"MzTaskType";
@@ -63,6 +83,9 @@ static NSString *kSearchItemKeywordFormat = @"q%@";
 static NSString *kSearchItemCategory = @"Category";
 static NSString *kDefaultSearchItemTitle = @"No Title";
 static NSString *kDefaultCategoryButtonString = @"Select Category";
+
+// Push Segue
+static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
 
 // Initializer
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
@@ -124,10 +147,12 @@ static NSString *kDefaultCategoryButtonString = @"Select Category";
     assert(self.qualityCollection != nil);
     [self.qualityCollection addQualityCollection];
     
-    // Set up the allQualities array
+    // Set up the Qualities related arrays
     self.allQualities = [NSMutableArray array];
     assert(self.allQualities != nil);
     self.usersQualities = [NSMutableArray array];
+    self.savedQualities = [self.qualityCollection allProductQualities];
+    //assert(self.savedQualities != nil);
     //[[QLog log] logWithFormat:@"Qualities available for User Selection: %d ", [self.allQualities count]];
     
     // Set up the categoryButton
@@ -182,9 +207,28 @@ static NSString *kDefaultCategoryButtonString = @"Select Category";
     self.searchAlert = [[UIAlertView alloc] initWithTitle:@"Required" message:@"Select a Category to Start" delegate:self cancelButtonTitle:@"Ok" otherButtonTitles:nil, nil];
     assert(self.searchAlert != nil);
     
-    // Initialize the initial segmentIndex to a "large" number that is impractical
-    self.currentSegmentIdx = 1000;
-    self.sameSegmentTapped = NO;   
+    // Initialize Segment Tracking
+    self.currentSegmentIdx = -1;
+    self.sameSegmentTapped = NO;
+    self.mainMenu.selectedSegmentIndex = -1;
+    self.categoryHasChanged = NO;
+    self.currentCategory = [NSString string];
+    
+    // Create and configure the Rank UIButton
+    CGRect buttonFrame = CGRectMake(BUTTON_X, BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT);
+    UIButton *rankButton = [UIButton buttonWithType:UIButtonTypeCustom];
+    rankButton.frame = buttonFrame;
+    [rankButton setBackgroundColor:[UIColor darkGrayColor]];
+    [rankButton setTitle:@"Rank" forState:UIControlStateNormal];
+    [rankButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+    rankButton.titleLabel.font = [UIFont boldSystemFontOfSize:14];
+    rankButton.titleLabel.shadowOffset = CGSizeMake (1.0, 0.0);
+    rankButton.userInteractionEnabled = YES;
+    rankButton.layer.borderColor = [UIColor blackColor].CGColor;
+    rankButton.layer.borderWidth = 0.5f;
+    rankButton.layer.cornerRadius = 10.0f;
+    [rankButton addTarget:self action:@selector(rankButtonSelected) forControlEvents:UIControlEventTouchUpInside];
+    [self.view addSubview:rankButton];    
 }
 
 // Release iVars
@@ -198,6 +242,7 @@ static NSString *kDefaultCategoryButtonString = @"Select Category";
     self.usersQualities = nil;
     self.allQualities = nil;
     self.searchAlert = nil;
+    self.savedQualities = nil;
 }
 
 // View Lifecycle
@@ -266,18 +311,17 @@ static NSString *kDefaultCategoryButtonString = @"Select Category";
         case 1:
             // we return zero rows if we did not fetch any MzTaskAttributes from the database
             if (self.allQualities != nil) {
-                //rowCount = [[self.fetchQualityController fetchedObjects] count];
-                //NSArray *qualitiesArray = [self.qualityCollection allProductQualities];
-                //assert(qualitiesArray != nil);
                 NSString *selectedCategory = [self.mainMenu titleForSegmentAtIndex:0];
                 assert(selectedCategory != nil);
                 assert(![selectedCategory isEqualToString:kDefaultCategoryButtonString]);
                 NSArray *categoryQualities = [self fetchQualitiesForCategory:selectedCategory];
                 assert(categoryQualities != nil);
-                if (!sameSegmentTapped) {
+                if (!self.sameSegmentTapped && self.categoryHasChanged) {
                     [self.allQualities addObjectsFromArray:categoryQualities];
-                    [self.allQualities addObjectsFromArray:[self.qualityCollection allProductQualities]];
-                }                
+                    if (self.savedQualities != nil) {
+                        [self.allQualities addObjectsFromArray:self.savedQualities];
+                    }                    
+                }
                 rowCount = [self.allQualities count];
                 [[QLog log] logWithFormat:@"Qualities available for User Selection: %d for Category: %@", rowCount, selectedCategory];
             } else {
@@ -343,10 +387,9 @@ static NSString *kDefaultCategoryButtonString = @"Select Category";
             // since these are all Category-specific
             if (![currentTitle isEqualToString:kDefaultCategoryButtonString]) {
                 [self.allQualities removeAllObjects];
-                [self.usersQualities removeAllObjects];
+                //[self.usersQualities removeAllObjects];
             }
             [self.mainMenu setTitle:selectedCategory forSegmentAtIndex:menuIndex];
-            //[self.categoryButton setTitle:selectedCategory forState:UIControlStateNormal];
             
             // Dismiss the UIPickerView from view
             self.pickerView.hidden = YES;
@@ -358,16 +401,13 @@ static NSString *kDefaultCategoryButtonString = @"Select Category";
             assert([self.allQualities count] > 0);
             NSString *selectedQuality = [self.allQualities objectAtIndex:row];
             assert(selectedQuality != nil);
-            [self.usersQualities addObject:selectedQuality];
+            //[self.usersQualities addObject:selectedQuality];
             
             // Dismiss the UIPickerView from view
             self.pickerView.hidden = YES;
             
             // Add the selected Quality to the UISearchBar
             self.searchBar.text = selectedQuality;
-            
-            // Notify User
-            [self userQualityNotification];
         }
             break;
             
@@ -383,63 +423,105 @@ static NSString *kDefaultCategoryButtonString = @"Select Category";
     assert(self.pickerView != nil);
     
     // ensure that User first taps Select a Category
-    assert([sender isKindOfClass:[UISegmentedControl class]]);
-    UISegmentedControl *menu = (UISegmentedControl *)sender;
+    assert([sender isKindOfClass:[MzSearchSegmentedControl class]]);
+    UISegmentedControl *menu = (MzSearchSegmentedControl *)sender;
     NSUInteger selectedIndex = [menu selectedSegmentIndex];
+    NSString *newCategory = [menu titleForSegmentAtIndex:0];
     
-    if (selectedIndex > 0) {
-        if ([[menu titleForSegmentAtIndex:0] isEqualToString:kDefaultCategoryButtonString]) {
-            
-            // Display alert
-            [self.searchAlert show];
-        } else {
-            // Reload the UIPickerView and call dataSource methods
+    // Tracking
+    self.sameSegmentTapped = selectedIndex == self.currentSegmentIdx ? YES : NO;
+    self.categoryHasChanged = [newCategory isEqualToString:self.currentCategory] ? NO : YES;
+    
+    // Logic
+    switch (selectedIndex) {
+        case 0:
             [self.pickerView reloadAllComponents];
-        }
-    } else {
-        [self.pickerView reloadAllComponents];
+            self.pickerView.hidden = self.pickerView.hidden ? NO : YES;
+            break;
+        case 1:
+            if ([[menu titleForSegmentAtIndex:0] isEqualToString:kDefaultCategoryButtonString]) {
+                // Display alert
+                [self.searchAlert show];
+            } else {
+                // Reload the UIPickerView and call dataSource methods
+                [self.pickerView reloadAllComponents];
+                self.pickerView.hidden = self.pickerView.hidden ? NO : YES;
+            }            
+            break;
+        case 2:
+            if ([[menu titleForSegmentAtIndex:0] isEqualToString:kDefaultCategoryButtonString]) {
+                // Display alert
+                [self.searchAlert show];
+            } else {
+                // User selected the last segment
+                [self performSegueWithIdentifier:kQualitiesDetailPushSegue sender:self];
+            }
+        default:
+            break;
     }
-    
-    if (self.pickerView.hidden) {
-        self.pickerView.hidden = NO;
-    } else {
-        self.pickerView.hidden = YES;
-    }
+    // Update the Segment Trackers
+    self.currentSegmentIdx = selectedIndex;
+    self.currentCategory = newCategory;
 }
 
-// Main Menu tapped
--(IBAction)tappedMainMenu:(id)sender
+// Helper method to dismiss UIPickerView
+-(void)dismissPickerView
 {
     assert(self.pickerView != nil);
-    assert([sender isKindOfClass:[UISegmentedControl class]]);
-    UISegmentedControl *menu = (UISegmentedControl *)sender;
-    NSUInteger newIndex = [menu selectedSegmentIndex];
-    
-    if (newIndex == self.currentSegmentIdx) {
-        self.sameSegmentTapped = YES;
-        // User has tapped the same segment again so
-        // 1- show the UIPickerView if not already on screen
-        // 2- do step 1 above for all segments except the last
-        // Note that if the user makes a selection the UIPickerView is dismissed
-        if (newIndex != ([self.mainMenu numberOfSegments] - 1)) {
-            if (self.pickerView.hidden) {
-                self.pickerView.hidden = NO;
-            }
-        }
-        
-    } else {
-        // Update the segment Index
-        self.currentSegmentIdx = newIndex;
-        self.sameSegmentTapped = NO;
-    }    
+    self.pickerView.hidden = YES;
 }
 
 #pragma mark * Product Qualities
+
+// Send Query to MzResultsListViewController
+-(void)rankButtonSelected
+{
+    
+    // Send query to Delegate...method immediately starts the synchronization process
+    // and also pushes the delegate onto screen
+    assert(self.usersQualities != nil);
+    
+    if ([self.usersQualities count] > 0) {
+        MzSearchItem *searchItem = [self createSearchItemFromQuery:self.usersQualities andCategory:[self.mainMenu titleForSegmentAtIndex:0]];
+        assert(self.delegate != nil);
+        [self.delegate controller:self addSearchItem:searchItem];
+        
+        // Add MzSearchItem to MzSearchCollection
+        MzSearchCollection *scollection = [(MzAppDelegate *)[[UIApplication sharedApplication] delegate] searchCollection];
+        assert(scollection != nil);
+        [scollection addSearchItem:searchItem];
+        
+        // Switch to the Results ViewController Hierarchy
+        self.tabBarController.selectedIndex = 1;
+        
+    } else {
+        
+        // Send User an Alert
+        UIAlertView *rankAlert = [[UIAlertView alloc] initWithTitle:@"No Product Qualities" message:@"Select a Quality or Enter a Quality in the SearchBar" delegate:self cancelButtonTitle:@"Ok" otherButtonTitles:nil, nil];
+        assert(rankAlert != nil);
+        [rankAlert show];
+
+    }
+    
+
+}
 
 // Notify the User that a quality has been added and also provide instructions on how to proceed
 -(void)userQualityNotification
 {
     
+}
+
+// Push the ViewController that will display the Qualities
+-(void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender
+{
+    if ([[segue identifier] isEqualToString:kQualitiesDetailPushSegue]) {
+        MzQualitiesListViewController *qualityController = [segue destinationViewController];
+        assert(qualityController != nil);
+        qualityController.qualityArray = [[NSArray alloc] initWithArray:self.usersQualities];        
+        qualityController.qCollection = self.qualityCollection;
+    }
+
 }
 
 #pragma mark * Memory Management
@@ -452,34 +534,43 @@ static NSString *kDefaultCategoryButtonString = @"Select Category";
 
 #pragma mark * Search Query Management
 
-/* User selects a query Type - Include or Exclude
--(IBAction)selectedQueryType:(id)sender
-{
-    NSString *queryType = [self.segmentedControl titleForSegmentAtIndex:self.segmentedControl.selectedSegmentIndex];
-    assert(queryType != nil);
-    
-    if ([queryType isEqualToString:kQueryTypeInclude]) {
-        self.includeQuery = YES;        
-    } else if ([queryType isEqualToString:kQueryTypeExclude]) {
-        self.includeQuery = NO;
-    }
-} */
-
 // User has the tapped the Add button next to the UISearchBar so we:
 // 1- clear the text in the SearchBar
 // 2- bring up the UIPickerView
 -(void)addQualityTapped
 {
+    // dismiss PickerView
+    [self dismissPickerView];
+    
     assert(self.searchBar != nil);
+    assert(self.usersQualities != nil);
+    NSSet *checkDups;
+    NSString *query = [[NSString alloc] initWithString:self.searchBar.text];
+    if (query != nil && [query length] > 0) {
+        
+        // Check for duplicates before we add to the Array
+        checkDups = [NSSet setWithArray:self.usersQualities];
+        assert(checkDups != nil);
+        if ([checkDups member:query] == nil) {
+            
+            [self.usersQualities addObject:query];
+        }
+        //NSLog(@"Query added to Array: %@", query);    //testing
+    }    
+    // clear SearchBar
     self.searchBar.text = nil;
-    if (self.pickerView.hidden) {
-        self.pickerView.hidden = NO;
-    }
+    
+    
+    // Notify User
+    [self userQualityNotification];
 }
 
 // Verify that the User has selected a Category before they can enter a Query
 -(BOOL) searchBarShouldBeginEditing:(UISearchBar *)searchBar
 {
+    // dismiss PickerView
+    [self dismissPickerView];
+    
     assert(self.mainMenu != nil);
     if ([[self.mainMenu titleForSegmentAtIndex:0] isEqualToString:kDefaultCategoryButtonString]) {
         
@@ -582,14 +673,12 @@ static NSString *kDefaultCategoryButtonString = @"Select Category";
 // User cancelled entering query
 -(void) searchBarCancelButtonClicked:(UISearchBar *)searchesBar
 {
+    // dismiss PickerView
+    [self dismissPickerView];
+    
     assert(self.searchBar != nil);
     [searchesBar resignFirstResponder];
     
-    // Extend the Cancel button to dismiss the UIPickerView in the case
-    // where the User has brought it up but decided not to make a selection
-    if (self.pickerView.hidden = NO) {
-        self.pickerView.hidden = YES;
-    }
 }
 
 @end
