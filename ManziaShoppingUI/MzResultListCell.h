@@ -16,7 +16,7 @@
 @property (nonatomic, strong) IBOutlet UILabel *productTitle;
 @property (nonatomic, strong) IBOutlet UILabel *productPrice;
 @property (nonatomic, strong) IBOutlet UILabel *priceLabel;
-@property (nonatomic, strong) IBOutlet UIButton *selectedReviews;
+@property (nonatomic, strong) IBOutlet UISegmentedControl *reviewRanks;
 
 
 // The Product Item that cell displays

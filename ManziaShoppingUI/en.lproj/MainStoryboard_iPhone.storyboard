@@ -33,12 +33,13 @@
                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMaxY="YES"/>
                                 <textInputTraits key="textInputTraits"/>
                             </searchBar>
-                            <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="Select a Category, add Product Qualities, Rank Products" textAlignment="center" lineBreakMode="wordWrap" numberOfLines="2" baselineAdjustment="alignBaselines" minimumFontSize="10" id="Tlu-9N-abx">
+                            <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="Select Category, add Product Qualities, Rank" textAlignment="center" lineBreakMode="wordWrap" numberOfLines="2" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="Tlu-9N-abx">
                                 <rect key="frame" x="0.0" y="5" width="191" height="53"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <fontDescription key="fontDescription" type="italicSystem" pointSize="13"/>
+                                <fontDescription key="fontDescription" type="italicSystem" pointSize="14"/>
                                 <color key="textColor" cocoaTouchSystemColor="darkTextColor"/>
                                 <nil key="highlightedColor"/>
+                                <color key="shadowColor" red="0.30140472340000002" green="0.49272780309999997" blue="1" alpha="1" colorSpace="calibratedRGB"/>
                             </label>
                             <segmentedControl opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="top" segmentControlStyle="bar" selectedSegmentIndex="2" id="Ict-U9-Nqn" customClass="MzSearchSegmentedControl">
                                 <rect key="frame" x="4" y="66" width="293" height="30"/>
@@ -54,7 +55,7 @@
                                 </connections>
                             </segmentedControl>
                         </subviews>
-                        <color key="backgroundColor" red="0.93478260869999996" green="0.93478260869999996" blue="0.93478260869999996" alpha="1" colorSpace="calibratedRGB"/>
+                        <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                     </view>
                     <toolbarItems/>
                     <navigationItem key="navigationItem" title="Rank Products" id="v2U-O8-GpF"/>
@@ -63,6 +64,7 @@
                         <outlet property="pickerView" destination="efO-JG-tpr" id="Kl6-bJ-MsI"/>
                         <outlet property="searchBar" destination="khB-Yv-QZV" id="542-Ev-Hr1"/>
                         <outlet property="searchDisplayController" destination="A81-fc-aWW" id="LqD-gq-uRg"/>
+                        <outlet property="textGuide" destination="Tlu-9N-abx" id="F1q-WL-aS5"/>
                         <segue destination="8fY-7w-JRN" kind="push" identifier="kQualitiesDetailSegue" id="RUF-Zu-aOb"/>
                     </connections>
                 </viewController>
@@ -86,7 +88,7 @@
                         <rect key="frame" x="0.0" y="64" width="320" height="367"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
-                        <color key="separatorColor" cocoaTouchSystemColor="lightTextColor"/>
+                        <color key="separatorColor" cocoaTouchSystemColor="darkTextColor"/>
                         <prototypes>
                             <tableViewCell contentMode="center" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="kQualitiesDetailCellId" rowHeight="50" id="AP4-kP-a67" customClass="MzQualitiesListCell">
                                 <rect key="frame" x="0.0" y="30" width="320" height="50"/>
@@ -120,7 +122,11 @@
                     </tableView>
                     <toolbarItems/>
                     <navigationItem key="navigationItem" title="Your Qualities" id="Ood-ta-WeL">
-                        <barButtonItem key="rightBarButtonItem" systemItem="save" id="6Xx-hq-GEW"/>
+                        <barButtonItem key="rightBarButtonItem" systemItem="save" id="6Xx-hq-GEW">
+                            <connections>
+                                <action selector="saveQualities:" destination="8fY-7w-JRN" id="iff-D5-WvV"/>
+                            </connections>
+                        </barButtonItem>
                     </navigationItem>
                 </tableViewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="7Z2-uT-tmW" userLabel="First Responder" sceneMemberID="firstResponder"/>
@@ -131,58 +137,55 @@
         <scene sceneID="pjZ-rr-Sv7">
             <objects>
                 <tableViewController storyboardIdentifier="kResultsListId" id="eOl-zM-QI6" customClass="MzResultsListViewController" sceneMemberID="viewController">
-                    <tableView key="view" opaque="NO" clipsSubviews="YES" clearsContextBeforeDrawing="NO" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="grouped" separatorStyle="singleLineEtched" rowHeight="105" sectionHeaderHeight="10" sectionFooterHeight="10" id="FWT-Oo-q0r">
+                    <tableView key="view" opaque="NO" clipsSubviews="YES" clearsContextBeforeDrawing="NO" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="grouped" separatorStyle="none" rowHeight="105" sectionHeaderHeight="20" sectionFooterHeight="20" id="FWT-Oo-q0r">
                         <rect key="frame" x="0.0" y="64" width="320" height="367"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <color key="backgroundColor" cocoaTouchSystemColor="groupTableViewBackgroundColor"/>
                         <prototypes>
-                            <tableViewCell contentMode="scaleToFill" selectionStyle="blue" accessoryType="disclosureIndicator" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="KResultProductCellId" rowHeight="105" id="8fU-Wr-gF9" customClass="MzResultListCell">
-                                <rect key="frame" x="0.0" y="46" width="320" height="107"/>
+                            <tableViewCell contentMode="scaleToFill" selectionStyle="none" accessoryType="disclosureIndicator" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="KResultProductCellId" rowHeight="105" id="8fU-Wr-gF9" customClass="MzResultListCell">
+                                <rect key="frame" x="0.0" y="46" width="320" height="106"/>
                                 <autoresizingMask key="autoresizingMask"/>
                                 <view key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center">
                                     <rect key="frame" x="10" y="1" width="280" height="104"/>
                                     <autoresizingMask key="autoresizingMask"/>
                                     <subviews>
                                         <imageView userInteractionEnabled="NO" contentMode="scaleAspectFill" image="Placeholder.png" id="P8m-Fk-xfe">
-                                            <rect key="frame" x="5" y="5" width="65" height="70"/>
+                                            <rect key="frame" x="5" y="5" width="65" height="65"/>
                                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                         </imageView>
-                                        <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="Product Title" lineBreakMode="characterWrap" baselineAdjustment="alignBaselines" adjustsLetterSpacingToFitWidth="YES" adjustsFontSizeToFit="NO" id="DuK-Tq-Yya">
-                                            <rect key="frame" x="77" y="10" width="188" height="50"/>
+                                        <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="Product Title" lineBreakMode="wordWrap" baselineAdjustment="alignBaselines" adjustsLetterSpacingToFitWidth="YES" adjustsFontSizeToFit="NO" id="DuK-Tq-Yya">
+                                            <rect key="frame" x="77" y="6" width="188" height="44"/>
                                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                            <fontDescription key="fontDescription" type="system" pointSize="13"/>
+                                            <fontDescription key="fontDescription" type="boldSystem" pointSize="14"/>
                                             <color key="textColor" cocoaTouchSystemColor="darkTextColor"/>
                                             <color key="highlightedColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                                         </label>
                                         <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="Price:" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" minimumFontSize="10" id="lXh-ve-LSK">
-                                            <rect key="frame" x="172" y="84" width="42" height="21"/>
+                                            <rect key="frame" x="192" y="80" width="42" height="21"/>
                                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                             <fontDescription key="fontDescription" type="system" pointSize="15"/>
                                             <color key="textColor" cocoaTouchSystemColor="darkTextColor"/>
                                             <color key="highlightedColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                                         </label>
                                         <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="$150" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" minimumFontSize="10" id="v8X-k8-cLx">
-                                            <rect key="frame" x="230" y="84" width="60" height="21"/>
+                                            <rect key="frame" x="236" y="80" width="78" height="21"/>
                                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                            <fontDescription key="fontDescription" type="system" pointSize="15"/>
-                                            <color key="textColor" red="1" green="0.0" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
+                                            <fontDescription key="fontDescription" type="boldSystem" pointSize="15"/>
+                                            <color key="textColor" red="0.1960784314" green="0.30980392159999998" blue="0.52156862749999999" alpha="1" colorSpace="calibratedRGB"/>
                                             <color key="highlightedColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                                         </label>
-                                        <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" id="1dz-ah-jCA">
-                                            <rect key="frame" x="5" y="78" width="105" height="24"/>
+                                        <segmentedControl opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="top" segmentControlStyle="bar" id="Tdc-ai-CMO">
+                                            <rect key="frame" x="5" y="72" width="169" height="30"/>
                                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                            <fontDescription key="fontDescription" type="boldSystem" pointSize="12"/>
-                                            <state key="normal" title="Selected Reviews">
-                                                <color key="titleColor" red="0.1960784314" green="0.30980392159999998" blue="0.52156862749999999" alpha="1" colorSpace="calibratedRGB"/>
-                                                <color key="titleShadowColor" red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
-                                            </state>
-                                            <state key="highlighted">
-                                                <color key="titleColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
-                                            </state>
+                                            <segments>
+                                                <segment title="Reviews"/>
+                                                <segment title="Ranking"/>
+                                            </segments>
+                                            <color key="tintColor" white="0.33333333333333331" alpha="1" colorSpace="calibratedWhite"/>
                                             <connections>
-                                                <action selector="selectedReviewsTapped:" destination="eOl-zM-QI6" eventType="touchUpInside" id="3cX-zB-aVA"/>
+                                                <action selector="reviewRanksTapped:" destination="eOl-zM-QI6" eventType="valueChanged" id="Qpa-2E-DuA"/>
                                             </connections>
-                                        </button>
+                                        </segmentedControl>
                                     </subviews>
                                     <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
                                 </view>
@@ -191,7 +194,8 @@
                                     <outlet property="productImage" destination="P8m-Fk-xfe" id="KLb-i4-4U2"/>
                                     <outlet property="productPrice" destination="v8X-k8-cLx" id="v0j-lh-qQP"/>
                                     <outlet property="productTitle" destination="DuK-Tq-Yya" id="SBg-6u-Enw"/>
-                                    <segue destination="dpq-4b-jLR" kind="push" identifier="KResultsDetailSegue" id="RQS-0B-LEk"/>
+                                    <outlet property="reviewRanks" destination="Tdc-ai-CMO" id="X9D-7u-baW"/>
+                                    <segue destination="dpq-4b-jLR" kind="push" identifier="kResultsDetailSegue" id="x6y-fK-rcr"/>
                                 </connections>
                             </tableViewCell>
                         </prototypes>
@@ -200,13 +204,7 @@
                             <outlet property="delegate" destination="eOl-zM-QI6" id="fWy-WJ-vVk"/>
                         </connections>
                     </tableView>
-                    <navigationItem key="navigationItem" title="Results" id="C4n-mI-BRT">
-                        <barButtonItem key="rightBarButtonItem" title="Rank" id="Kic-3c-KrM">
-                            <connections>
-                                <action selector="rankTapped:" destination="eOl-zM-QI6" id="o59-zX-sYX"/>
-                            </connections>
-                        </barButtonItem>
-                    </navigationItem>
+                    <navigationItem key="navigationItem" title="Results" id="C4n-mI-BRT"/>
                     <connections>
                         <segue destination="ezZ-8Z-pMJ" kind="push" identifier="kReviewsListSegue" id="zBy-Jw-zAO"/>
                         <segue destination="Ywl-LN-NEi" kind="push" identifier="kProductRankSegueId" id="cVw-bT-Aq1"/>
@@ -216,16 +214,16 @@
             </objects>
             <point key="canvasLocation" x="643" y="377"/>
         </scene>
-        <!--Mz Product Rank View Controller - Product Rank-->
+        <!--Mz Product Rank2 View Controller - Product Rank-->
         <scene sceneID="5eW-rY-aQY">
             <objects>
-                <viewController id="Ywl-LN-NEi" customClass="MzProductRankViewController" sceneMemberID="viewController">
+                <viewController id="Ywl-LN-NEi" customClass="MzProductRank2ViewController" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="Scy-6O-vFR">
                         <rect key="frame" x="0.0" y="64" width="320" height="367"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                         <subviews>
-                            <view contentMode="scaleToFill" id="Ahu-GP-1X5" customClass="CPTGraphHostingView">
-                                <rect key="frame" x="20" y="35" width="280" height="300"/>
+                            <view contentMode="scaleToFill" id="6Qw-nr-E5u" customClass="CPTGraphHostingView">
+                                <rect key="frame" x="0.0" y="0.0" width="320" height="367"/>
                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                 <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="calibratedWhite"/>
                             </view>
@@ -234,7 +232,7 @@
                     </view>
                     <navigationItem key="navigationItem" title="Product Rank" id="U8J-JE-XU7"/>
                     <connections>
-                        <outlet property="hostView" destination="Ahu-GP-1X5" id="yqT-jC-189"/>
+                        <outlet property="hostView" destination="6Qw-nr-E5u" id="3Tw-jN-byB"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="I4V-NH-XjD" userLabel="First Responder" sceneMemberID="firstResponder"/>
@@ -271,78 +269,57 @@
         <scene sceneID="zyQ-FY-xRp">
             <objects>
                 <tableViewController id="ezZ-8Z-pMJ" customClass="MzReviewsListViewController" sceneMemberID="viewController">
-                    <tableView key="view" opaque="NO" clipsSubviews="YES" clearsContextBeforeDrawing="NO" contentMode="scaleToFill" alwaysBounceVertical="YES" indicatorStyle="black" dataMode="prototypes" style="grouped" separatorStyle="singleLineEtched" showsSelectionImmediatelyOnTouchBegin="NO" rowHeight="110" sectionHeaderHeight="10" sectionFooterHeight="10" id="jrN-0u-7Ab">
+                    <tableView key="view" opaque="NO" clipsSubviews="YES" clearsContextBeforeDrawing="NO" contentMode="scaleToFill" alwaysBounceVertical="YES" indicatorStyle="black" dataMode="prototypes" style="grouped" separatorStyle="none" allowsSelection="NO" showsSelectionImmediatelyOnTouchBegin="NO" rowHeight="120" sectionHeaderHeight="10" sectionFooterHeight="10" id="jrN-0u-7Ab">
                         <rect key="frame" x="0.0" y="64" width="320" height="367"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <color key="backgroundColor" cocoaTouchSystemColor="groupTableViewBackgroundColor"/>
                         <prototypes>
-                            <tableViewCell contentMode="scaleToFill" selectionStyle="blue" accessoryType="disclosureIndicator" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="kReviewCellIdentifier" rowHeight="110" id="ERO-b3-Y7W" customClass="MzReviewsListCell">
-                                <rect key="frame" x="0.0" y="46" width="320" height="112"/>
+                            <tableViewCell contentMode="scaleToFill" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="kReviewCellIdentifier" rowHeight="120" id="ERO-b3-Y7W" customClass="MzReviewsListCell">
+                                <rect key="frame" x="0.0" y="46" width="320" height="121"/>
                                 <autoresizingMask key="autoresizingMask"/>
                                 <view key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center">
-                                    <rect key="frame" x="10" y="1" width="280" height="109"/>
+                                    <rect key="frame" x="10" y="1" width="300" height="119"/>
                                     <autoresizingMask key="autoresizingMask"/>
                                     <subviews>
-                                        <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="Rating:" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="Nup-Z2-jR4">
-                                            <rect key="frame" x="206" y="0.0" width="45" height="23"/>
-                                            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                            <fontDescription key="fontDescription" type="boldSystem" pointSize="12"/>
-                                            <color key="textColor" red="1" green="0.0" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
-                                            <color key="highlightedColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
-                                        </label>
-                                        <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="5.0" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="Tdd-mt-3tJ">
-                                            <rect key="frame" x="257" y="0.0" width="42" height="21"/>
+                                        <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="5.0" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="Tdd-mt-3tJ">
+                                            <rect key="frame" x="258" y="0.0" width="36" height="21"/>
                                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                             <color key="backgroundColor" red="1" green="1" blue="1" alpha="0.59999999999999998" colorSpace="calibratedRGB"/>
-                                            <fontDescription key="fontDescription" type="boldSystem" pointSize="13"/>
+                                            <fontDescription key="fontDescription" type="boldSystem" pointSize="14"/>
                                             <color key="textColor" red="1" green="0.0" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
-                                            <color key="highlightedColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
-                                        </label>
-                                        <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="By" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="fws-Ar-fx4">
-                                            <rect key="frame" x="9" y="82" width="21" height="21"/>
-                                            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                            <fontDescription key="fontDescription" type="system" pointSize="11"/>
-                                            <color key="textColor" cocoaTouchSystemColor="darkTextColor"/>
                                             <color key="highlightedColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                                         </label>
                                         <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="Author" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="SO8-1E-Em7">
-                                            <rect key="frame" x="32" y="82" width="65" height="21"/>
+                                            <rect key="frame" x="16" y="90" width="73" height="21"/>
                                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                            <fontDescription key="fontDescription" type="system" pointSize="11"/>
+                                            <fontDescription key="fontDescription" type="boldSystem" pointSize="12"/>
                                             <color key="textColor" red="0.2484874115" green="0.40622009819999999" blue="0.82443104619999996" alpha="1" colorSpace="calibratedRGB"/>
                                             <color key="highlightedColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                                         </label>
                                         <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="DateTime" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="nab-kb-WLI">
-                                            <rect key="frame" x="100" y="83" width="61" height="21"/>
+                                            <rect key="frame" x="103" y="90" width="75" height="21"/>
                                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                            <fontDescription key="fontDescription" type="system" pointSize="11"/>
-                                            <color key="textColor" cocoaTouchSystemColor="darkTextColor"/>
-                                            <color key="highlightedColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
-                                        </label>
-                                        <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="Source" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="BTz-FO-FVI">
-                                            <rect key="frame" x="172" y="82" width="35" height="21"/>
-                                            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                            <fontDescription key="fontDescription" type="system" pointSize="11"/>
+                                            <fontDescription key="fontDescription" type="boldSystem" pointSize="12"/>
                                             <color key="textColor" cocoaTouchSystemColor="darkTextColor"/>
                                             <color key="highlightedColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                                         </label>
                                         <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="Best Buy" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="I20-mb-6kl">
-                                            <rect key="frame" x="226" y="82" width="80" height="21"/>
+                                            <rect key="frame" x="206" y="90" width="67" height="21"/>
                                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                            <fontDescription key="fontDescription" type="system" pointSize="11"/>
+                                            <fontDescription key="fontDescription" type="boldSystem" pointSize="12"/>
                                             <color key="textColor" red="0.2484874115" green="0.40622009819999999" blue="0.82443104619999996" alpha="1" colorSpace="calibratedRGB"/>
                                             <color key="highlightedColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                                         </label>
                                         <textView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" editable="NO" id="SBU-Rz-aKl">
-                                            <rect key="frame" x="6" y="24" width="265" height="60"/>
+                                            <rect key="frame" x="6" y="24" width="265" height="63"/>
                                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                            <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="calibratedRGB"/>
+                                            <color key="backgroundColor" red="0.92438009509999997" green="0.92438009509999997" blue="0.92438009509999997" alpha="1" colorSpace="calibratedRGB"/>
                                             <string key="text">Lorem ipsum dolor sit er elit lamet, consectetaur cillium adipisicing pecu, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Nam liber te conscient to factor tum poen legum odioque civiuda.</string>
                                             <fontDescription key="fontDescription" type="system" pointSize="12"/>
                                             <textInputTraits key="textInputTraits" autocapitalizationType="sentences"/>
                                         </textView>
-                                        <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="Review Title" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsLetterSpacingToFitWidth="YES" adjustsFontSizeToFit="NO" id="WT0-ZF-RJd">
-                                            <rect key="frame" x="9" y="0.0" width="198" height="26"/>
+                                        <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="Review Title" lineBreakMode="wordWrap" baselineAdjustment="alignBaselines" adjustsLetterSpacingToFitWidth="YES" adjustsFontSizeToFit="NO" id="WT0-ZF-RJd">
+                                            <rect key="frame" x="9" y="0.0" width="241" height="26"/>
                                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                             <fontDescription key="fontDescription" type="boldSystem" pointSize="13"/>
                                             <color key="textColor" red="0.1960784314" green="0.30980392159999998" blue="0.52156862749999999" alpha="1" colorSpace="calibratedRGB"/>
@@ -439,8 +416,8 @@
         <class className="CPTGraphHostingView" superclassName="UIView">
             <source key="sourceIdentifier" type="project" relativePath="./Classes/CPTGraphHostingView.h"/>
         </class>
-        <class className="MzProductRankViewController" superclassName="UIViewController">
-            <source key="sourceIdentifier" type="project" relativePath="./Classes/MzProductRankViewController.h"/>
+        <class className="MzProductRank2ViewController" superclassName="UIViewController">
+            <source key="sourceIdentifier" type="project" relativePath="./Classes/MzProductRank2ViewController.h"/>
             <relationships>
                 <relationship kind="outlet" name="hostView" candidateClass="CPTGraphHostingView"/>
             </relationships>
@@ -464,7 +441,7 @@
                 <relationship kind="outlet" name="productImage" candidateClass="UIImageView"/>
                 <relationship kind="outlet" name="productPrice" candidateClass="UILabel"/>
                 <relationship kind="outlet" name="productTitle" candidateClass="UILabel"/>
-                <relationship kind="outlet" name="selectedReviews" candidateClass="UIButton"/>
+                <relationship kind="outlet" name="reviewRanks" candidateClass="UISegmentedControl"/>
             </relationships>
         </class>
         <class className="MzResultsDetailViewController" superclassName="UIViewController">
@@ -476,8 +453,7 @@
         <class className="MzResultsListViewController" superclassName="UITableViewController">
             <source key="sourceIdentifier" type="project" relativePath="./Classes/MzResultsListViewController.h"/>
             <relationships>
-                <relationship kind="action" name="rankTapped:"/>
-                <relationship kind="action" name="selectedReviewsTapped:"/>
+                <relationship kind="action" name="reviewRanksTapped:"/>
             </relationships>
         </class>
         <class className="MzReviewsListCell" superclassName="UITableViewCell">
@@ -504,6 +480,7 @@
                 <relationship kind="outlet" name="mainMenu" candidateClass="MzSearchSegmentedControl"/>
                 <relationship kind="outlet" name="pickerView" candidateClass="UIPickerView"/>
                 <relationship kind="outlet" name="searchBar" candidateClass="UISearchBar"/>
+                <relationship kind="outlet" name="textGuide" candidateClass="UILabel"/>
             </relationships>
         </class>
         <class className="MzSearchSegmentedControl" superclassName="UISegmentedControl">

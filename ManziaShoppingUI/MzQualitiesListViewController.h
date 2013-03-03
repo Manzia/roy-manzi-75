@@ -7,10 +7,11 @@
 //
 
 #import <UIKit/UIKit.h>
+#import "MzSearchReviewsViewController.h"
 
 @class MzQualityCollection;
 
-@interface MzQualitiesListViewController : UITableViewController
+@interface MzQualitiesListViewController : UITableViewController <MzSearchReviewsViewControllerDelegate>
 
 // Array of Qualities to display
 @property (nonatomic, strong) NSArray *qualityArray;

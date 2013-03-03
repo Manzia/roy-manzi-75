@@ -98,50 +98,8 @@ static void *ReviewCollectionContext = &ReviewCollectionContext;
     [self.reviewCollection startCollection];
     
     // Core Data - intialize array of ReviewItems
-    self->reviewItems = [NSMutableArray array];
+    self->reviewItems = [NSMutableArray array];    
     
-    /* we initialize our NSManagedObjectContext
-    self.managedContext = self.productItem.managedObjectContext;
-    assert(self.managedContext != nil);
-        
-    // We can now initialize our NSFetchedResultsController
-    NSFetchRequest *mrequest = [NSFetchRequest fetchRequestWithEntityName:kReviewItemEntity];
-    assert(mrequest != nil);
-    NSPredicate *predicate = [NSPredicate predicateWithFormat:@"reviewSku like[c] %@", self.productItem.productID];
-    assert(predicate != nil);
-    [mrequest setPredicate:predicate];
-    
-    // Sort Results by the Review submissionTime, i.e newest Reviews first
-    NSSortDescriptor *sortDescriptorType = [[NSSortDescriptor alloc] initWithKey:@"reviewSubmitTime" ascending:NO comparator:^(MzReviewItem *reviewOne, MzReviewItem *reviewTwo) {
-        return [reviewOne.reviewSubmitTime compare:reviewTwo.reviewSubmitTime];
-    }];
-    NSSortDescriptor *sortByRating = [[NSSortDescriptor alloc] initWithKey:@"reviewRating" ascending:NO];
-    assert(sortByRating != nil);
-    NSArray *sortDescriptors = [NSArray arrayWithObject:sortByRating];
-    [mrequest setSortDescriptors:sortDescriptors];
-    
-    // We set up only one section i.e one component for the UIPickerView
-    NSFetchedResultsController *controller = [[NSFetchedResultsController alloc] initWithFetchRequest:mrequest
-                                                                                 managedObjectContext:self.managedContext
-                                                                                   sectionNameKeyPath:nil
-                                                                                            cacheName:nil];
-    assert(controller != nil);
-    self.fetchController = controller;
-    assert(self.fetchController != nil);
-    self.fetchController.delegate = self;       // Set "ourself" as delegate
-    
-    // Execute the fetch
-    NSError *error = NULL;
-    [self.fetchController performFetch:&error];
-    
-    // Error-checking
-    if (error) {
-        
-        //Log
-        [[QLog log] logWithFormat:@"Error fetching Review Items to display from MzReviewiTem Entity: %@", error.localizedDescription];
-        self.fetchController = nil;
-    } */
-
 }
 
 - (void)didReceiveMemoryWarning
@@ -171,6 +129,12 @@ static void *ReviewCollectionContext = &ReviewCollectionContext;
 -(void)viewDidUnload
 {
     self.reviewCollection = nil;
+}
+
+// Rotation
+- (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
+{
+    return  interfaceOrientation == UIInterfaceOrientationPortrait ? YES : NO;
 }
 
 #pragma mark - Review Collection management

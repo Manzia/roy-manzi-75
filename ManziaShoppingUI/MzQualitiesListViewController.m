@@ -57,6 +57,11 @@ static NSString *kQualitiesCellIdentifier = @"kQualitiesDetailCellId";
     [super viewWillAppear:animated];
 }
 
+// Rotation
+- (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
+{
+    return  interfaceOrientation == UIInterfaceOrientationPortrait ? YES : NO;
+}
 
 - (void)didReceiveMemoryWarning
 {
@@ -154,5 +159,15 @@ static NSString *kQualitiesCellIdentifier = @"kQualitiesDetailCellId";
         }        
     }
 }
+
+#pragma mark - SearchReviews Delegate
+
+/* Empty the array of Qualities if the User has changed Category in the MzSearcnReviewsViewController
+-(void)controller:(MzSearchReviewsViewController *)searchController changedCategory:(BOOL)changed
+{
+    // If our array of qualities is not yet set just return
+    if (self.qualityArray == nil) return;
+    
+} */
 
 @end

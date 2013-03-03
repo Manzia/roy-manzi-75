@@ -69,8 +69,24 @@ static NSString *kTaskURLString = @"http://ec2-50-18-112-205.us-west-1.compute.a
     UITabBarController *tabBarController = (UITabBarController *)self.window.rootViewController;
     UITabBarItem *searchesItem = [[UITabBarItem alloc] initWithTitle:@"Searches" image:nil tag:0];
     UITabBarItem *resultsItem = [[UITabBarItem alloc] initWithTitle:@"Results" image:nil tag:1];
-    [[[tabBarController viewControllers] objectAtIndex:0] setTabBarItem:searchesItem];
-    [[[tabBarController viewControllers] objectAtIndex:1] setTabBarItem:resultsItem];
+    
+    // Disable the "Results" UITabBarItem initially so User has to start with the Searches Tab...otherwise
+    // this will cause App to crash
+    resultsItem.enabled = NO;
+    
+    //[[[tabBarController viewControllers] objectAtIndex:0] setTabBarItem:searchesItem];
+    //[[[tabBarController viewControllers] objectAtIndex:1] setTabBarItem:resultsItem];
+    
+    // Set the NavigationBar Appearance
+    UINavigationController *searchNavigation = [[tabBarController viewControllers] objectAtIndex:0];
+    UINavigationController *resultsNavigation = [[tabBarController viewControllers] objectAtIndex:1];
+    assert(searchNavigation != nil);
+    assert(resultsNavigation != nil);
+    [searchNavigation setTabBarItem:searchesItem];
+    [resultsNavigation setTabBarItem:resultsItem];
+    searchNavigation.navigationBar.barStyle = UIBarStyleBlack;
+    resultsNavigation.navigationBar.barStyle = UIBarStyleBlack;
+    
     
 	// Start the MzSearchCollection
     self.searchCollection = [[MzSearchCollection alloc] init];

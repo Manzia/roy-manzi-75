@@ -73,6 +73,9 @@
 @synthesize savedQualities;
 @synthesize categoryHasChanged;
 @synthesize currentCategory;
+@synthesize delegate;
+@synthesize qualityDelegate;
+@synthesize textGuide;
 
 // Database entity that we fetch from
 static NSString *kTaskTypeEntity = @"MzTaskType";
@@ -252,7 +255,33 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
     
     // Keep the UIPickerView hidden until user taps the Select Category or Select Quality segments
     assert(self.pickerView != nil);
-    self.pickerView.hidden = YES;    
+    self.pickerView.hidden = YES;
+    self.textGuide.hidden = YES;
+}
+
+// Animate the UILabel textGuide
+-(void)viewDidAppear:(BOOL)animated
+{
+    [super viewDidAppear:animated];
+    
+    // Setup Animation
+    NSTimeInterval delay = 1.0;
+    NSTimeInterval duration = 1.0;
+    assert(self.textGuide != nil);
+    
+    [UIView animateWithDuration:duration delay:delay options:UIViewAnimationOptionTransitionFlipFromLeft animations:^{
+             
+        self.textGuide.hidden = NO;
+        
+    }completion:^(BOOL finished) {
+        
+    }]; 
+}
+
+// Rotation
+- (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
+{
+    return  interfaceOrientation == UIInterfaceOrientationPortrait ? YES : NO;
 }
 
 
@@ -459,6 +488,13 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
         default:
             break;
     }
+    
+    // Remove all Qualities for the userQualities array thats "Pushed" to the MzQualitiesViewController
+    if (self.categoryHasChanged) {
+        
+        [self.usersQualities removeAllObjects];
+    }
+    
     // Update the Segment Trackers
     self.currentSegmentIdx = selectedIndex;
     self.currentCategory = newCategory;
@@ -491,7 +527,10 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
         assert(scollection != nil);
         [scollection addSearchItem:searchItem];
         
-        // Switch to the Results ViewController Hierarchy
+        // Switch to the Results ViewController Hierarchy and Activate the Results Tab BarItem
+        UITabBarItem *resultsTabBar = [[[self.tabBarController viewControllers] objectAtIndex:1] tabBarItem];
+        assert(resultsTabBar != nil);
+        resultsTabBar.enabled = YES;
         self.tabBarController.selectedIndex = 1;
         
     } else {
@@ -507,6 +546,7 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
 }
 
 // Notify the User that a quality has been added and also provide instructions on how to proceed
+// Decided against implementing this notification as it will become a nuisance.
 -(void)userQualityNotification
 {
     
@@ -520,6 +560,7 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
         assert(qualityController != nil);
         qualityController.qualityArray = [[NSArray alloc] initWithArray:self.usersQualities];        
         qualityController.qCollection = self.qualityCollection;
+        self.qualityDelegate = qualityController;
     }
 
 }
@@ -544,6 +585,10 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
     
     assert(self.searchBar != nil);
     assert(self.usersQualities != nil);
+    
+    // If the SearchBar is empty do nothing and return
+    if (self.searchBar.text == nil || [self.searchBar.text length] < 1 ) return;
+    
     NSSet *checkDups;
     NSString *query = [[NSString alloc] initWithString:self.searchBar.text];
     if (query != nil && [query length] > 0) {
@@ -605,6 +650,7 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
         // Send query to Delegate...method immediately starts the synchronization process
         // and also pushes the delegate onto screen
         assert(self.usersQualities != nil);
+        [self.usersQualities addObject:query];      // Add new Query
         MzSearchItem *searchItem = [self createSearchItemFromQuery:self.usersQualities andCategory:[self.mainMenu titleForSegmentAtIndex:0]];
         assert(self.delegate != nil);
         [self.delegate controller:self addSearchItem:searchItem];
@@ -617,8 +663,12 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
         // resign UISearchBar form being First Responder
         [searchesBar resignFirstResponder];
         
-        // Switch to the Results ViewController Hierarchy
+        // Switch to the Results ViewController Hierarchy and Activate the Results Tab BarItem
+        UITabBarItem *resultsTabBar = [[[self.tabBarController viewControllers] objectAtIndex:1] tabBarItem];
+        assert(resultsTabBar != nil);
+        resultsTabBar.enabled = YES;
         self.tabBarController.selectedIndex = 1;
+        
     } else {
         
         // resign UISearchBar form being First Responder but nothing else

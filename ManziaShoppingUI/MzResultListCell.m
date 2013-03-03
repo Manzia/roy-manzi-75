@@ -17,7 +17,7 @@
 @synthesize productPrice;
 @synthesize productTitle;
 @synthesize priceLabel;
-@synthesize selectedReviews;
+@synthesize reviewRanks;
 
 // USD
 static NSString *kUSDollarSymbol = @"$";
@@ -48,7 +48,7 @@ static NSString *kUSDollarSymbol = @"$";
         productTitle.textAlignment = UITextAlignmentCenter;
         productTitle.font = [UIFont systemFontOfSize:15.0];
         productPrice.text = [NSString stringWithFormat:@"%@%@", kUSDollarSymbol, productItem.productPriceAmount];
-        productPrice.textColor = [UIColor redColor];
+        productPrice.textColor = [UIColor blackColor];
         productPrice.textAlignment = UITextAlignmentLeft;
         
         
@@ -56,7 +56,7 @@ static NSString *kUSDollarSymbol = @"$";
             priceLabel.text = @"Price:";
         }
         priceLabel.textAlignment = UITextAlignmentRight;
-        priceLabel.textColor = [UIColor darkTextColor];
+        priceLabel.textColor = [UIColor lightTextColor];
     }
 }
 

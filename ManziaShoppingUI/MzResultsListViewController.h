@@ -17,9 +17,10 @@ MzSearchReviewsViewControllerDelegate> {
 }
 
 // Pushes the MzReviewsListViewController
--(IBAction)selectedReviewsTapped:(id)sender;
+-(IBAction)reviewRanksTapped:(id)sender;
 
-// Pushed the MzProductRankViewController
--(IBAction)rankTapped:(id)sender;
+// Generates a URL for a given MzSearchItem and Product SKU value that can be used to
+// the Rank Results for that Product
+-(NSURL *)createRankingURL:(MzSearchItem *)searchItem forProduct:(NSString *)prodSku;
 
 @end

@@ -6,18 +6,17 @@
 //  Copyright (c) 2013 Manzia Corporation. All rights reserved.
 //
 
-#import "MzProductRankViewController.h"
+#import "MzProductRank2ViewController.h"
 #import "NetworkManager.h"
 #import "RetryingHTTPOperation.h"
 #import "MzRanksParserOperation.h"
 #import "Logging.h"
 
-@interface MzProductRankViewController ()
+@interface MzProductRank2ViewController ()
 
 // Graph-related Properties
-@property (nonatomic, strong) CPTBarPlot *aaplPlot;
-@property (nonatomic, strong) CPTBarPlot *googPlot;
-@property (nonatomic, strong) CPTBarPlot *msftPlot;
+//@property (nonatomic, strong) CPTGraphHostingView *hostView;
+@property (nonatomic, strong) CPTBarPlot *rankPlot;
 @property (nonatomic, strong) CPTPlotSpaceAnnotation *priceAnnotation;
 
 // Network-related Properties
@@ -46,13 +45,11 @@
 
 @end
 
-@implementation MzProductRankViewController
+@implementation MzProductRank2ViewController
 
 // Graph-related
 @synthesize hostView;
-@synthesize aaplPlot;
-@synthesize googPlot;
-@synthesize msftPlot;
+@synthesize rankPlot;
 @synthesize priceAnnotation;
 
 // Network-related
@@ -70,8 +67,10 @@
 @synthesize dateFormatter;
 
 // Graph Constants
-CGFloat const CPDBarWidth = 0.25f;
-CGFloat const CPDBarInitialX = 0.25f;
+CGFloat const CPDBarWidth2 = 0.25f;
+CGFloat const CPDBarInitialX2 = 0.25f;
+static NSString *const kRankPlotSymbol = @"Ranking";
+static NSUInteger kTop25Max = 25;
 
 // Initializer
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
@@ -91,17 +90,17 @@ CGFloat const CPDBarInitialX = 0.25f;
     
     // Networking - Synchronization
     // rankingURLString is passed by the ViewController that pushes us on screen
-    assert(self.rankingURLString != nil);
-    if ([self.rankingURLString length] > 0) {
+    if (self.rankingURLString != nil && [self.rankingURLString length] > 0) {
         
         // Use KVO to observe the Synchronization process
         [self addObserver:self forKeyPath:@"statusOfSync" options:NSKeyValueObservingOptionNew context:nil];
         
         // Start synchronization (this is an asynchronous NSOperation)
         [self startSynchronization:nil];
-    }
-    
-	
+        
+        // Log
+        [[QLog log] logWithFormat:@"Started Synchronization for Product Ranking for URL: %@", self.rankingURLString];
+    }	
 }
 
 -(void)viewDidAppear:(BOOL)animated {
@@ -117,8 +116,11 @@ CGFloat const CPDBarInitialX = 0.25f;
     
     // Stop synchronizing if we are off screen.
     if (self.synchronizing) {
-        [self stopSynchronization];
+        [self stopSynchronization];        
     }
+    
+    // Remove observer
+    [self removeObserver:self forKeyPath:@"statusOfSync"];
 }
 
 -(void)viewDidUnload
@@ -133,10 +135,16 @@ CGFloat const CPDBarInitialX = 0.25f;
     self.statusOfSync = nil;
     self.dateLastSynced = nil;
     self.dateFormatter = nil;
-    self.errorFromLastSync = nil;    
+    self.errorFromLastSync = nil;
     
     // Remove observer
-    [self removeObserver:self forKeyPath:@"statusOfSync"];
+    //[self removeObserver:self forKeyPath:@"statusOfSync"];
+}
+
+// Rotation
+- (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
+{
+    return  interfaceOrientation == UIInterfaceOrientationPortrait ? YES : NO;
 }
 
 - (void)didReceiveMemoryWarning
@@ -152,7 +160,7 @@ CGFloat const CPDBarInitialX = 0.25f;
 {
     // if the sync succeeded we store the RankResults.
     if ([keyPath isEqualToString:@"statusOfSync"]) {
-        assert([object isKindOfClass:[MzProductRankViewController class]]);
+        assert([object isKindOfClass:[MzProductRank2ViewController class]]);
         
         if ((change != nil) && ([[change objectForKey:NSKeyValueChangeKindKey] intValue] == NSKeyValueChangeSetting)) {
             
@@ -162,47 +170,60 @@ CGFloat const CPDBarInitialX = 0.25f;
                 
                 // Log
                 [[QLog log] logWithFormat:@"Synchronization for Product Ranking Failed/Cancelled for URL: %@", self.rankingURLString];
-                                
+                
             } else if ([statusValue hasPrefix:@"Updated:"]) {
                 
-                // Synchronization succeeded so we re-load our graph ##########################???????????
-                
+                // Synchronization succeeded so we re-load our Plot
+                //[self printArrayofDictionaries:self.rankResults];
+                [self.rankPlot reloadData];
             }
         }
     }
-
+    
 }
+
+// Helper method to Print Array for Testing Purposes
+-(void)printArrayofDictionaries:(NSArray *)array
+{
+    assert(array != nil);
+    [array enumerateObjectsUsingBlock:^(NSDictionary *dict, NSUInteger idx, BOOL *stop) {
+        NSLog(@"Quality: %@\t\tRanking: %@\n", [dict objectForKey:kParserRankQuality], [dict objectForKey:kParserRankRating]);            
+        }];    
+}
+
 
 #pragma mark - CPTPlotDataSource methods
 
 -(NSUInteger)numberOfRecordsForPlot:(CPTPlot *)plot
 {
-    return [[[CPDStockPriceStore sharedInstance] datesInWeek] count];
+    return self.rankResults != nil ? [self.rankResults count] : 2;
 }
 
 -(NSNumber *)numberForPlot:(CPTPlot *)plot field:(NSUInteger)fieldEnum recordIndex:(NSUInteger)index
 {
-    if ((fieldEnum == CPTBarPlotFieldBarTip) && (index < [[[CPDStockPriceStore sharedInstance] datesInWeek] count])) {
-        if ([plot.identifier isEqual:CPDTickerSymbolAAPL]) {
-            return [[[CPDStockPriceStore sharedInstance] weeklyPrices:CPDTickerSymbolAAPL] objectAtIndex:index];
-        } else if ([plot.identifier isEqual:CPDTickerSymbolGOOG]) {
-            return [[[CPDStockPriceStore sharedInstance] weeklyPrices:CPDTickerSymbolGOOG] objectAtIndex:index];
-        } else if ([plot.identifier isEqual:CPDTickerSymbolMSFT]) {
-            return [[[CPDStockPriceStore sharedInstance] weeklyPrices:CPDTickerSymbolMSFT] objectAtIndex:index];
-        }
+    NSDecimalNumber *num = nil;
+    if (self.rankResults != nil && [self.rankResults count] > 0) {
+      
+       NSUInteger rank;
+       
+       switch ( fieldEnum ) {
+           case CPTBarPlotFieldBarLocation:
+               num = (NSDecimalNumber *)[NSDecimalNumber numberWithUnsignedInteger:index];
+               break;
+               
+           case CPTBarPlotFieldBarTip:
+               rank = [[[self.rankResults objectAtIndex:index] objectForKey:kParserRankRating] intValue];
+               
+               // Invert rank so lowest is highest (out of Top 25)
+               //NSLog(@"Inverted Rank Value: %d for Quality: %@\n", rank, [[self.rankResults objectAtIndex:index] objectForKey:kParserRankQuality]);
+               rank = rank == 0 ? 1 : kTop25Max - rank; // Add 1 to Zero rank so we can display annotation on graph
+               num = (NSDecimalNumber *)[NSDecimalNumber numberWithUnsignedInteger:rank];
+               break;
+       }
+       
     }
-    return [NSDecimalNumber numberWithUnsignedInteger:index];
+    return num;
 }
-
-/*-(CPTLayer *)dataLabelForPlot:(CPTPlot *)plot recordIndex:(NSUInteger)index
-{
-    return nil;
-}
-
--(NSString *)legendTitleForPieChart:(CPTPieChart *)pieChart recordIndex:(NSUInteger)index
-{
-    return @"";
-}*/
 
 #pragma mark - CPTBarPlotDelegate methods
 
@@ -217,13 +238,13 @@ CGFloat const CPDBarInitialX = 0.25f;
     static CPTMutableTextStyle *style = nil;
     if (!style) {
         style = [CPTMutableTextStyle textStyle];
-        style.color= [CPTColor yellowColor];
-        style.fontSize = 16.0f;
+        style.color= [CPTColor redColor];
+        style.fontSize = 14.0f;
         style.fontName = @"Helvetica-Bold";
-    }
+    } 
     
     // 3 - Create annotation, if necessary
-    NSNumber *price = [self numberForPlot:plot field:CPTBarPlotFieldBarTip recordIndex:index];
+    NSNumber *rank = [self numberForPlot:plot field:CPTBarPlotFieldBarTip recordIndex:index];
     if (!self.priceAnnotation) {
         NSNumber *x = [NSNumber numberWithInt:0];
         NSNumber *y = [NSNumber numberWithInt:0];
@@ -235,32 +256,36 @@ CGFloat const CPDBarInitialX = 0.25f;
     static NSNumberFormatter *formatter = nil;
     if (!formatter) {
         formatter = [[NSNumberFormatter alloc] init];
-        [formatter setMaximumFractionDigits:2];
+        [formatter setMaximumFractionDigits:0];
     }
     
     // 5 - Create text layer for annotation
-    NSString *priceValue = [formatter stringFromNumber:price];
-    CPTTextLayer *textLayer = [[CPTTextLayer alloc] initWithText:priceValue style:style];
+    // Zero rank is interpreted as being greater than 25
+    NSNumber *newRank = [NSNumber numberWithInt:kTop25Max - [rank intValue]]; // Display original unreversed Rank
+    NSString *rankValue;
+    
+    if ([rank intValue] <= 1) {
+        rankValue = @">25";
+    } else {
+        rankValue = [formatter stringFromNumber:newRank];
+    }
+    
+    CPTTextLayer *textLayer = [[CPTTextLayer alloc] initWithText:rankValue style:style];
     self.priceAnnotation.contentLayer = textLayer;
     
     // 6 - Get plot index based on identifier
-    NSInteger plotIndex = 0;
-    if ([plot.identifier isEqual:CPDTickerSymbolAAPL] == YES) {
-        plotIndex = 0;
-    } else if ([plot.identifier isEqual:CPDTickerSymbolGOOG] == YES) {
-        plotIndex = 1;
-    } else if ([plot.identifier isEqual:CPDTickerSymbolMSFT] == YES) {
-        plotIndex = 2;
-    }
-    
+    //NSInteger plotIndex = 0;
+       
     // 7 - Get the anchor point for annotation
-    CGFloat x = index + CPDBarInitialX + (plotIndex * CPDBarWidth);
+    CGFloat x = index + CPDBarInitialX2;
+    //CGFloat x = 0.1f;
     NSNumber *anchorX = [NSNumber numberWithFloat:x];
-    CGFloat y = [price floatValue] + 40.0f;
+    //CGFloat y = [price floatValue] + 40.0f;
+    CGFloat y = [rank floatValue] + 2.0f;
     NSNumber *anchorY = [NSNumber numberWithFloat:y];
     self.priceAnnotation.anchorPlotPoint = [NSArray arrayWithObjects:anchorX, anchorY, nil];
     
-    // 8 - Add the annotation 
+    // 8 - Add the annotation
     [plot.graph.plotAreaFrame.plotArea addAnnotation:self.priceAnnotation];
 }
 
@@ -282,11 +307,23 @@ CGFloat const CPDBarInitialX = 0.25f;
     self.hostView.hostedGraph = graph;
     
     // 2 - Configure the graph
-    [graph applyTheme:[CPTTheme themeNamed:kCPTPlainBlackTheme]];
-    graph.paddingBottom = 0.0f;
-    graph.paddingLeft  = 0.0f;
-    graph.paddingTop    = 0.0f;
+    //[graph applyTheme:[CPTTheme themeNamed:kCPTPlainBlackTheme]];
+    [graph applyTheme:[CPTTheme themeNamed:kCPTDarkGradientTheme]];
+        
+    // Border
+    graph.plotAreaFrame.borderLineStyle = nil;
+    graph.plotAreaFrame.cornerRadius    = 0.0f;
+    
+    // Paddings
+    graph.paddingLeft   = 0.0f;
     graph.paddingRight  = 0.0f;
+    graph.paddingTop    = 0.0f;
+    graph.paddingBottom = 0.0f;
+    
+    graph.plotAreaFrame.paddingLeft   = 70.0;
+    graph.plotAreaFrame.paddingTop    = 40.0;
+    graph.plotAreaFrame.paddingRight  = 20.0;
+    graph.plotAreaFrame.paddingBottom = 80.0;
     
     // 3 - Set up styles
     CPTMutableTextStyle *titleStyle = [CPTMutableTextStyle textStyle];
@@ -295,57 +332,56 @@ CGFloat const CPDBarInitialX = 0.25f;
     titleStyle.fontSize = 16.0f;
     
     // 4 - Set up title
-    NSString *title = @"Portfolio Prices: April 23 - 27, 2012";
+    NSString *title = @" Top 25 Rank per Quality";
     graph.title = title;
     graph.titleTextStyle = titleStyle;
     graph.titlePlotAreaFrameAnchor = CPTRectAnchorTop;
-    graph.titleDisplacement = CGPointMake(0.0f, -16.0f);
+    //graph.titleDisplacement = CGPointMake(0.0f, -16.0f);
+    graph.titleDisplacement = CGPointMake(0.0f, -15.0f);
     
     // 5 - Set up plot space
     CGFloat xMin = 0.0f;
-    CGFloat xMax = [[[CPDStockPriceStore sharedInstance] datesInWeek] count];
+    CGFloat xMax = 5.0f;
+    if (self.rankResults != nil) {
+        xMax = (CGFloat)[self.rankResults count] * 2;
+    }
     CGFloat yMin = 0.0f;
-    CGFloat yMax = 800.0f;  // should determine dynamically based on max price
+    CGFloat yMax = (CGFloat) kTop25Max; // Max Rank along a Quality possible
     CPTXYPlotSpace *plotSpace = (CPTXYPlotSpace *) graph.defaultPlotSpace;
     plotSpace.xRange = [CPTPlotRange plotRangeWithLocation:CPTDecimalFromFloat(xMin) length:CPTDecimalFromFloat(xMax)];
     plotSpace.yRange = [CPTPlotRange plotRangeWithLocation:CPTDecimalFromFloat(yMin) length:CPTDecimalFromFloat(yMax)];
-
+    
 }
 
 -(void)configurePlots
 {
-    // 1 - Set up the three plots
-    self.aaplPlot = [CPTBarPlot tubularBarPlotWithColor:[CPTColor redColor] horizontalBars:NO];
-    self.aaplPlot.identifier = CPDTickerSymbolAAPL;
-    self.googPlot = [CPTBarPlot tubularBarPlotWithColor:[CPTColor greenColor] horizontalBars:NO];
-    self.googPlot.identifier = CPDTickerSymbolGOOG;
-    self.msftPlot = [CPTBarPlot tubularBarPlotWithColor:[CPTColor blueColor] horizontalBars:NO];
-    self.msftPlot.identifier = CPDTickerSymbolMSFT;
+    self.rankPlot = [CPTBarPlot tubularBarPlotWithColor:[CPTColor blueColor] horizontalBars:NO];
+    self.rankPlot.identifier = kRankPlotSymbol;
     
     // 2 - Set up line style
     CPTMutableLineStyle *barLineStyle = [[CPTMutableLineStyle alloc] init];
-    barLineStyle.lineColor = [CPTColor lightGrayColor];
+    barLineStyle.lineColor = [CPTColor darkGrayColor];
     barLineStyle.lineWidth = 0.5;
     
     // 3 - Add plots to graph
     CPTGraph *graph = self.hostView.hostedGraph;
-    CGFloat barX = CPDBarInitialX;
-    NSArray *plots = [NSArray arrayWithObjects:self.aaplPlot, self.googPlot, self.msftPlot, nil];
+    CGFloat barX = CPDBarInitialX2;
+    NSArray *plots = [NSArray arrayWithObject:self.rankPlot];
     for (CPTBarPlot *plot in plots) {
         plot.dataSource = self;
         plot.delegate = self;
-        plot.barWidth = CPTDecimalFromDouble(CPDBarWidth);
+        plot.barWidth = CPTDecimalFromDouble(CPDBarWidth2);
         plot.barOffset = CPTDecimalFromDouble(barX);
         plot.lineStyle = barLineStyle;
         [graph addPlot:plot toPlotSpace:graph.defaultPlotSpace];
-        barX += CPDBarWidth;
+        barX += CPDBarWidth2;
     }
 }
 -(void)configureAxes
 {
     // 1 - Configure styles
     CPTMutableTextStyle *axisTitleStyle = [CPTMutableTextStyle textStyle];
-    axisTitleStyle.color = [CPTColor blackColor];
+    axisTitleStyle.color = [CPTColor whiteColor];
     axisTitleStyle.fontName = @"Helvetica-Bold";
     axisTitleStyle.fontSize = 12.0f;
     CPTMutableLineStyle *axisLineStyle = [CPTMutableLineStyle lineStyle];
@@ -354,19 +390,74 @@ CGFloat const CPDBarInitialX = 0.25f;
     
     // 2 - Get the graph's axis set
     CPTXYAxisSet *axisSet = (CPTXYAxisSet *) self.hostView.hostedGraph.axisSet;
+    CPTXYAxis *x = axisSet.xAxis;
+    
     // 3 - Configure the x-axis
-    axisSet.xAxis.labelingPolicy = CPTAxisLabelingPolicyNone;
-    axisSet.xAxis.title = @"Days of Week (Mon - Fri)";
-    axisSet.xAxis.titleTextStyle = axisTitleStyle;
-    axisSet.xAxis.titleOffset = 10.0f;
-    axisSet.xAxis.axisLineStyle = axisLineStyle;
+    if (self.rankResults == nil) {
+        axisSet.xAxis.labelingPolicy = CPTAxisLabelingPolicyNone;
+        axisSet.xAxis.title = @"Your Qualities";
+        axisSet.xAxis.titleTextStyle = axisTitleStyle;
+        axisSet.xAxis.titleOffset = 10.0f;
+        axisSet.xAxis.axisLineStyle = axisLineStyle;
+    } else {
+        // Define custom labels for the data elements
+        x.labelRotation  = M_PI / 4;
+        x.labelingPolicy = CPTAxisLabelingPolicyNone;
+        x.majorIntervalLength         = CPTDecimalFromString(@"2");
+        x.orthogonalCoordinateDecimal = CPTDecimalFromString(@"0");
+               
+        // Set the Locations
+        NSMutableArray *customTickLocations = [NSMutableArray arrayWithCapacity:[self.rankResults count]];
+        [self.rankResults enumerateObjectsUsingBlock:^(NSDictionary *dict, NSUInteger idx, BOOL *stop) {
+            
+                [customTickLocations addObject:[NSDecimalNumber numberWithFloat:((CGFloat)idx + 0.25f)]];
+        }]; 
+        
+        //NSArray *customTickLocations = [NSArray arrayWithObjects:[NSDecimalNumber numberWithInt:1], [NSDecimalNumber numberWithInt:5], [NSDecimalNumber numberWithInt:10], [NSDecimalNumber numberWithInt:15], nil];
+        //NSArray *xAxisLabels         = [NSArray arrayWithObjects:@"Label A", @"Label B", @"Label C", @"Label D", @"Label E", nil];
+        NSArray *xAxisLabels = [NSArray arrayWithArray:[self arrayofQualitiesFromDictionaries:self.rankResults]];
+        assert(xAxisLabels != nil);
+        NSUInteger labelLocation     = 0;
+        NSMutableArray *customLabels = [NSMutableArray arrayWithCapacity:[xAxisLabels count]];
+        for ( NSNumber *tickLocation in customTickLocations ) {
+            CPTAxisLabel *newLabel = [[CPTAxisLabel alloc] initWithText:[xAxisLabels objectAtIndex:labelLocation++] textStyle:x.labelTextStyle];
+            newLabel.tickLocation = [tickLocation decimalValue];
+            //newLabel.offset       = x.labelOffset + x.majorTickLength;
+            newLabel.offset = x.labelOffset;
+            newLabel.rotation = M_PI / 4;
+            [customLabels addObject:newLabel];
+        }
+        x.axisLabels = [NSSet setWithArray:customLabels];
+    }    
     
     // 4 - Configure the y-axis
     axisSet.yAxis.labelingPolicy = CPTAxisLabelingPolicyNone;
-    axisSet.yAxis.title = @"Price";
+    axisSet.yAxis.title = @"Rank";
     axisSet.yAxis.titleTextStyle = axisTitleStyle;
-    axisSet.yAxis.titleOffset = 5.0f;
+    axisSet.yAxis.titleOffset = 2.0f;
     axisSet.yAxis.axisLineStyle = axisLineStyle;
+    axisSet.yAxis.titleLocation = CPTDecimalFromInt(kTop25Max / 2);
+    
+    //axisSet.yAxis.majorIntervalLength = CPTDecimalFromString(@"5");
+    //axisSet.yAxis.orthogonalCoordinateDecimal = CPTDecimalFromString(@"0");
+    //axisSet.yAxis.titleLocation = CPTDecimalFromFloat(150.0f);
+}
+
+// Helper method that returns an NSArray with all the Qualities from the rankResults NSArray with NSDictionary entries
+-(NSArray *)arrayofQualitiesFromDictionaries:(NSArray *)array
+{
+    assert(array != nil);
+    if ([array count] > 0) {
+        NSMutableArray *allQualities = [NSMutableArray array];
+        [array enumerateObjectsUsingBlock:^(NSDictionary *dict, NSUInteger idx, BOOL *stop) {
+            [allQualities addObject:[dict objectForKey:kParserRankQuality]];
+        }];
+        return allQualities;
+        
+    } else {
+        // return empty Array
+        return [NSArray array];
+    }
 }
 
 #pragma mark - Network Synchronization
@@ -392,11 +483,11 @@ CGFloat const CPDBarInitialX = 0.25f;
     if (url != nil) {
         urlRequest = [[NetworkManager sharedManager] requestToGetURL:url];
         assert(urlRequest != nil);
-    }    
+    }
     return urlRequest;
 }
 
-/* Method that starts an HTTP GET operation to retrieve the RankResults XML file. The method has a relativePath argument whose value will be appended to the product collection's collectionURLString for the HTTP GET. 
+/* Method that starts an HTTP GET operation to retrieve the RankResults XML file. The method has a relativePath argument whose value will be appended to the product collection's collectionURLString for the HTTP GET.
  */
 - (void)startGetOperation:(NSString *)relativePath
 {
@@ -496,7 +587,7 @@ CGFloat const CPDBarInitialX = 0.25f;
         [[QLog log] logWithFormat:@"Successfully synced Product Ranking with URL: %@", self.rankingURLString];
         
     }
-    self.parserOperation = nil;    
+    self.parserOperation = nil;
     //[self notifyCacheSyncStatus];
 }
 
@@ -539,7 +630,7 @@ CGFloat const CPDBarInitialX = 0.25f;
 // Key method that starts the synchronization process
 - (void)startSynchronization:(NSString *)relativePath
 {
-   if ( !self.isSynchronizing ) {
+    if ( !self.isSynchronizing ) {
         if (self.stateOfSync == RankingSyncStateStopped) {
             [[QLog log] logWithFormat:@"Start synchronization for Product Ranking with URL: %@",
              self.rankingURLString];

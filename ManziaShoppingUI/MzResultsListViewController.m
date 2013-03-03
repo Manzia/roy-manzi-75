@@ -16,6 +16,7 @@
 #import "MzProductItem.h"
 #import "MzResultsDetailViewController.h"
 #import "MzReviewsListViewController.h"
+#import "MzProductRank2ViewController.h"
 
 @interface MzResultsListViewController ()
 
@@ -55,6 +56,9 @@
 // Integer that keeps track of which Selected Reviews UIButton was tapped
 @property (nonatomic, assign) NSUInteger buttonIndex;
 
+// URL String used to HTTP GET the RankResults from the Server
+//@property (nonatomic, copy) NSString *rankURLString;
+
 @end
 
 @implementation MzResultsListViewController
@@ -70,15 +74,22 @@
 @synthesize observedItems;
 @synthesize searchCategory;
 @synthesize buttonIndex;
+//@synthesize rankURLString;
 
 // Segue Identifier
-static NSString *kResultsDetailId = @"KResultsDetailSegue";
+static NSString *kResultsDetailId = @"kResultsDetailSegue";
 static NSString *kReviewsListSegueId = @"kReviewsListSegue";
 static NSString *kProductRankId = @"kProductRankSegueId";
 
 // Base URL for Search URLs
-//static NSString *manziBaseURL = @"http://192.168.1.102:8080";
 static NSString *manziaServerPath = @"/ManziaWebService/searches";
+
+// Ranking URL path
+static NSString *kRankingURLPath = @"ManziaWebService/service/ranking";
+static NSString *kRankingURLFormat = @"%@/%@/%@?%@";
+static NSString *kRankingURLRequiresParams = @"sku=%@&Category=%@";
+static NSString *kRankingURLQueryFormat = @"%@=%@";
+static NSString *kRankingURLQueryParams = @"%@&%@";
 
 // SearchItem's Title string separator, format is "Brand Category" e.g "HP Laptop"
 static NSString *kSearchTitleSeparator = @" ";
@@ -230,7 +241,7 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
     return (interfaceOrientation == UIInterfaceOrientationPortrait);
 }
 
-#pragma mark - Search URL creation
+#pragma mark - URL creation
 
 - (NSURL *)createURLFromSearchItem:(MzSearchItem *)aSearchItem
 {
@@ -259,18 +270,6 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
     
     // Create the Query Parameters
     // Modified Feb 2, 2013 - Category Key is inserted in the MzSearchReviewsViewController
-    /*NSString *queryCategory;
-    if ([aSearchItem.searchTitle length] > 0) {
-        queryCategory = [[aSearchItem.searchTitle componentsSeparatedByString:kSearchTitleSeparator] objectAtIndex:1];
-    }    
-    assert(queryCategory != nil);
-    
-    // Adjust the Mobile Phone category
-    NSRange phonesRange = [queryCategory rangeOfString:kPhonesCategory options:NSCaseInsensitiveSearch];
-    if (phonesRange.location != NSNotFound) {
-        queryCategory = kMobilePhonesCategory;
-    }*/
-    
     NSMutableDictionary * queryOptions = [NSMutableDictionary dictionaryWithDictionary:aSearchItem.searchOptions];
     assert(queryOptions != nil);
     //[queryOptions setObject:queryCategory forKey:kSearchCategoryKey];
@@ -301,6 +300,71 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
     //Log
     [[QLog log] logWithFormat:@"Created Search URL: %@", [searchURL absoluteString]];
     return searchURL;        
+}
+
+// Generates a URL for a given MzSearchItem and Product SKU value that can be used to
+// the Rank Results for that Product
+//
+-(NSURL *)createRankingURL:(MzSearchItem *)searchItem forProduct:(NSString *)prodSku
+{
+    assert(searchItem != nil);
+    assert(searchItem.searchOptions != nil);
+    assert(prodSku != nil);
+    if ([searchItem.searchOptions count] > 0 && [prodSku length] > 0) {
+        
+        // Iterate
+        __block NSString *queryString = nil;
+        [searchItem.searchOptions enumerateKeysAndObjectsUsingBlock:^(NSString *key, NSString *value, BOOL *stop) {
+            if ([key hasPrefix:@"q"]) {
+                NSString *queryParam = [NSString stringWithFormat:kRankingURLQueryFormat, key, value];
+                assert(queryParam != nil);
+                queryString = queryString != nil ? [[[NSString alloc] init] stringByAppendingFormat:kRankingURLQueryParams, queryString, queryParam ] : [NSString stringWithString:queryParam];
+            }
+        }];
+        if (queryString == nil || [queryString length] == 0) {
+            
+            [[QLog log] logWithFormat:@"No Query Parameters found in SearchItem for ProductSku: %@", prodSku];
+        }
+        // Required Params
+        NSString *category = [searchItem.searchOptions objectForKey:kSearchCategoryKey];
+        assert(category != nil);
+        NSString *requiredParams = [NSString stringWithFormat:kRankingURLRequiresParams, prodSku, category];
+        assert(requiredParams != nil);
+        
+        // All Parameters
+        NSString *allParams = [NSString stringWithFormat:kRankingURLQueryParams, requiredParams, queryString];
+        assert(allParams != nil);
+        
+        // Device Id
+        NSString *deviceId = [(MzAppDelegate *)[[UIApplication sharedApplication] delegate] uniqueDeviceId];
+        if (deviceId == nil) {
+            deviceId = @"415-309-7418";
+        }
+        assert(deviceId != nil);
+        
+        // Base URL
+        NSString *mzBaseURL = [(MzAppDelegate *)[[UIApplication sharedApplication] delegate] searchesURL];
+        if (mzBaseURL == nil) {
+            mzBaseURL = @"http://ec2-50-18-112-205.us-west-1.compute.amazonaws.com:8080";
+        }
+        assert(mzBaseURL != nil);
+        
+        // Combine
+        NSString *urlString = [NSString stringWithFormat:kRankingURLFormat, mzBaseURL, kRankingURLPath, deviceId, allParams ];
+        assert(urlString != nil);
+        NSString *encodedURLString = [urlString stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+        assert(encodedURLString != nil);
+        NSURL *rankURL = [NSURL URLWithString:encodedURLString];
+        assert(rankURL != nil);
+        
+        //Log
+        [[QLog log] logWithFormat:@"Created Ranking URL: %@", [rankURL absoluteString]];
+        
+        return rankURL;
+    } else {
+        [[QLog log] logWithFormat:@"Invalid SearchItem and/or Product SKU...cannot create Ranking URL"];
+        return nil;
+    }
 }
 
 #pragma mark - Generate Product Collection
@@ -815,11 +879,10 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
         cell.productPrice.text = nil;
         cell.priceLabel.text = nil;
         cell.productTitle.font = [UIFont systemFontOfSize:15.0];
-        cell.selectedReviews.hidden = YES;
+        cell.reviewRanks.hidden = YES;
         cell.userInteractionEnabled = NO;
-        cell.selectedReviews.userInteractionEnabled = NO;
-        //[cell.selectedReviews setTag:indexPath.row];
-        //cell.reviewButtonId = indexPath.row;
+        cell.reviewRanks.userInteractionEnabled = NO;
+        
     } else {
         
         // we have Searches to display
@@ -841,12 +904,10 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
             cell.productPrice.text = nil;
             cell.priceLabel.text = nil;
             cell.productTitle.font = [UIFont systemFontOfSize:15.0];
-            cell.selectedReviews.hidden = YES;
-            cell.selectedReviews.userInteractionEnabled = NO;
-            //[cell.selectedReviews setTag:indexPath.row];
-            //cell.selectedReviews.backgroundColor = [UIColor darkGrayColor];
+            cell.reviewRanks.hidden = YES;
+            cell.reviewRanks.userInteractionEnabled = NO;
             cell.userInteractionEnabled = NO;
-            //cell.reviewButtonId = indexPath.row;
+            
         } else {
             MzProductItem *productItem = [productsInSection objectAtIndex:indexPath.row];
             assert(productItem != nil);
@@ -855,15 +916,10 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
             //UIImage *cellImage = [UIImage imageNamed:@"first@2x.png"];
             assert(cellImage != nil);
             cell.productImage.image = cellImage;
-            cell.selectedReviews.hidden = NO;
+            cell.reviewRanks.hidden = NO;
+            cell.reviewRanks.userInteractionEnabled = YES;
             cell.userInteractionEnabled = YES;
-            //[cell.selectedReviews addTarget:self action:@selector(selectedReviewsTapped:event:) forControlEvents:UIControlEventTouchUpInside];
-            
-            // Assign the Reviews UIButton a tag corresponding to the tableView row so we can reference it again
-            //[cell.selectedReviews setTag:indexPath.row];
-            //cell.reviewButtonId = indexPath.row;
-            //NSLog(@"Reviews Button Tag was set to: %d", cell.reviewButtonId);
-            
+                       
             // Observe our cell's thumbnail
             if (self.observedItems == nil) {
                 self.observedItems = [NSMutableArray array];
@@ -900,14 +956,14 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
 // Override to support rearranging the table view.
 - (void)tableView:(UITableView *)tableView moveRowAtIndexPath:(NSIndexPath *)fromIndexPath toIndexPath:(NSIndexPath *)toIndexPath
 {
-}
+}*/
 // Override to support conditional rearranging of the table view.
 - (BOOL)tableView:(UITableView *)tableView canMoveRowAtIndexPath:(NSIndexPath *)indexPath
 {
     // Return NO if you do not want the item to be re-orderable.
-    return YES;
+    return NO;
 }
-*/
+
 
 #pragma mark - Table view delegate
 
@@ -1106,14 +1162,7 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
     
     // Pass the MzProductItem whose MzReviewItems will be displayed
     if ([[segue identifier] isEqualToString:kReviewsListSegueId]) {
-        assert([sender isKindOfClass:[UIButton class]]);
-        UIButton *reviewButton = (UIButton *)sender;
-        assert(reviewButton != nil);
-        
-        //CGPoint buttonCenter = CGPointMake((reviewButton.center.x * (CGFloat)(1+reviewButton.tag)), reviewButton.center.y * (CGFloat)(1+reviewButton.tag));
-        //NSLog(@"Review Button Center: (%f , %f)", buttonCenter.x, buttonCenter.y);
-        //NSIndexPath *buttonPath = [self.tableView indexPathForRowAtPoint:buttonCenter];
-        //assert(buttonPath != nil);
+              
         // Get the associated MzProductItem
         assert(self.sortedSections != nil);
         NSArray *productsInSection;
@@ -1128,49 +1177,81 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
         assert(prodItem != nil);
         [[QLog log] logWithFormat:@"User selected Review Button for Row: %d", self.buttonIndex];
         
-        //MzResultListCell *reviewCell = (MzResultListCell *)[self.tableView cellForRowAtIndexPath:
-        //                                                    [NSIndexPath indexPathForRow:reviewButton.tag inSection:0]];
-        //assert(reviewCell != nil);
-        //assert(reviewCell.productItem != nil);
-        
         // Pass the MzProductItem to the MzReviewsListViewController
         MzReviewsListViewController *reviewsController = [segue destinationViewController];
         reviewsController.productItem = prodItem;
         assert(reviewsController.productItem != nil);
         reviewsController.reviewCategory = self.searchCategory;
         assert(reviewsController.reviewCategory != nil);
-    }    
+    }
+    
+    // Pass the Rank URL to the MzProductRank2ViewController
+    if ([[segue identifier] isEqualToString:kProductRankId]) {
+        
+        // Get the associated MzProductItem
+        assert(self.sortedSections != nil);
+        NSArray *productsInSection;
+        NSURL *collectionName = [self.productSearchMap objectForKey:[self.sortedSections objectAtIndex:0]];
+        if (collectionName != nil) {
+            productsInSection = [self.allProductItems objectForKey:[collectionName path]];
+        } else {
+            //Log
+            [[QLog log] logWithFormat:@"Cannot find Product Collection by Name to retrieve MzProductItem to download MzReviewItems"];
+        }
+        MzProductItem *prodItem = [productsInSection objectAtIndex:self.buttonIndex];
+        assert(prodItem != nil);
+        
+        // Get the active MzSearchItem
+        MzSearchItem *searchItem = [self.allSearches objectForKey:[self.sortedSections objectAtIndex:0]];
+        assert(searchItem != nil);
+        NSString *rankURL = [[self createRankingURL:searchItem forProduct:prodItem.productID] absoluteString];
+        assert(rankURL != nil);
+        
+        // Pass the Rank URL
+        MzProductRank2ViewController *rankController = [segue destinationViewController];
+        rankController.rankingURLString = rankURL;
+        assert(rankController.rankingURLString != nil);
+    }
 
 }
 
 // Method called when the "selected Reviews" UIButton is tapped. We push the Segue manually so we get to the
 // state of the UIButton that was tapped otherwise when done automatically we cannot identify the UIButton
 // that was tapped either by the tag property or UIButton coordinates as these are not set.
--(void)selectedReviewsTapped:(id)sender
+-(void)reviewRanksTapped:(id)sender
 {
-    assert([sender isKindOfClass:[UIButton class]]);
-    UIButton *reviewButton = (UIButton *)sender;
-    assert(reviewButton != nil);
+    assert([sender isKindOfClass:[UISegmentedControl class]]);
+    UISegmentedControl *segmentControl = (UISegmentedControl *)sender;
+    assert(segmentControl != nil);
     
     // Get the Cell
     UITableViewCell *clickedCell = (UITableViewCell *)[[sender superview] superview];
     NSIndexPath *clickedButtonPath = [self.tableView indexPathForCell:clickedCell];
+    self.buttonIndex = clickedButtonPath.row;
     
     // Get the Touches
     //NSSet *touches = [event allTouches];
     //UITouch *touch = [touches anyObject];
     //CGPoint currentTouchPosition = [touch locationInView:self.tableView];
     //NSIndexPath *indexPath = [self.tableView indexPathForRowAtPoint: currentTouchPosition];
-    
     //NSLog(@"Review Button Sender Tag: %d", indexPath.row);
-    self.buttonIndex = clickedButtonPath.row;
-    [self performSegueWithIdentifier:kReviewsListSegueId sender:reviewButton];
-}
+    
+    // Determine which View Controller to Push
+    NSUInteger selectedIndex = [segmentControl selectedSegmentIndex];
+    switch (selectedIndex) {
+        case 0:
+            [self performSegueWithIdentifier:kReviewsListSegueId sender:segmentControl];
+            break;
+        case 1:
+            [self performSegueWithIdentifier:kProductRankId sender:segmentControl];
+            break;
+        default:
+            break;
+    }
+    
+    // Unselect the selectedSegementIndex
+    segmentControl.selectedSegmentIndex = -1;
 
-// Pushed the MzProductRankViewController
--(IBAction)rankTapped:(id)sender
-{
-    [self performSegueWithIdentifier:kProductRankId sender:self];
 }
 
 

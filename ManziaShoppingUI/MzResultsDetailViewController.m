@@ -64,6 +64,12 @@
     }
 }
 
+// Rotation
+- (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
+{
+    return  interfaceOrientation == UIInterfaceOrientationPortrait ? YES : NO;
+}
+
 - (void)didReceiveMemoryWarning
 {
     [super didReceiveMemoryWarning];

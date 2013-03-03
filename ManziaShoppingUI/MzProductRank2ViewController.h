@@ -21,7 +21,7 @@ enum RankingSyncState {
 };
 typedef enum RankingSyncState RankingSyncState;
 
-@interface MzProductRankViewController : UIViewController <CPTBarPlotDataSource, CPTBarPlotDelegate>
+@interface MzProductRank2ViewController : UIViewController <CPTBarPlotDataSource, CPTBarPlotDelegate>
 
 // Graph-related Properties
 @property (nonatomic, strong) IBOutlet CPTGraphHostingView *hostView;
@@ -30,12 +30,12 @@ typedef enum RankingSyncState RankingSyncState;
 @property (nonatomic, copy, readwrite) NSString *rankingURLString;
 
 /* Properties that enable the control of the syncing process
-@property (nonatomic, assign, readonly, getter=isSynchronizing) BOOL synchronizing;
-@property (nonatomic, assign, readonly) RankingSyncState  stateOfSync;
-@property (nonatomic, copy, readonly) NSString *statusOfSync;
-@property (nonatomic, copy, readonly) NSDate *dateLastSynced;
-@property (nonatomic, copy, readonly) NSError *errorFromLastSync;
-@property (nonatomic, copy, readonly) NSDateFormatter *dateFormatter; */
+ @property (nonatomic, assign, readonly, getter=isSynchronizing) BOOL synchronizing;
+ @property (nonatomic, assign, readonly) RankingSyncState  stateOfSync;
+ @property (nonatomic, copy, readonly) NSString *statusOfSync;
+ @property (nonatomic, copy, readonly) NSDate *dateLastSynced;
+ @property (nonatomic, copy, readonly) NSError *errorFromLastSync;
+ @property (nonatomic, copy, readonly) NSDateFormatter *dateFormatter; */
 
 
 @end
