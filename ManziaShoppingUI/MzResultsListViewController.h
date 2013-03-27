@@ -8,11 +8,11 @@
 
 #import <UIKit/UIKit.h>
 #import "MzSearchListViewController.h"
-#import "MzSearchReviewsViewController.h"
+#import "MzSearchReviews2ViewController.h"
 
 
 @interface MzResultsListViewController : UITableViewController <MzSearchListViewControllerDelegate,
-MzSearchReviewsViewControllerDelegate> {
+MzSearchReviews2ViewControllerDelegate> {
     
 }
 

@@ -1,12 +1,12 @@
 //
-//  MzSearchReviewsViewController.m
+//  MzSearchReviews2ViewController.m
 //  ManziaShoppingUI
 //
-//  Created by Macbook Pro on 1/31/13.
+//  Created by Roy Manzi Tumubweinee on 3/27/13.
 //  Copyright (c) 2013 Manzia Corporation. All rights reserved.
 //
 
-#import "MzSearchReviewsViewController.h"
+#import "MzSearchReviews2ViewController.h"
 #import "MzTaskCollection.h"
 #import "Logging.h"
 #import "MzResultsListViewController.h"
@@ -17,14 +17,15 @@
 #import "MzQualitiesListViewController.h"
 #import <QuartzCore/QuartzCore.h>
 
-// Rank Button Frame
-#define BUTTON_X 222
-#define BUTTON_Y 18
-#define BUTTON_WIDTH 73
-#define BUTTON_HEIGHT 25
+// UILabel Frame
+#define LABEL_X 0
+#define LABEL_Y 0
+#define LABEL_WIDTH_FACTOR 7.5
+#define LABEL_HEIGHT 40
+#define LABEL_SPACING 15
 
 
-@interface MzSearchReviewsViewController ()
+@interface MzSearchReviews2ViewController ()
 
 @property (nonatomic, strong) NSFetchedResultsController *fetchController;
 @property (nonatomic, strong) NSManagedObjectContext *managedContext;
@@ -53,17 +54,20 @@
 @property (nonatomic, assign) BOOL categoryHasChanged;
 @property (nonatomic, copy) NSString *currentCategory;
 
+// Keeps track of the Maximum X-value of the UILabel subviews in the UIScrollView property
+//@property (nonatomic, assign) CGFloat maxLabelsX;
+
 // Custom Ranking Button that brings up the MzResultsListViewController
-@property (nonatomic, strong) UIButton *rankingButton;
+//@property (nonatomic, strong) UIButton *rankingButton;
 
 @end
 
-@implementation MzSearchReviewsViewController
+@implementation MzSearchReviews2ViewController
 
 // Synthesizers
 //@synthesize categoryButton;
 @synthesize pickerView;
-@synthesize searchBar;
+@synthesize textView;
 @synthesize fetchController;
 @synthesize mainMenu;
 //@synthesize fetchQualityController;
@@ -78,8 +82,9 @@
 @synthesize currentCategory;
 @synthesize delegate;
 @synthesize qualityDelegate;
-@synthesize textGuide;
-@synthesize rankingButton;
+//@synthesize textGuide;
+//@synthesize maxLabelsX;
+//@synthesize rankingButton;
 
 // Database entity that we fetch from
 static NSString *kTaskTypeEntity = @"MzTaskType";
@@ -88,11 +93,11 @@ static NSString *kTaskAttributeEntity = @"MzTaskAttribute";
 // SearchItem Keys
 static NSString *kSearchItemKeywordFormat = @"q%@";
 static NSString *kSearchItemCategory = @"Category";
-static NSString *kDefaultSearchItemTitle = @"No Title";
-static NSString *kDefaultCategoryButtonString = @"Select Category";
+//static NSString *kDefaultSearchItemTitle = @"No Title";
+//static NSString *kDefaultCategoryButtonString = @"Select Category";
 
 // Push Segue
-static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
+//static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
 
 // Initializer
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
@@ -113,11 +118,12 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
     assert(mcontext != nil);
     if ([MzTaskCollection taskCollectionCoordinator] != nil) {
         [mcontext setPersistentStoreCoordinator:[MzTaskCollection taskCollectionCoordinator]];
-        self.managedContext = mcontext;
+        self.managedContext = mcontext;        
+        
     } else {
         
-        //Log
-        [[QLog log] logWithFormat:@"Error: Persistent Store Coordinator for Task Collection is nil"];
+        //Log and exit
+        [[QLog log] logWithFormat:@"Error: Persistent Store Coordinator for Task Collection is nil"];        
     }
     
     // We can now initialize our NSFetchedResultsController for the Categories
@@ -149,7 +155,7 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
         self.fetchController = nil;
     }
     
-     // Set up the MzQualityCollection
+    // Set up the MzQualityCollection
     self.qualityCollection = [[MzQualityCollection alloc] init];
     assert(self.qualityCollection != nil);
     [self.qualityCollection addQualityCollection];
@@ -159,14 +165,9 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
     assert(self.allQualities != nil);
     self.usersQualities = [NSMutableArray array];
     self.savedQualities = [self.qualityCollection allProductQualities];
-    //assert(self.savedQualities != nil);
-    //[[QLog log] logWithFormat:@"Qualities available for User Selection: %d ", [self.allQualities count]];
     
-    // Set up the categoryButton
-    //assert(self.categoryButton != nil);
-    //[self.categoryButton addTarget:self action:@selector(selectCategory) forControlEvents:UIControlEventTouchUpInside];
     
-    // Set up the UISearchBar
+    /* Set up the UISearchBar
     assert(self.searchBar != nil);
     self.searchBar.delegate = self;
     self.searchBar.showsCancelButton = YES;
@@ -176,11 +177,11 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
     UIBarButtonItem *addSpacer = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:nil action:nil];
     UIToolbar *toolbar = [[UIToolbar alloc]initWithFrame:CGRectMake(10,133,290,45)];
     toolbar.barStyle = UIBarStyleBlackTranslucent;
-        
+    
     [toolbar setItems:[NSArray arrayWithObjects:addButton, addSpacer, nil] animated:NO];
     [self.view addSubview:toolbar];
-    [self.view bringSubviewToFront:self.searchBar];
-       
+    [self.view bringSubviewToFront:self.searchBar]; */
+    
     // Set up the MzResultsListViewController as the delegate for insertions and deletions of
     // MzSearchItems.
     // 1- Get the delegate's Navigation Controller
@@ -192,7 +193,7 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
         NSUInteger delegateIndex = [delegateNavController.viewControllers indexOfObjectPassingTest:
                                     ^(id viewController, NSUInteger idx, BOOL *stop) {
                                         if( [viewController isKindOfClass:[MzResultsListViewController class]] &&
-                                           [MzResultsListViewController conformsToProtocol:@protocol(MzSearchReviewsViewControllerDelegate)]) {
+                                           [MzResultsListViewController conformsToProtocol:@protocol(MzSearchReviews2ViewControllerDelegate)]) {
                                             *stop = YES;
                                             return YES;
                                         } else {
@@ -221,7 +222,12 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
     self.categoryHasChanged = NO;
     self.currentCategory = [NSString string];
     
-    // Create and configure the Rank UIButton
+    // Set Self as delegate to textView
+    assert(self.textView != nil);
+    self.textView.delegate = self;
+    //self.maxLabelsX = 0.0f;
+    
+    /* Create and configure the Rank UIButton
     CGRect buttonFrame = CGRectMake(BUTTON_X, BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT);
     UIButton *rankButton = [UIButton buttonWithType:UIButtonTypeCustom];
     rankButton.frame = buttonFrame;
@@ -236,7 +242,7 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
     rankButton.layer.cornerRadius = 10.0f;
     [rankButton addTarget:self action:@selector(rankButtonSelected) forControlEvents:UIControlEventTouchUpInside];
     self.rankingButton = rankButton;
-    [self.view addSubview:self.rankingButton];
+    [self.view addSubview:self.rankingButton]; */
 }
 
 // Release iVars
@@ -245,13 +251,13 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
     self.managedContext = nil;
     self.fetchController = nil;
     //self.fetchQualityController = nil;
-    self.searchBar.delegate = nil;
+    self.textView = nil;
     self.qualityCollection = nil;
     self.usersQualities = nil;
     self.allQualities = nil;
     self.searchAlert = nil;
     self.savedQualities = nil;
-    self.rankingButton = nil;
+    //self.rankingButton = nil;
 }
 
 // View Lifecycle
@@ -262,7 +268,7 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
     // Keep the UIPickerView hidden until user taps the Select Category or Select Quality segments
     assert(self.pickerView != nil);
     self.pickerView.hidden = YES;
-    self.textGuide.hidden = YES;
+    //self.textGuide.hidden = YES;
 }
 
 // Animate the UILabel textGuide
@@ -270,18 +276,18 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
 {
     [super viewDidAppear:animated];
     
-    // Setup Animation
+    /* Setup Animation
     NSTimeInterval delay = 1.0;
     NSTimeInterval duration = 1.0;
     assert(self.textGuide != nil);
     
     [UIView animateWithDuration:duration delay:delay options:UIViewAnimationOptionBeginFromCurrentState animations:^{
-             
+        
         self.textGuide.hidden = NO;
         
     }completion:^(BOOL finished) {
         
-    }]; 
+    }]; */
 }
 
 // Rotation
@@ -316,7 +322,7 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
     if (qualityError) {
         
         //Log
-        [[QLog log] logWithFormat:@"Error fetching Qualities to display from TaskAttributes Entity: %@", qualityError.localizedDescription];        
+        [[QLog log] logWithFormat:@"Error fetching Qualities to display from TaskAttributes Entity: %@", qualityError.localizedDescription];
     }
     return [availableQualities valueForKey:@"taskAttributeName"];
 }
@@ -346,16 +352,17 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
         case 1:
             // we return zero rows if we did not fetch any MzTaskAttributes from the database
             if (self.allQualities != nil) {
-                NSString *selectedCategory = [self.mainMenu titleForSegmentAtIndex:0];
-                assert(selectedCategory != nil);
-                assert(![selectedCategory isEqualToString:kDefaultCategoryButtonString]);
-                NSArray *categoryQualities = [self fetchQualitiesForCategory:selectedCategory];
+                //NSString *selectedCategory = [self.mainMenu titleForSegmentAtIndex:0];
+                //assert(selectedCategory != nil);
+                //assert(![selectedCategory isEqualToString:kDefaultCategoryButtonString]);
+                assert([self.currentCategory length] > 0);
+                NSArray *categoryQualities = [self fetchQualitiesForCategory:self.currentCategory];
                 assert(categoryQualities != nil);
                 if (!self.sameSegmentTapped && self.categoryHasChanged) {
                     [self.allQualities addObjectsFromArray:categoryQualities];
                     if (self.savedQualities != nil) {
                         [self.allQualities addObjectsFromArray:self.savedQualities];
-                    }                    
+                    }
                 }
                 if ([self.allQualities count] == 0) {
                     [self.allQualities addObjectsFromArray:categoryQualities];
@@ -364,12 +371,12 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
                     }
                 }
                 rowCount = [self.allQualities count];
-                [[QLog log] logWithFormat:@"Qualities available for User Selection: %d for Category: %@", rowCount, selectedCategory];
+                [[QLog log] logWithFormat:@"Qualities available for User Selection: %d for Category: %@", rowCount, self.currentCategory];
             } else {
                 rowCount = 0;
             }
             break;
-            default:
+        default:
             rowCount = 0;
             break;
     }
@@ -412,8 +419,8 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
 - (void) pickerView:(UIPickerView *)pickerView didSelectRow:(NSInteger)row inComponent:(NSInteger)component
 {
     NSUInteger menuIndex = [self.mainMenu selectedSegmentIndex];
-    NSString *currentTitle = [self.mainMenu titleForSegmentAtIndex:menuIndex];
-    assert(currentTitle != nil);
+    //NSString *currentTitle = [self.mainMenu titleForSegmentAtIndex:menuIndex];
+    //assert(currentTitle != nil);
     
     switch (menuIndex) {
         case 0:
@@ -424,19 +431,29 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
             NSString *selectedCategory = [categories objectAtIndex:row];
             assert(selectedCategory != nil);
             
-            // if we are changing from Category to another we "clear" all the Arrays dealing with Qualities
-            // since these are all Category-specific
-            if (![currentTitle isEqualToString:kDefaultCategoryButtonString]) {
+            // Track and Manage Category changes
+            self.categoryHasChanged = [selectedCategory isEqualToString:self.currentCategory] ? NO : YES;
+            
+            // if we are changing from Category to another
+            // 1- clear all the Arrays dealing with Qualities since these are category-specific
+            // 2- clear the text from the UITextView
+            if (self.categoryHasChanged) {
                 [self.allQualities removeAllObjects];
-                //[self.usersQualities removeAllObjects];
-            }
-            [self.mainMenu setTitle:selectedCategory forSegmentAtIndex:menuIndex];
+                if ([self.textView.text length] > 0) {
+                    self.textView.text = nil;
+                }
+                //self.maxLabelsX = 0.0f;
+                
+                // Add category String to our TextView
+                self.textView.text = selectedCategory;                
+            }            
             
-            // Fetch the Qualities for the new Category
-            
+            // Update the current Category
+            self.currentCategory = selectedCategory;
             
             // Dismiss the UIPickerView from view
             self.pickerView.hidden = YES;
+            self.mainMenu.selectedSegmentIndex = -1;
         }
             break;
         case 1:
@@ -445,13 +462,17 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
             assert([self.allQualities count] > 0);
             NSString *selectedQuality = [self.allQualities objectAtIndex:row];
             assert(selectedQuality != nil);
-            //[self.usersQualities addObject:selectedQuality];
+            [self.usersQualities addObject:selectedQuality];
+            
+            // Append the added Quality to the textView
+            NSString *textViewStr = self.textView.text;
+            assert(textViewStr != nil);
+            self.textView.text = [NSString stringWithFormat:@"%@  %@", textViewStr, selectedQuality];
             
             // Dismiss the UIPickerView from view
             self.pickerView.hidden = YES;
+            self.mainMenu.selectedSegmentIndex = -1;
             
-            // Add the selected Quality to the UISearchBar
-            self.searchBar.text = selectedQuality;
         }
             break;
             
@@ -470,11 +491,11 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
     assert([sender isKindOfClass:[MzSearchSegmentedControl class]]);
     UISegmentedControl *menu = (MzSearchSegmentedControl *)sender;
     NSUInteger selectedIndex = [menu selectedSegmentIndex];
-    NSString *newCategory = [menu titleForSegmentAtIndex:0];
+    //NSString *newCategory = [menu titleForSegmentAtIndex:0];
     
     // Tracking
     self.sameSegmentTapped = selectedIndex == self.currentSegmentIdx ? YES : NO;
-    self.categoryHasChanged = [newCategory isEqualToString:self.currentCategory] ? NO : YES;
+    //self.categoryHasChanged = [newCategory isEqualToString:self.currentCategory] ? NO : YES;
     
     // Logic
     switch (selectedIndex) {
@@ -483,23 +504,23 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
             self.pickerView.hidden = self.pickerView.hidden ? NO : YES;
             break;
         case 1:
-            if ([[menu titleForSegmentAtIndex:0] isEqualToString:kDefaultCategoryButtonString]) {
+            if (![self.textView.text length] > 0) {
                 // Display alert
                 [self.searchAlert show];
             } else {
                 // Reload the UIPickerView and call dataSource methods
                 [self.pickerView reloadAllComponents];
                 self.pickerView.hidden = self.pickerView.hidden ? NO : YES;
-            }            
+            }
             break;
-        case 2:
+        /*case 2:
             if ([[menu titleForSegmentAtIndex:0] isEqualToString:kDefaultCategoryButtonString]) {
                 // Display alert
                 [self.searchAlert show];
             } else {
                 // User selected the last segment
                 [self performSegueWithIdentifier:kQualitiesDetailPushSegue sender:self];
-            }
+            } */
         default:
             break;
     }
@@ -513,7 +534,7 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
     
     // Update the Segment Trackers
     self.currentSegmentIdx = selectedIndex;
-    self.currentCategory = newCategory;
+    //self.currentCategory = newCategory;
 }
 
 // Helper method to dismiss UIPickerView
@@ -526,7 +547,7 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
 #pragma mark * Product Qualities
 
 // Send Query to MzResultsListViewController
--(void)rankButtonSelected
+-(IBAction)rankButtonSelected:(id)sender
 {
     
     // Send query to Delegate...method immediately starts the synchronization process
@@ -534,7 +555,7 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
     assert(self.usersQualities != nil);
     
     if ([self.usersQualities count] > 0) {
-        MzSearchItem *searchItem = [self createSearchItemFromQuery:self.usersQualities andCategory:[self.mainMenu titleForSegmentAtIndex:0]];
+        MzSearchItem *searchItem = [self createSearchItemFromQuery:self.usersQualities andCategory:self.currentCategory];
         assert(self.delegate != nil);
         [self.delegate controller:self addSearchItem:searchItem];
         
@@ -545,7 +566,7 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
         
         // Disable the Rank Button so that User cannot re-rank using the same qualities. The Rank Button is re-enabled for
         // user interactions when the Add Button is tapped and a quality is added
-        self.rankingButton.userInteractionEnabled = NO;
+        //self.rankingButton.userInteractionEnabled = NO;
         
         // Switch to the Results ViewController Hierarchy and Activate the Results Tab BarItem
         UITabBarItem *resultsTabBar = [[[self.tabBarController viewControllers] objectAtIndex:1] tabBarItem];
@@ -559,31 +580,24 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
         UIAlertView *rankAlert = [[UIAlertView alloc] initWithTitle:@"No Product Qualities" message:@"Select a Quality or Enter a Quality in the SearchBar" delegate:self cancelButtonTitle:@"Ok" otherButtonTitles:nil, nil];
         assert(rankAlert != nil);
         [rankAlert show];
-
-    }
-    
-
-}
-
-// Notify the User that a quality has been added and also provide instructions on how to proceed
-// Decided against implementing this notification as it will become a nuisance.
--(void)userQualityNotification
-{
+        
+    }    
     
 }
 
-// Push the ViewController that will display the Qualities
+
+/* Push the ViewController that will display the Qualities
 -(void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender
 {
     if ([[segue identifier] isEqualToString:kQualitiesDetailPushSegue]) {
         MzQualitiesListViewController *qualityController = [segue destinationViewController];
         assert(qualityController != nil);
-        qualityController.qualityArray = [[NSArray alloc] initWithArray:self.usersQualities];        
+        qualityController.qualityArray = [[NSArray alloc] initWithArray:self.usersQualities];
         qualityController.qCollection = self.qualityCollection;
         self.qualityDelegate = qualityController;
     }
-
-}
+    
+}*/
 
 #pragma mark * Memory Management
 
@@ -593,13 +607,33 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
     // Dispose of any resources that can be recreated.
 }
 
+#pragma mark * TextView Delegate methods
+
+// Generate a new UILable for every selection the User makes in the UIPickerView. This label
+/* will be displayed in the UIScrollView.
+-(UILabel *)generateLabel:(NSString *)labelTitle
+{
+    assert(labelTitle != nil);
+    CGFloat labelWidth = [labelTitle length] * LABEL_WIDTH_FACTOR;
+    CGRect labelFrame = CGRectMake(LABEL_X, LABEL_Y, labelWidth, LABEL_HEIGHT);
+    UILabel *addLabel = [[UILabel alloc] initWithFrame:labelFrame];
+    addLabel.text = labelTitle;
+    addLabel.textAlignment = UITextAlignmentLeft;
+    addLabel.textColor = [UIColor purpleColor];
+    addLabel.font = [UIFont systemFontOfSize:13.0f];
+    addLabel.userInteractionEnabled = NO;
+    addLabel.lineBreakMode = UILineBreakModeTailTruncation;
+    //addLabel.backgroundColor = [UIColor lightGrayColor];
+    return addLabel;
+} */
+
 #pragma mark * Search Query Management
 
 // User has the tapped the Add button next to the UISearchBar so we:
 // 1- clear the text in the SearchBar
 // 2- bring up the UIPickerView
 // 3- enable the Rank Button if its disabled
--(void)addQualityTapped
+/*-(void)addQualityTapped
 {
     // dismiss PickerView
     [self dismissPickerView];
@@ -622,7 +656,7 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
             [self.usersQualities addObject:query];
         }
         //NSLog(@"Query added to Array: %@", query);    //testing
-    }    
+    }
     // clear SearchBar
     self.searchBar.text = nil;
     
@@ -633,11 +667,11 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
     // Enable Rank Button
     // We can enable the Rank Button since at this point we are sure we have at least one
     // quality in the usersQualities array
-   self.rankingButton.userInteractionEnabled = YES;
-}
+    self.rankingButton.userInteractionEnabled = YES;
+} */
 
 // Verify that the User has selected a Category before they can enter a Query
--(BOOL) searchBarShouldBeginEditing:(UISearchBar *)searchBar
+/*-(BOOL) searchBarShouldBeginEditing:(UISearchBar *)searchBar
 {
     // dismiss PickerView
     [self dismissPickerView];
@@ -652,16 +686,16 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
     } else {
         return YES;
     }
-}
+} */
 
 // Respond to the User's selection on the UIAlertView
 -(void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonsIndex
 {
-   // We don't do anything
+    // We don't do anything
     return;
 }
 
-// User is going to enter the query
+/* User is going to enter the query
 -(void) searchBarSearchButtonClicked:(UISearchBar *)searchesBar
 {
     
@@ -699,7 +733,7 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
         
         // resign UISearchBar form being First Responder but nothing else
         [searchesBar resignFirstResponder];
-    }    
+    }
 }
 
 // User finished entering query
@@ -707,7 +741,7 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
 {
     // resign UISearchBar form being First Responder
     [searchesBar resignFirstResponder];
-}
+} */
 
 // Create a MzSearchItem from the user's query
 // We set the MzSearchItem searchTitle property to the user-selected Category
@@ -716,7 +750,7 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
     MzSearchItem *searchItem = nil;
     if (queryStr != nil && categoryStr != nil && [queryStr count] > 0) {
         
-        searchItem = [[MzSearchItem alloc] init];        
+        searchItem = [[MzSearchItem alloc] init];
         //set the search Properties
         searchItem.searchTitle = [categoryStr copy];
         searchItem.searchStatus = SearchItemStateInProgress;
@@ -741,12 +775,12 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
             [searchCollection addSearchItem:searchItem];
         } else {
             [[QLog log] logWithFormat:@"Failed to add new MzSearchItem to MzSearchCollection with Query: %@", queryStr];
-        }        
+        }
     }
     return searchItem;
 }
 
-// User cancelled entering query
+/* User cancelled entering query
 -(void) searchBarCancelButtonClicked:(UISearchBar *)searchesBar
 {
     // dismiss PickerView
@@ -755,6 +789,7 @@ static NSString *kQualitiesDetailPushSegue = @"kQualitiesDetailSegue";
     assert(self.searchBar != nil);
     [searchesBar resignFirstResponder];
     
-}
+} */
+
 
 @end

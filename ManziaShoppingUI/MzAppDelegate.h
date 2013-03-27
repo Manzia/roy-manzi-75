@@ -30,4 +30,8 @@
 // Returns the base URL for all Product search requests
 @property (nonatomic, strong, readonly) NSString *searchesURL;
 
+// Property used by the MzProductRank2ViewController to determine whether to display ist UITextView
+// informing the User to tap a Bar in the Chart in order to see the associated Popularity Score
+@property (nonatomic, assign) BOOL diplayTextView;
+
 @end

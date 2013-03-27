@@ -11,6 +11,7 @@
 #import "RetryingHTTPOperation.h"
 #import "MzRanksParserOperation.h"
 #import "Logging.h"
+#import "MzAppDelegate.h"
 
 @interface MzProductRank2ViewController ()
 
@@ -33,6 +34,9 @@
 @property (nonatomic, copy, readwrite) NSError *errorFromLastSync;
 @property (nonatomic, copy, readwrite) NSDateFormatter *dateFormatter;
 
+// UITextView used to tell the User to tap a Bar in Chart to see the associated Popularity Score
+@property (nonatomic, strong) UITextView *barScoreView;
+
 // Forward Declarations
 -(void)initPlot;
 -(void)configureGraph;
@@ -51,6 +55,7 @@
 @synthesize hostView;
 @synthesize rankPlot;
 @synthesize priceAnnotation;
+@synthesize barScoreView;
 
 // Network-related
 @synthesize rankingURLString;
@@ -103,11 +108,53 @@ static NSUInteger kTop25Max = 25;
     }	
 }
 
+- (void) viewWillAppear:(BOOL)animated
+{
+    [super viewWillAppear:animated];
+    
+    // Force the User to use the Navigation Bar and not the Tab Bar for navigation
+    UITabBarItem *resultsTabBar = [[[self.tabBarController viewControllers] objectAtIndex:1] tabBarItem];
+    assert(resultsTabBar != nil);
+    resultsTabBar.enabled = NO;
+}
+
 -(void)viewDidAppear:(BOOL)animated {
     [super viewDidAppear:animated];
     
     // The plot is initialized here, since the view bounds have not transformed for landscape until now
     [self initPlot];
+    
+    // Create a UITextView telling the User to tap a Bar in the Chart to see Popularity Score
+    // This textView appears only once per App launch so as not to become a nuisance.
+    MzAppDelegate * appDelegate = (MzAppDelegate *)[[UIApplication sharedApplication] delegate];
+    BOOL canDisplay = appDelegate.diplayTextView;
+    if (canDisplay) {
+        CGRect labelFrame = CGRectMake(175, 30, 120, 45);
+        UILabel *labelView = [[UILabel alloc] initWithFrame:labelFrame];
+        labelView.backgroundColor = [UIColor clearColor];
+        labelView.text = @"Tap a Bar to See Popularity Score";
+        labelView.numberOfLines = 2;
+        labelView.font = [UIFont boldSystemFontOfSize:13.0];
+        labelView.textColor = [UIColor redColor];
+        labelView.textAlignment = UITextAlignmentCenter;
+        [self.view addSubview:labelView];
+        [self.view bringSubviewToFront:labelView];
+        
+        // Create Animation
+        NSTimeInterval delay = 2.0;
+        NSTimeInterval duration = 4.0;
+        assert(labelView != nil);
+        
+        [UIView animateWithDuration:duration delay:delay options:UIViewAnimationOptionBeginFromCurrentState animations:^{
+            
+            labelView.alpha = 0.0;
+            
+        }completion:^(BOOL finished) {
+            if (finished) [labelView removeFromSuperview];
+        }];
+    }
+    appDelegate.diplayTextView = NO;    // UITextView is shown only once with every App Launch
+
 }
 
 -(void)viewDidDisappear:(BOOL)animated
@@ -120,7 +167,8 @@ static NSUInteger kTop25Max = 25;
     }
     
     // Remove observer
-    [self removeObserver:self forKeyPath:@"statusOfSync"];
+    [self removeObserver:self forKeyPath:@"statusOfSync"];    
+   
 }
 
 -(void)viewDidUnload
@@ -136,6 +184,7 @@ static NSUInteger kTop25Max = 25;
     self.dateLastSynced = nil;
     self.dateFormatter = nil;
     self.errorFromLastSync = nil;
+    self.barScoreView = nil;
     
     // Remove observer
     //[self removeObserver:self forKeyPath:@"statusOfSync"];
@@ -323,7 +372,7 @@ static NSUInteger kTop25Max = 25;
     graph.plotAreaFrame.paddingLeft   = 70.0;
     graph.plotAreaFrame.paddingTop    = 40.0;
     graph.plotAreaFrame.paddingRight  = 20.0;
-    graph.plotAreaFrame.paddingBottom = 80.0;
+    graph.plotAreaFrame.paddingBottom = 100.0;
     
     // 3 - Set up styles
     CPTMutableTextStyle *titleStyle = [CPTMutableTextStyle textStyle];
@@ -332,7 +381,7 @@ static NSUInteger kTop25Max = 25;
     titleStyle.fontSize = 16.0f;
     
     // 4 - Set up title
-    NSString *title = @" Top 25 Rank per Quality";
+    NSString *title = @"Popularity Rank per Quality";
     graph.title = title;
     graph.titleTextStyle = titleStyle;
     graph.titlePlotAreaFrameAnchor = CPTRectAnchorTop;
@@ -444,13 +493,26 @@ static NSUInteger kTop25Max = 25;
 }
 
 // Helper method that returns an NSArray with all the Qualities from the rankResults NSArray with NSDictionary entries
+// Note that for the "Mobile Phones" category we need to trim the leading "Phones" word that is sent by the Manzia Server
 -(NSArray *)arrayofQualitiesFromDictionaries:(NSArray *)array
 {
     assert(array != nil);
     if ([array count] > 0) {
         NSMutableArray *allQualities = [NSMutableArray array];
+        NSCharacterSet *whiteSpaceSet = [NSCharacterSet whitespaceCharacterSet];
         [array enumerateObjectsUsingBlock:^(NSDictionary *dict, NSUInteger idx, BOOL *stop) {
-            [allQualities addObject:[dict objectForKey:kParserRankQuality]];
+            
+            NSString *quality = [dict objectForKey:kParserRankQuality];
+            assert(quality != nil);
+            NSRange whiteSpaceRange = [quality rangeOfCharacterFromSet:whiteSpaceSet];
+            if (whiteSpaceRange.location != NSNotFound) {
+                NSString *phonesStr = [quality substringToIndex:whiteSpaceRange.location];
+                assert(phonesStr != nil);
+                if ([phonesStr isEqualToString:@"Phones"]) {
+                    quality = [quality substringFromIndex:whiteSpaceRange.location];
+                }                
+            }           
+            [allQualities addObject:quality];
         }];
         return allQualities;
         

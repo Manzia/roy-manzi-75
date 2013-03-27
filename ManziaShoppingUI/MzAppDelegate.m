@@ -33,6 +33,7 @@
 @synthesize uniqueDeviceId;
 @synthesize searchCollection;
 @synthesize searchesURL;
+@synthesize diplayTextView;
 
 
 // URL String for the TaskCollection pointing to the Manzia Servers
@@ -120,7 +121,11 @@ static NSString *kTaskURLString = @"http://ec2-50-18-112-205.us-west-1.compute.a
     if ( [userDefaults boolForKey:@"applicationClearSetup"] ) {
         [userDefaults removeObjectForKey:@"applicationClearSetup"];
        // [userDefaults removeObjectForKey:@"galleryURLString"];
-    }         
+    }
+    
+    // Indicate that the MzProductRank2ViewController can display its UITextView
+    self.diplayTextView = YES;
+    
     return YES;
 }
 

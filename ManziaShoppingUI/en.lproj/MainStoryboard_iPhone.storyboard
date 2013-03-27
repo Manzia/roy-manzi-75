@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="2.0" toolsVersion="2843" systemVersion="11G63" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" initialViewController="4">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="2.0" toolsVersion="3084" systemVersion="11G63" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" initialViewController="4">
     <dependencies>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="1929"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="2083"/>
     </dependencies>
     <scenes>
-        <!--Mz Search Reviews View Controller - Rank Products-->
+        <!--Mz Search Reviews2 View Controller - Rank Products-->
         <scene sceneID="ZEP-xs-jXS">
             <objects>
-                <viewController storyboardIdentifier="KSearchReviewsVC" id="ago-pT-6qE" customClass="MzSearchReviewsViewController" sceneMemberID="viewController">
+                <viewController storyboardIdentifier="KSearchReviewsVC" id="ago-pT-6qE" customClass="MzSearchReviews2ViewController" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="vEB-87-fwo">
                         <rect key="frame" x="0.0" y="64" width="320" height="367"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                         <subviews>
                             <pickerView contentMode="scaleToFill" id="efO-JG-tpr">
-                                <rect key="frame" x="17" y="199" width="278" height="216"/>
+                                <rect key="frame" x="11" y="151" width="293" height="216"/>
                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMaxY="YES"/>
                                 <color key="backgroundColor" red="0.90518851902173914" green="0.90518851902173914" blue="0.90518851902173914" alpha="1" colorSpace="calibratedRGB"/>
                                 <connections>
@@ -21,51 +21,43 @@
                                     <outlet property="delegate" destination="ago-pT-6qE" id="FUJ-Vh-XN9"/>
                                 </connections>
                             </pickerView>
-                            <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="e.g attractive display, lightweight and ideal for student" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="Ovf-b5-XSS">
-                                <rect key="frame" x="11" y="178" width="288" height="21"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <fontDescription key="fontDescription" type="system" pointSize="12"/>
-                                <color key="textColor" cocoaTouchSystemColor="darkTextColor"/>
-                                <nil key="highlightedColor"/>
-                            </label>
-                            <searchBar contentMode="redraw" barStyle="blackTranslucent" placeholder="Enter a Product Quality" showsCancelButton="YES" id="khB-Yv-QZV">
-                                <rect key="frame" x="67" y="134" width="230" height="44"/>
-                                <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMaxY="YES"/>
-                                <textInputTraits key="textInputTraits"/>
-                            </searchBar>
-                            <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="Select Category, add Product Qualities, Rank" textAlignment="center" lineBreakMode="wordWrap" numberOfLines="2" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="Tlu-9N-abx">
-                                <rect key="frame" x="0.0" y="5" width="191" height="53"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <fontDescription key="fontDescription" type="italicSystem" pointSize="14"/>
-                                <color key="textColor" cocoaTouchSystemColor="darkTextColor"/>
-                                <nil key="highlightedColor"/>
-                                <color key="shadowColor" red="0.30140472340000002" green="0.49272780309999997" blue="1" alpha="1" colorSpace="calibratedRGB"/>
-                            </label>
-                            <segmentedControl opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="top" segmentControlStyle="bar" selectedSegmentIndex="2" id="Ict-U9-Nqn" customClass="MzSearchSegmentedControl">
-                                <rect key="frame" x="4" y="66" width="293" height="30"/>
+                            <segmentedControl opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="top" segmentControlStyle="bordered" id="Ict-U9-Nqn" customClass="MzSearchSegmentedControl">
+                                <rect key="frame" x="11" y="30" width="293" height="44"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <segments>
                                     <segment title="Select Category"/>
-                                    <segment title="Select Quality"/>
-                                    <segment title="Your Qualities"/>
+                                    <segment title="Add Quality"/>
                                 </segments>
-                                <color key="tintColor" white="0.33333333333333331" alpha="1" colorSpace="calibratedWhite"/>
+                                <color key="tintColor" white="0.0" alpha="1" colorSpace="calibratedWhite"/>
                                 <connections>
                                     <action selector="selectedMainMenu:" destination="ago-pT-6qE" eventType="valueChanged" id="mOY-H0-Nq4"/>
                                 </connections>
                             </segmentedControl>
+                            <textView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" editable="NO" id="krf-VR-8dM">
+                                <rect key="frame" x="11" y="88" width="293" height="55"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="calibratedRGB"/>
+                                <color key="textColor" red="0.42039871829999997" green="0.0" blue="0.42219387759999999" alpha="1" colorSpace="calibratedRGB"/>
+                                <fontDescription key="fontDescription" type="italicSystem" pointSize="13"/>
+                                <textInputTraits key="textInputTraits" autocapitalizationType="sentences"/>
+                            </textView>
                         </subviews>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                     </view>
                     <toolbarItems/>
-                    <navigationItem key="navigationItem" title="Rank Products" id="v2U-O8-GpF"/>
+                    <navigationItem key="navigationItem" title="Rank Products" id="v2U-O8-GpF">
+                        <barButtonItem key="rightBarButtonItem" title="Rank" id="Vu1-NF-TT4">
+                            <color key="tintColor" white="0.33333333333333331" alpha="1" colorSpace="calibratedWhite"/>
+                            <connections>
+                                <action selector="rankButtonSelected:" destination="ago-pT-6qE" id="iW6-yq-O61"/>
+                            </connections>
+                        </barButtonItem>
+                    </navigationItem>
                     <connections>
                         <outlet property="mainMenu" destination="Ict-U9-Nqn" id="kLf-Wc-WvX"/>
                         <outlet property="pickerView" destination="efO-JG-tpr" id="Kl6-bJ-MsI"/>
-                        <outlet property="searchBar" destination="khB-Yv-QZV" id="542-Ev-Hr1"/>
                         <outlet property="searchDisplayController" destination="A81-fc-aWW" id="LqD-gq-uRg"/>
-                        <outlet property="textGuide" destination="Tlu-9N-abx" id="F1q-WL-aS5"/>
-                        <segue destination="8fY-7w-JRN" kind="push" identifier="kQualitiesDetailSegue" id="RUF-Zu-aOb"/>
+                        <outlet property="textView" destination="krf-VR-8dM" id="5cu-Cd-wiz"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="1mh-h6-p7i" userLabel="First Responder" sceneMemberID="firstResponder"/>
@@ -79,59 +71,6 @@
                 </searchDisplayController>
             </objects>
             <point key="canvasLocation" x="402" y="-453"/>
-        </scene>
-        <!--Mz Qualities List View Controller - Your Qualities-->
-        <scene sceneID="HOx-h9-TZN">
-            <objects>
-                <tableViewController id="8fY-7w-JRN" customClass="MzQualitiesListViewController" sceneMemberID="viewController">
-                    <tableView key="view" opaque="NO" clipsSubviews="YES" clearsContextBeforeDrawing="NO" contentMode="scaleToFill" alwaysBounceVertical="YES" indicatorStyle="white" dataMode="prototypes" style="plain" separatorStyle="none" allowsSelection="NO" rowHeight="50" sectionHeaderHeight="30" sectionFooterHeight="22" id="nSy-aX-tNX">
-                        <rect key="frame" x="0.0" y="64" width="320" height="367"/>
-                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                        <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
-                        <color key="separatorColor" cocoaTouchSystemColor="darkTextColor"/>
-                        <prototypes>
-                            <tableViewCell contentMode="center" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="kQualitiesDetailCellId" rowHeight="50" id="AP4-kP-a67" customClass="MzQualitiesListCell">
-                                <rect key="frame" x="0.0" y="30" width="320" height="50"/>
-                                <autoresizingMask key="autoresizingMask"/>
-                                <view key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center">
-                                    <rect key="frame" x="0.0" y="0.0" width="320" height="49"/>
-                                    <autoresizingMask key="autoresizingMask"/>
-                                    <subviews>
-                                        <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="TopLeft" text="Label" lineBreakMode="tailTruncation" numberOfLines="2" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="5ww-aR-1Cg">
-                                            <rect key="frame" x="20" y="6" width="265" height="36"/>
-                                            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                            <accessibility key="accessibilityConfiguration">
-                                                <accessibilityTraits key="traits" none="YES" staticText="YES" notEnabled="YES"/>
-                                            </accessibility>
-                                            <fontDescription key="fontDescription" type="italicSystem" pointSize="14"/>
-                                            <color key="textColor" cocoaTouchSystemColor="darkTextColor"/>
-                                            <color key="highlightedColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
-                                        </label>
-                                    </subviews>
-                                    <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
-                                </view>
-                                <connections>
-                                    <outlet property="qualityLabel" destination="5ww-aR-1Cg" id="FpA-dD-qW5"/>
-                                </connections>
-                            </tableViewCell>
-                        </prototypes>
-                        <connections>
-                            <outlet property="dataSource" destination="8fY-7w-JRN" id="CgG-Da-I0T"/>
-                            <outlet property="delegate" destination="8fY-7w-JRN" id="AWt-2p-qkG"/>
-                        </connections>
-                    </tableView>
-                    <toolbarItems/>
-                    <navigationItem key="navigationItem" title="Your Qualities" id="Ood-ta-WeL">
-                        <barButtonItem key="rightBarButtonItem" systemItem="save" id="6Xx-hq-GEW">
-                            <connections>
-                                <action selector="saveQualities:" destination="8fY-7w-JRN" id="iff-D5-WvV"/>
-                            </connections>
-                        </barButtonItem>
-                    </navigationItem>
-                </tableViewController>
-                <placeholder placeholderIdentifier="IBFirstResponder" id="7Z2-uT-tmW" userLabel="First Responder" sceneMemberID="firstResponder"/>
-            </objects>
-            <point key="canvasLocation" x="821" y="-502"/>
         </scene>
         <!--Mz Results List View Controller - Results-->
         <scene sceneID="pjZ-rr-Sv7">
@@ -412,81 +351,6 @@
         <image name="first" width="16" height="16"/>
         <image name="second" width="16" height="16"/>
     </resources>
-    <classes>
-        <class className="CPTGraphHostingView" superclassName="UIView">
-            <source key="sourceIdentifier" type="project" relativePath="./Classes/CPTGraphHostingView.h"/>
-        </class>
-        <class className="MzProductRank2ViewController" superclassName="UIViewController">
-            <source key="sourceIdentifier" type="project" relativePath="./Classes/MzProductRank2ViewController.h"/>
-            <relationships>
-                <relationship kind="outlet" name="hostView" candidateClass="CPTGraphHostingView"/>
-            </relationships>
-        </class>
-        <class className="MzQualitiesListCell" superclassName="UITableViewCell">
-            <source key="sourceIdentifier" type="project" relativePath="./Classes/MzQualitiesListCell.h"/>
-            <relationships>
-                <relationship kind="outlet" name="qualityLabel" candidateClass="UILabel"/>
-            </relationships>
-        </class>
-        <class className="MzQualitiesListViewController" superclassName="UITableViewController">
-            <source key="sourceIdentifier" type="project" relativePath="./Classes/MzQualitiesListViewController.h"/>
-            <relationships>
-                <relationship kind="action" name="saveQualities:"/>
-            </relationships>
-        </class>
-        <class className="MzResultListCell" superclassName="UITableViewCell">
-            <source key="sourceIdentifier" type="project" relativePath="./Classes/MzResultListCell.h"/>
-            <relationships>
-                <relationship kind="outlet" name="priceLabel" candidateClass="UILabel"/>
-                <relationship kind="outlet" name="productImage" candidateClass="UIImageView"/>
-                <relationship kind="outlet" name="productPrice" candidateClass="UILabel"/>
-                <relationship kind="outlet" name="productTitle" candidateClass="UILabel"/>
-                <relationship kind="outlet" name="reviewRanks" candidateClass="UISegmentedControl"/>
-            </relationships>
-        </class>
-        <class className="MzResultsDetailViewController" superclassName="UIViewController">
-            <source key="sourceIdentifier" type="project" relativePath="./Classes/MzResultsDetailViewController.h"/>
-            <relationships>
-                <relationship kind="outlet" name="webView" candidateClass="UIWebView"/>
-            </relationships>
-        </class>
-        <class className="MzResultsListViewController" superclassName="UITableViewController">
-            <source key="sourceIdentifier" type="project" relativePath="./Classes/MzResultsListViewController.h"/>
-            <relationships>
-                <relationship kind="action" name="reviewRanksTapped:"/>
-            </relationships>
-        </class>
-        <class className="MzReviewsListCell" superclassName="UITableViewCell">
-            <source key="sourceIdentifier" type="project" relativePath="./Classes/MzReviewsListCell.h"/>
-            <relationships>
-                <relationship kind="outlet" name="reviewAuthor" candidateClass="UILabel"/>
-                <relationship kind="outlet" name="reviewDateTime" candidateClass="UILabel"/>
-                <relationship kind="outlet" name="reviewRating" candidateClass="UILabel"/>
-                <relationship kind="outlet" name="reviewSource" candidateClass="UILabel"/>
-                <relationship kind="outlet" name="reviewText" candidateClass="UITextView"/>
-                <relationship kind="outlet" name="reviewTitle" candidateClass="UILabel"/>
-            </relationships>
-        </class>
-        <class className="MzReviewsListViewController" superclassName="UITableViewController">
-            <source key="sourceIdentifier" type="project" relativePath="./Classes/MzReviewsListViewController.h"/>
-            <relationships>
-                <relationship kind="action" name="selectedReviewsTapped:"/>
-            </relationships>
-        </class>
-        <class className="MzSearchReviewsViewController" superclassName="UIViewController">
-            <source key="sourceIdentifier" type="project" relativePath="./Classes/MzSearchReviewsViewController.h"/>
-            <relationships>
-                <relationship kind="action" name="selectedMainMenu:"/>
-                <relationship kind="outlet" name="mainMenu" candidateClass="MzSearchSegmentedControl"/>
-                <relationship kind="outlet" name="pickerView" candidateClass="UIPickerView"/>
-                <relationship kind="outlet" name="searchBar" candidateClass="UISearchBar"/>
-                <relationship kind="outlet" name="textGuide" candidateClass="UILabel"/>
-            </relationships>
-        </class>
-        <class className="MzSearchSegmentedControl" superclassName="UISegmentedControl">
-            <source key="sourceIdentifier" type="project" relativePath="./Classes/MzSearchSegmentedControl.h"/>
-        </class>
-    </classes>
     <simulatedMetricsContainer key="defaultSimulatedMetrics">
         <simulatedStatusBarMetrics key="statusBar"/>
         <simulatedOrientationMetrics key="orientation"/>

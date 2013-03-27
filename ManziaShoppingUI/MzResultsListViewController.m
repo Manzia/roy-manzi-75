@@ -217,6 +217,11 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
     
     // Reload our tableView
     [self.tableView reloadData];
+    
+    // Re-enable the Tab Bar for navigation since we disabled it in the MzProductRank2ViewController
+    UITabBarItem *resultsTabBar = [[[self.tabBarController viewControllers] objectAtIndex:1] tabBarItem];
+    assert(resultsTabBar != nil);
+    resultsTabBar.enabled = YES;
 }
 
 -(void) viewWillDisappear:(BOOL)animated
@@ -1028,7 +1033,7 @@ static void *ThumbnailStatusContext = &ThumbnailStatusContext;
 }
 
 // Note that this delegate method references the MzSearchReviewsViewController unlike the method above
--(void) controller:(MzSearchReviewsViewController *)searchController addSearchItem:(MzSearchItem *)searchItem
+-(void) controller:(MzSearchReviews2ViewController *)searchController addSearchItem:(MzSearchItem *)searchItem
 {
     if (self.isViewLoaded == YES) {
         
