@@ -8,6 +8,6 @@
 
 #import <SenTestingKit/SenTestingKit.h>
 
-@interface ManziaShoppingUITest : SenTestCase
+@interface ManziaShoppingUITests : SenTestCase
 
 @end
