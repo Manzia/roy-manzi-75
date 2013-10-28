@@ -36,7 +36,6 @@
 		8438C19216345074000BD285 /* Placeholder-Bad.png in Resources */ = {isa = PBXBuildFile; fileRef = 8438C18F16345074000BD285 /* Placeholder-Bad.png */; };
 		8438C19316345074000BD285 /* Placeholder-Deferred.png in Resources */ = {isa = PBXBuildFile; fileRef = 8438C19016345074000BD285 /* Placeholder-Deferred.png */; };
 		843935CE16D721FE00B762CD /* MzSearchCollectionTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 843935CD16D721FE00B762CD /* MzSearchCollectionTests.m */; };
-		843935D016D7295300B762CD /* MzReviewCollection.m in Sources */ = {isa = PBXBuildFile; fileRef = 84B412D716BAE0CD0004F308 /* MzReviewCollection.m */; };
 		843935D116D7295D00B762CD /* MzSearchItem.m in Sources */ = {isa = PBXBuildFile; fileRef = 84A343FA15CAE05F004E927B /* MzSearchItem.m */; };
 		843935D216D7296800B762CD /* MzSearchCollection.m in Sources */ = {isa = PBXBuildFile; fileRef = 84A343FE15CAF859004E927B /* MzSearchCollection.m */; };
 		843935D316D7299700B762CD /* MzReviewParserOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 84BCDCD316BA39E80022E9B3 /* MzReviewParserOperation.m */; };
@@ -888,7 +887,6 @@
 				843935D316D7299700B762CD /* MzReviewParserOperation.m in Sources */,
 				843935D216D7296800B762CD /* MzSearchCollection.m in Sources */,
 				843935D116D7295D00B762CD /* MzSearchItem.m in Sources */,
-				843935D016D7295300B762CD /* MzReviewCollection.m in Sources */,
 				8428360416CC3E70008EFD31 /* MzReviewsListViewController.m in Sources */,
 				8428360016CC170E008EFD31 /* MzProductThumbNail.m in Sources */,
 				842835FF16CC10D9008EFD31 /* QRunLoopOperation.m in Sources */,
