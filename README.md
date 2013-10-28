@@ -5,7 +5,7 @@ Contains code for an iOS consumer electronics shopping app that I built. The bac
 
 ManziaShoppingUI Project:
 
-pulls product data from the backend JavaEE server
-allows users to generate qualitative queries using UIPickerView
-displays top-ranked products for the qualitative query
-displays a chart that shows the rank of the product against each selected qualitative attribute
+1- pulls product data from the backend JavaEE server
+2- allows users to generate qualitative queries using UIPickerView
+3- displays top-ranked products for the qualitative query
+4- displays a chart that shows the rank of the product against each selected qualitative attribute
