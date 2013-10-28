@@ -7,5 +7,5 @@ ManziaShoppingUI Project:
 
 1- pulls product data from the backend JavaEE server
 2- allows users to generate qualitative queries using UIPickerView
-3- displays top-ranked products for the qualitative query
+3- displays the top-ranked products for the qualitative query
 4- displays a chart that shows the rank of the product against each selected qualitative attribute
