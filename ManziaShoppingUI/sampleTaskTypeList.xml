@@ -1,0 +1,177 @@
+<?xml version="1.0"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:mz="http://www.manzia.com/productContent">
+<mz:categories>
+    <mz:category id="1000" name="Electronics" thumbnail_link="http://www.manzia.com/tasks/thumbnails/1000.jpg>
+        <mz:taskTypes>
+            <mz:taskType id="LN10001" name="Laptops & Netbooks" thumbnail_link="http://www.manzia.com/tasks/thumbnails/LN10001.jpg">
+                <mz:taskAttributes>
+                    <mz:taskAttributesCount>13</mz:taskAttributeCount>
+                    <mz:taskAttribute id="LN100010" name="Memory">
+                        <mz:taskAttributeValues value1="4GB or less" value2="8GB" value3="16GB" value4="32GB or more"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="LN100011" name="Brand">
+                        <mz:taskAttributeValues value1="Apple" value2="Dell" value3="HP" value4="Lenovo" value5="Samsung"
+                                                value6="Toshiba" value7="Acer" value8="Sony" value9="Asus" value10="Compaq"
+                                                value11="Gateway" value12="Fujitsu" value13="Alienware"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="LN100012" name="Condition">
+                        <mz:taskAttributeValues value1="New" value2="Used" value3="Refurbished"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="LN100013" name="Display Size">
+                        <mz:taskAttributeValues value1="13 inch" value2="15 inch" value3="17 inch" value4="Other"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="LN100014" name="Display Type">
+                        <mz:taskAttributeValues value1="Touch Screen" value2="Retina Display" value3="High Resolution"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="LN100015" name="Cores">
+                        <mz:taskAttributeValues value1="Single core" value2="Dual core" value3="Quad core"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="LN100016" name="Processor">
+                        <mz:taskAttributeValues value1="Intel" value2="AMD"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="LN100017" name="Networking">
+                        <mz:taskAttributeValues value1="Wi-Fi+Bluetooth+Ethernet" value2="Wi-Fi+Bluetooth"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="LN100018" name="Battery Life">
+                        <mz:taskAttributeValues value1="at least 5hrs" value2="5 to 8hrs" value3="more than 8hrs"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="LN100019" name="Storage Type">
+                        <mz:taskAttributeValues value1="SSD" value2="HDD"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="LN100020" name="Storage Capacity">
+                        <mz:taskAttributeValues value1="at least 120GB" value2="120 to 540GB" value3="540GB to 1TB"
+                                                value4="more than 1TB"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="LN100021" name="Graphics">
+                        <mz:taskAttributeValues value1="Intel" value2="AMD" value3="Nvidia"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="LN100022" name="Optical Drive">
+                        <mz:taskAttributeValues value1="DVD" value2="Blu-ray" value3="3D Blu-ray"/>
+                    </mz:taskAttribute>
+                </mz:taskAttributes>
+            </mz:taskType>
+            <mz:taskType id="TI10001" name="Tablets & iPad" thumbnail_link="http://www.manzia.com/tasks/thumbnails/TI10001.jpg">
+                <mz:taskAttributes>
+                    <mz:taskAttributesCount>11</mz:taskAttributeCount>
+                    <mz:taskAttribute id="TI100010" name="Storage">
+                        <mz:taskAttributeValues value1="16GB" value2="32GB" value3="64GB" value4="64GB or more"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="TI100011" name="Brand">
+                        <mz:taskAttributeValues value1="Apple" value2="Dell" value3="ViewSonic" value4="Lenovo" value5="Samsung"
+                                                value6="Toshiba" value7="Acer" value8="Sony" value9="Asus" value10="Coby"
+                                                value11="Blackberry" value12="Archos" value13="HTC" value14="Motorola"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="TI100012" name="Condition">
+                        <mz:taskAttributeValues value1="New" value2="Used" value3="Refurbished"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="TI100013" name="Display Size">
+                        <mz:taskAttributeValues value1="7 inch" value2="10 inch" value3="Other"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="TI100014" name="Display Type">
+                        <mz:taskAttributeValues value1="Capacitive" value2="Retina Display" value3="High Resolution"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="TI100015" name="Cores">
+                        <mz:taskAttributeValues value1="Single core" value2="Dual core" value3="Quad core"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="TI100016" name="Size & Weight">
+                        <mz:taskAttributeValues value1="ultra-Thin" value2="Thin" value3="lightweight"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="TI100017" name="Networking">
+                        <mz:taskAttributeValues value1="Wi-Fi+Bluetooth+3G" value2="Wi-Fi+Bluetooth" value3="Wi-Fi+Bluetooth+4G"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="TI100018" name="Battery Life">
+                        <mz:taskAttributeValues value1="at least 5hrs" value2="5 to 8hrs" value3="more than 8hrs"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="TI100019" name="Platform">
+                        <mz:taskAttributeValues value1="iPad" value2="Android" value3="Windows" value4="Blackberry"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="TI100020" name="Cameras">
+                        <mz:taskAttributeValues value1="Front" value2="Rear" value3="Front+Rear"/>
+                    </mz:taskAttribute>
+                </mz:taskAttributes>                
+            </mz:taskType>        
+            <mz:taskType id="PH10001" name="Phones" thumbnail_link="http://www.manzia.com/tasks/thumbnails/PH10001.jpg">
+                <mz:taskAttributes>
+                    <mz:taskAttributesCount>12</mz:taskAttributeCount>
+                    <mz:taskAttribute id="PH100010" name="Carrier">
+                        <mz:taskAttributeValues value1="ATT" value2="Verizon" value3="Sprint" value4="Tmobile"
+                                                value5="MetroPCS" value6="Alltel" value7="US Cellular"
+                                                value8="Cricket Wireless" value9="Virgin Mobile" value10="Boost Mobile"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="PH100011" name="Brand">
+                        <mz:taskAttributeValues value1="Apple" value2="LG" value3="Nokia" value4="Huawei" value5="Samsung"
+                                                value6="ZTE" value7="Acer" value8="Sony" value9="Blackbery" value10="HTC"
+                                                value11="Motorola" value12="Nexus" value13="Dell"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="PH100012" name="Condition">
+                        <mz:taskAttributeValues value1="New" value2="Used" value3="Refurbished"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="PH100013" name="Display Size">
+                        <mz:taskAttributeValues value1="3.5 inch" value2="4.1 inch" value3="Other"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="PH100014" name="Display Type">
+                        <mz:taskAttributeValues value1="multiTouch" value2="Retina Display" value3="High Resolution"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="PH100015" name="Cores">
+                        <mz:taskAttributeValues value1="Single core" value2="Dual core" value3="Quad core"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="PH100016" name="Keyboard">
+                        <mz:taskAttributeValues value1="Virtual" value2="Physical"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="PH100017" name="Networking">
+                        <mz:taskAttributeValues value1="Wi-Fi+Bluetooth+3G" value2="Wi-Fi+Bluetooth+4G" value3="NFC"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="PH100018" name="Battery Life">
+                        <mz:taskAttributeValues value1="at least 5hrs" value2="5 to 8hrs" value3="more than 8hrs"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="PH100019" name="Cameras">
+                        <mz:taskAttributeValues value1="Front" value2="Rear" value3="Front+Rear"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="PH100020" name="Platform">
+                        <mz:taskAttributeValues value1="iPhone" value2="Android" value3="Windows"
+                                                value4="Blackberry"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="PH100021" name="Storage">
+                        <mz:taskAttributeValues value1="at least 16GB" value2="32GB" value3="64GB" value4="more than 64GB"/>
+                    </mz:taskAttribute>
+                </mz:taskAttributes>
+            </mz:taskType>
+            <mz:taskType id="TV10001" name="TVs" thumbnail_link="http://www.manzia.com/tasks/thumbnails/TV10001.jpg">
+                <mz:taskAttributes>
+                    <mz:taskAttributesCount>8</mz:taskAttributeCount>
+                    <mz:taskAttribute id="TV100010" name="Vertical Resolution">
+                        <mz:taskAttributeValues value1="1080p" value2="720p" value3="480i" value4="1080i"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="TV100011" name="Brand">
+                        <mz:taskAttributeValues value1="JVC" value2="LG" value3="Panasonic" value4="Phillips" value5="Samsung"
+                                                value6="Visio" value7="Toshiba" value8="Sony" value9="Sharp"
+                                                value10="Insignia" value11="Elite" value12="RCA" value13="Haier"
+                                                value14="Mitsubishi" value15="Sansui" value16="Magnavox"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="TV100012" name="Condition">
+                        <mz:taskAttributeValues value1="New" value2="Used" value3="Refurbished"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="TV100013" name="Display Size">
+                        <mz:taskAttributeValues value1="20 inch or less" value2="21 to 39 inch" value3="40 to 59 inch"
+                                                value4="60 inch or greater"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="TV100014" name="Display Type">
+                        <mz:taskAttributeValues value1="LED" value2="Plasma" value3="3D" value4="LCD"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="TV100015" name="Connectivity">
+                        <mz:taskAttributeValues value1="HDMI" value2="USB" value3="Composite" value4="Component"
+                                                value5="VGA" value6="Coaxial"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="TV100016" name="Apps">
+                        <mz:taskAttributeValues value1="Netflix" value2="Youtube" value3="Hulu" value4="Amazon"
+                                                value5="Facebook" value6="Twitter" value7="Skype" value8="Pandora"/>
+                    </mz:taskAttribute>
+                    <mz:taskAttribute id="TV100017" name="Networking">
+                        <mz:taskAttributeValues value1="Wi-Fi+Ethernet" value2="Wi-Fi" value3="Streaming Video"/>
+                    </mz:taskAttribute>
+                </mz:taskAttributes>
+            </mz:taskType>
+        </mz:taskTypes>
+    </mz:category>
+</mz:categories>
+</feed>
